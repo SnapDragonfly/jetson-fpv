@@ -11,6 +11,7 @@ import sys
 import cv2
 import argparse
 import signal
+import threading
 import numpy as np
 from jetson_utils import videoSource, videoOutput, cudaToNumpy, cudaFromNumpy, Log
 
@@ -20,7 +21,7 @@ from jetson_utils import videoSource, videoOutput, cudaToNumpy, cudaFromNumpy, L
 delay_time = 1
 
 # thread exit control:
-exit_flag = False
+exit_flag = threading.Event()
 
 class Stabilizer:
     #################### USER VARS ######################################
@@ -216,9 +217,8 @@ class Stabilizer:
         self.count += 1
 
 def handle_interrupt(signal_num, frame):
-    global exit_flag
     print("video stabilizer set exit_flag ... ...")
-    exit_flag = True
+    exit_flag.set()
 
 def main():
     signal.signal(signal.SIGINT, handle_interrupt)
@@ -268,7 +268,7 @@ def main():
         roiDiv=4.0,
         showrectROI=0,
         showTrackingPoints=0,
-        showUnstabilized=1,
+        showUnstabilized=0,
         maskFrame=0,
         showFullScreen=0,
         delay_time=1
@@ -301,16 +301,14 @@ def main():
         if cv2.waitKey(delay_time) & 0xFF == ord('q'):
             print("video stabilizer ready to quit ... ...")
             break
-        global exit_flag
-        if exit_flag:
+        if exit_flag.is_set():
             print("video stabilizer ready to exit ... ...")
             break
 
     # Release resources
     cv2.destroyAllWindows()
-    print("video stabilizer finished!")
-    sys.exit(0)
 
 if __name__ == "__main__":
     main()
-
+    print("video stabilizer done!")
+    sys.exit(0)
