@@ -76,9 +76,14 @@ class Stabilizer:
     # Set to `0` to disable masking.
     maskFrame = 0
 
+    # stabilized algorithm enable/disable:
+    # Set to `True` to enable the algorithm.
+    # Set to `False` to disable the algorithm.
+    useStabilizer = True
+
     def __init__(self, downSample=downSample, zoomFactor=zoomFactor, processVar=processVar, measVar=measVar, 
                  roiDiv=roiDiv, showrectROI=showrectROI, showTrackingPoints=showTrackingPoints, showUnstabilized=showUnstabilized, 
-                 maskFrame=maskFrame, showFullScreen=showFullScreen, delay_time=delay_time):
+                 maskFrame=maskFrame, showFullScreen=showFullScreen, useStabilizer=useStabilizer):
         self.downSample = downSample
         self.zoomFactor = zoomFactor
         self.processVar = processVar
@@ -89,6 +94,7 @@ class Stabilizer:
         self.showUnstabilized = showUnstabilized
         self.maskFrame = maskFrame
         self.showFullScreen = showFullScreen
+        self.useStabilizer = useStabilizer
 
         # Initialize variables for stabilization
         self.lk_params = dict(winSize=(15, 15), maxLevel=3, criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
@@ -104,7 +110,11 @@ class Stabilizer:
         self.prevOrig = None
         self.lastRigidTransform = None
 
-    def apply(self, cv2_frame):
+    def toggle(self):
+        self.useStabilizer = not self.useStabilizer  # Toggle the value between True and False
+        print("Video stabilizer toggle ... ...", self.useStabilizer)
+
+    def stabilize(self, cv2_frame):
 
         # Resize the image
         res_w_orig = cv2_frame.shape[1]
@@ -205,7 +215,10 @@ class Stabilizer:
         if self.showFullScreen == 1:
             cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-        cv2.imshow(window_name, f_stabilized)
+        if self.useStabilizer:
+            cv2.imshow(window_name, f_stabilized)  # Ensure f_stabilized is an image (NumPy array)
+        else:
+            cv2.imshow(window_name, currFrame)  # Ensure currFrame is an image (NumPy array)
 
         if self.showUnstabilized == 1:
             cv2.imshow("Unstabilized ROI", self.prevGray)
@@ -271,7 +284,7 @@ def main():
         showUnstabilized=0,
         maskFrame=0,
         showFullScreen=0,
-        delay_time=1
+        useStabilizer=True
     )
 
     while True:
@@ -287,7 +300,7 @@ def main():
         numFrames += 1
 
         cv2_frame = cudaToNumpy(img)
-        stabilizer.apply(cv2_frame)
+        stabilizer.stabilize(cv2_frame)
 
         # render the image
         output.Render(img)
@@ -298,12 +311,17 @@ def main():
         # exit on input/output EOS or quit by user
         if not input.IsStreaming() or not output.IsStreaming():
             break
-        if cv2.waitKey(delay_time) & 0xFF == ord('q'):
-            print("video stabilizer ready to quit ... ...")
-            break
+
         if exit_flag.is_set():
             print("video stabilizer ready to exit ... ...")
             break
+
+        key = cv2.waitKey(delay_time) & 0xFF  # Capture the key press once
+        if chr(key).lower() == 'q':  # Convert the key to lowercase for case-insensitive comparison
+            print("Video stabilizer ready to quit ... ...")
+            break
+        elif chr(key).lower() == 's':  # Convert the key to lowercase for case-insensitive comparison
+            stabilizer.toggle()
 
     # Release resources
     cv2.destroyAllWindows()
