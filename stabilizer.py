@@ -84,7 +84,6 @@ class Stabilizer:
         self.showUnstabilized = showUnstabilized
         self.maskFrame = maskFrame
         self.showFullScreen = showFullScreen
-        self.delay_time = delay_time
 
         # Initialize variables for stabilization
         self.lk_params = dict(winSize=(15, 15), maxLevel=3, criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
