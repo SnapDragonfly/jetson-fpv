@@ -214,94 +214,93 @@ class Stabilizer:
 
 def main():
 
-    # parse command line
-    parser = argparse.ArgumentParser(description="View various types of video streams", 
-                                     formatter_class=argparse.RawTextHelpFormatter, 
-                                     epilog=videoSource.Usage() + videoOutput.Usage() + Log.Usage())
-
-    parser.add_argument(
-        "input", 
-        type=str, 
-        help="URI of the input stream"
-    )
-
-    parser.add_argument(
-        "output",
-        type=str,
-        default="file://output_video.mp4",
-        nargs='?',
-        help="URI of the output stream (default: file://output_video.mp4)"
-    )
-
-    parser.add_argument(
-        "--no-headless",
-        action="store_false",
-        dest="headless",
-        help="Enable the OpenGL GUI window (default: headless mode is enabled)"
-    )
-
     try:
+        # parse command line
+        parser = argparse.ArgumentParser(description="View various types of video streams", 
+                                        formatter_class=argparse.RawTextHelpFormatter, 
+                                        epilog=videoSource.Usage() + videoOutput.Usage() + Log.Usage())
+
+        parser.add_argument(
+            "input", 
+            type=str, 
+            help="URI of the input stream"
+        )
+
+        parser.add_argument(
+            "output",
+            type=str,
+            default="file://output_video.mp4",
+            nargs='?',
+            help="URI of the output stream (default: file://output_video.mp4)"
+        )
+
+        parser.add_argument(
+            "--no-headless",
+            action="store_false",
+            dest="headless",
+            help="Enable the OpenGL GUI window (default: headless mode is enabled)"
+        )
+
         args = parser.parse_known_args()[0]
+        if args.headless:
+            sys.argv.append("--headless")
+
+        # create video sources & outputs
+        input = videoSource(args.input, argv=sys.argv)
+        output = videoOutput(args.output, argv=sys.argv)
+
+        # capture frames until EOS or user exits
+        numFrames = 0
+
+        # Initialize Stabilizer with user-defined parameters
+        stabilizer = Stabilizer(
+            downSample=1.0,
+            zoomFactor=1.0,
+            processVar=0.03,
+            measVar=2,
+            roiDiv=4.0,
+            showrectROI=0,
+            showTrackingPoints=0,
+            showUnstabilized=1,
+            maskFrame=0,
+            showFullScreen=0,
+            delay_time=1
+        )
+
+        while True:
+            # capture the next image
+            img = input.Capture()
+
+            if img is None: # timeout
+                continue  
+                
+            if numFrames % 25 == 0 or numFrames < 15:
+                Log.Verbose(f"Raw video:  captured {numFrames} frames ({img.width} x {img.height})")
+
+            numFrames += 1
+
+            cv2_frame = cudaToNumpy(img)
+            stabilizer.apply(cv2_frame)
+
+            # render the image
+            output.Render(img)
+            
+            # update the title bar
+            output.SetStatus("Raw Video | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
+
+            # exit on input/output EOS or quit by user
+            if not input.IsStreaming() or not output.IsStreaming():
+                break
+            if cv2.waitKey(delay_time) & 0xFF == ord('q'):
+                break
+
+        # Release resources
+        cv2.destroyAllWindows()
+
     except:
         print("")
         parser.print_help()
         sys.exit(0)
-
-    if args.headless:
-        sys.argv.append("--headless")
-
-    # create video sources & outputs
-    input = videoSource(args.input, argv=sys.argv)
-    output = videoOutput(args.output, argv=sys.argv)
-
-    # capture frames until EOS or user exits
-    numFrames = 0
-
-
-    # Initialize Stabilizer with user-defined parameters
-    stabilizer = Stabilizer(
-        downSample=1.0,
-        zoomFactor=1.0,
-        processVar=0.03,
-        measVar=2,
-        roiDiv=4.0,
-        showrectROI=0,
-        showTrackingPoints=0,
-        showUnstabilized=1,
-        maskFrame=0,
-        showFullScreen=0,
-        delay_time=1
-    )
-
-    while True:
-        # capture the next image
-        img = input.Capture()
-
-        if img is None: # timeout
-            continue  
-            
-        if numFrames % 25 == 0 or numFrames < 15:
-            Log.Verbose(f"Raw video:  captured {numFrames} frames ({img.width} x {img.height})")
-
-        numFrames += 1
-
-        cv2_frame = cudaToNumpy(img)
-        stabilizer.apply(cv2_frame)
-
-        # render the image
-        output.Render(img)
-        
-        # update the title bar
-        output.SetStatus("Raw Video | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
-
-        # exit on input/output EOS
-        if not input.IsStreaming() or not output.IsStreaming():
-            break
-        if cv2.waitKey(delay_time) & 0xFF == ord('q'):
-            break
-
-    # Release resources
-    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
