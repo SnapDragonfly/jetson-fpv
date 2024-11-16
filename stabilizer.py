@@ -13,6 +13,11 @@ import argparse
 import numpy as np
 from jetson_utils import videoSource, videoOutput, cudaToNumpy, cudaFromNumpy, Log
 
+# key scan control:
+# If the test video plays too fast, increase this value until the video plays at a proper speed.
+# Default value is `1` (no delay).
+delay_time = 1
+
 class Stabilizer:
     #################### USER VARS ######################################
 
@@ -38,11 +43,6 @@ class Stabilizer:
     # Set to `1` to display the stabilized video in full screen.
     # Set to `0` for a normal windowed view.
     showFullScreen = 0
-
-    # Video delay control:
-    # If the test video plays too fast, increase this value until the video plays at a proper speed.
-    # Default value is `1` (no delay).
-    delay_time = 1
 
     ######################## Region of Interest (ROI) ###############################
 
@@ -205,9 +205,6 @@ class Stabilizer:
 
         if self.showUnstabilized == 1:
             cv2.imshow("Unstabilized ROI", self.prevGray)
-        if cv2.waitKey(self.delay_time) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            return
 
         self.prevOrig = Orig
         self.prevGray = currGray
@@ -300,10 +297,10 @@ def main():
         # exit on input/output EOS
         if not input.IsStreaming() or not output.IsStreaming():
             break
-        
+        if cv2.waitKey(delay_time) & 0xFF == ord('q'):
+            break
+
     # Release resources
-    input.release()
-    output.release()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
