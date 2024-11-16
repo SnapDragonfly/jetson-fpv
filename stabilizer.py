@@ -10,6 +10,7 @@
 import sys
 import cv2
 import argparse
+import signal
 import numpy as np
 from jetson_utils import videoSource, videoOutput, cudaToNumpy, cudaFromNumpy, Log
 
@@ -17,6 +18,9 @@ from jetson_utils import videoSource, videoOutput, cudaToNumpy, cudaFromNumpy, L
 # If the test video plays too fast, increase this value until the video plays at a proper speed.
 # Default value is `1` (no delay).
 delay_time = 1
+
+# thread exit control:
+exit_flag = False
 
 class Stabilizer:
     #################### USER VARS ######################################
@@ -211,95 +215,101 @@ class Stabilizer:
         self.lastRigidTransform = m
         self.count += 1
 
+def handle_interrupt(signal_num, frame):
+    global exit_flag
+    print("video stabilizer set exit_flag ... ...")
+    exit_flag = True
+
 def main():
+    signal.signal(signal.SIGINT, handle_interrupt)
+    # parse command line
+    parser = argparse.ArgumentParser(description="View various types of video streams", 
+                                    formatter_class=argparse.RawTextHelpFormatter, 
+                                    epilog=videoSource.Usage() + videoOutput.Usage() + Log.Usage())
 
-    try:
-        # parse command line
-        parser = argparse.ArgumentParser(description="View various types of video streams", 
-                                        formatter_class=argparse.RawTextHelpFormatter, 
-                                        epilog=videoSource.Usage() + videoOutput.Usage() + Log.Usage())
+    parser.add_argument(
+        "input", 
+        type=str, 
+        help="URI of the input stream"
+    )
 
-        parser.add_argument(
-            "input", 
-            type=str, 
-            help="URI of the input stream"
-        )
+    parser.add_argument(
+        "output",
+        type=str,
+        default="file://output_video.mp4",
+        nargs='?',
+        help="URI of the output stream (default: file://output_video.mp4)"
+    )
 
-        parser.add_argument(
-            "output",
-            type=str,
-            default="file://output_video.mp4",
-            nargs='?',
-            help="URI of the output stream (default: file://output_video.mp4)"
-        )
+    parser.add_argument(
+        "--no-headless",
+        action="store_false",
+        dest="headless",
+        help="Enable the OpenGL GUI window (default: headless mode is enabled)"
+    )
 
-        parser.add_argument(
-            "--no-headless",
-            action="store_false",
-            dest="headless",
-            help="Enable the OpenGL GUI window (default: headless mode is enabled)"
-        )
+    args = parser.parse_known_args()[0]
+    if args.headless:
+        sys.argv.append("--headless")
 
-        args = parser.parse_known_args()[0]
-        if args.headless:
-            sys.argv.append("--headless")
+    # create video sources & outputs
+    input = videoSource(args.input, argv=sys.argv)
+    output = videoOutput(args.output, argv=sys.argv)
 
-        # create video sources & outputs
-        input = videoSource(args.input, argv=sys.argv)
-        output = videoOutput(args.output, argv=sys.argv)
+    # capture frames until EOS or user exits
+    numFrames = 0
 
-        # capture frames until EOS or user exits
-        numFrames = 0
+    # Initialize Stabilizer with user-defined parameters
+    stabilizer = Stabilizer(
+        downSample=1.0,
+        zoomFactor=1.0,
+        processVar=0.03,
+        measVar=2,
+        roiDiv=4.0,
+        showrectROI=0,
+        showTrackingPoints=0,
+        showUnstabilized=1,
+        maskFrame=0,
+        showFullScreen=0,
+        delay_time=1
+    )
 
-        # Initialize Stabilizer with user-defined parameters
-        stabilizer = Stabilizer(
-            downSample=1.0,
-            zoomFactor=1.0,
-            processVar=0.03,
-            measVar=2,
-            roiDiv=4.0,
-            showrectROI=0,
-            showTrackingPoints=0,
-            showUnstabilized=1,
-            maskFrame=0,
-            showFullScreen=0,
-            delay_time=1
-        )
+    while True:
+        # capture the next image
+        img = input.Capture()
 
-        while True:
-            # capture the next image
-            img = input.Capture()
-
-            if img is None: # timeout
-                continue  
-                
-            if numFrames % 25 == 0 or numFrames < 15:
-                Log.Verbose(f"Raw video:  captured {numFrames} frames ({img.width} x {img.height})")
-
-            numFrames += 1
-
-            cv2_frame = cudaToNumpy(img)
-            stabilizer.apply(cv2_frame)
-
-            # render the image
-            output.Render(img)
+        if img is None: # timeout
+            continue  
             
-            # update the title bar
-            output.SetStatus("Raw Video | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
+        if numFrames % 25 == 0 or numFrames < 15:
+            Log.Verbose(f"Raw video:  captured {numFrames} frames ({img.width} x {img.height})")
 
-            # exit on input/output EOS or quit by user
-            if not input.IsStreaming() or not output.IsStreaming():
-                break
-            if cv2.waitKey(delay_time) & 0xFF == ord('q'):
-                break
+        numFrames += 1
 
-        # Release resources
-        cv2.destroyAllWindows()
+        cv2_frame = cudaToNumpy(img)
+        stabilizer.apply(cv2_frame)
 
-    except:
-        print("")
-        parser.print_help()
-        sys.exit(0)
+        # render the image
+        output.Render(img)
+        
+        # update the title bar
+        output.SetStatus("Raw Video | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
+
+        # exit on input/output EOS or quit by user
+        if not input.IsStreaming() or not output.IsStreaming():
+            break
+        if cv2.waitKey(delay_time) & 0xFF == ord('q'):
+            print("video stabilizer ready to quit ... ...")
+            break
+        global exit_flag
+        if exit_flag:
+            print("video stabilizer ready to exit ... ...")
+            break
+
+    # Release resources
+    cv2.destroyAllWindows()
+    print("video stabilizer finished!")
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
