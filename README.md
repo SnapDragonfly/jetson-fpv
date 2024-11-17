@@ -8,7 +8,7 @@ Main features as follows:
 - [x] Real time video stabilizer
 - [x] video-viewer
 - [ ] imagenet for image recognition
-- [ ] detectnet for object detection
+- [x] detectnet for object detection
 - [ ] segnet for segmentation
 - [ ] posenet for pose estimation
 
