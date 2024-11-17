@@ -55,11 +55,11 @@ look() {
         WFB_PID=$(ps aux | grep "${CMD_WFBRX} | grep -v grep" | awk '{print $2}')
         echo "wfb_rx is running with PID: $WFB_PID"
         echo ""
-        sudo systemctl status wifibroadcast@gs
+        systemctl status wifibroadcast@gs
     else
         echo "wfb_rx is not running."
         echo ""
-        sudo systemctl status wifibroadcast@gs
+        systemctl status wifibroadcast@gs
     fi
 }
 
@@ -74,15 +74,18 @@ start() {
 
     # Step 1: Start wfb (wifibroadcast)
     echo "Starting wifibroadcast..."
-    sudo systemctl start wifibroadcast@gs
+    systemctl start wifibroadcast@gs
     sleep 1 # initialization
-    sudo ${CMD_WFBRX} &
+    ${CMD_WFBRX} &
     echo $! > $WFB_PIDFILE
     sleep 3 # initialization
 
     # Step 2: Start video-viewer script
     echo "Starting video-viewer..."
     export DISPLAY=:0
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    CMD_VIDEO="${CMD_VIDEO} ${OUTPUT_FILE}"
+    echo ${CMD_VIDEO}
     ${CMD_VIDEO} &
     echo $! > $VIDEO_PIDFILE
     sleep 3 # initialization
@@ -117,7 +120,7 @@ stop() {
         fi
 
         if [ -f "$VIDEO_PIDFILE" ]; then
-            kill $(cat $VIDEO_PIDFILE)
+            kill -s SIGINT $(cat $VIDEO_PIDFILE)
             sleep 1
             rm -f $VIDEO_PIDFILE
             echo "video-viewer stopped."
@@ -128,7 +131,7 @@ stop() {
             kill $(cat $WFB_PIDFILE)
             sleep 1
             rm -f $WFB_PIDFILE
-            sudo systemctl stop wifibroadcast@gs
+            systemctl stop wifibroadcast@gs
             echo "wifibroadcast stopped."
         fi
 
@@ -164,11 +167,11 @@ status() {
         if [ -f "$WFB_PIDFILE" ] && ps -p $(cat $WFB_PIDFILE) > /dev/null; then
             echo "wifibroadcast (wfb_rx) is running with PID: $(cat $WFB_PIDFILE)"
             echo ""
-            sudo systemctl status wifibroadcast@gs
+            systemctl status wifibroadcast@gs
         else
             echo "wifibroadcast (wfb_rx) is not running."
             echo ""
-            sudo systemctl status wifibroadcast@gs
+            systemctl status wifibroadcast@gs
         fi
     else
         echo "Module ${MODULE_NAME} is not running."
