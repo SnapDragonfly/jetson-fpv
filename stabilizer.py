@@ -10,6 +10,7 @@
 import sys
 import cv2
 import argparse
+import time
 import signal
 import threading
 import numpy as np
@@ -114,85 +115,99 @@ class Stabilizer:
         self.useStabilizer = not self.useStabilizer  # Toggle the value between True and False
         print("Video stabilizer toggle ... ...", self.useStabilizer)
 
-    def stabilize(self, cv2_frame):
+    def stabilize_ejowerks(self, cv2_frame):
+
+        start_time = time.time()  # Start timing execution
 
         # Resize the image
-        res_w_orig = cv2_frame.shape[1]
-        res_h_orig = cv2_frame.shape[0]
-        res_w = int(res_w_orig * self.downSample)
-        res_h = int(res_h_orig * self.downSample)
-        frameSize = (res_w, res_h)
+        res_w_orig = cv2_frame.shape[1]  # Original width of the frame
+        res_h_orig = cv2_frame.shape[0]  # Original height of the frame
+        res_w = int(res_w_orig * self.downSample)  # Width after downsampling
+        res_h = int(res_h_orig * self.downSample)  # Height after downsampling
+        frameSize = (res_w, res_h)  # New frame size as a tuple
 
-        Orig = cv2_frame
+        Orig = cv2_frame  # Store the original frame
         if self.downSample != 1:
-            cv2_frame = cv2.resize(cv2_frame, frameSize)  # Downsample if applicable
+            # Downsample the frame if the downsample factor is not 1
+            cv2_frame = cv2.resize(cv2_frame, frameSize)
 
-        # Set ROI region
-        top_left = [int(res_h / self.roiDiv), int(res_w / self.roiDiv)]
-        bottom_right = [int(res_h - (res_h / self.roiDiv)), int(res_w - (res_w / self.roiDiv))]
+        # Set Region of Interest (ROI) dimensions
+        top_left = [int(res_h / self.roiDiv), int(res_w / self.roiDiv)]  # Top-left corner of ROI
+        bottom_right = [int(res_h - (res_h / self.roiDiv)), int(res_w - (res_w / self.roiDiv))]  # Bottom-right corner of ROI
 
-        currFrame = cv2_frame
-        currGray = cv2.cvtColor(currFrame, cv2.COLOR_BGR2GRAY)
-        currGray = currGray[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]]  # Select ROI
+        currFrame = cv2_frame  # Current frame
+        currGray = cv2.cvtColor(currFrame, cv2.COLOR_BGR2GRAY)  # Convert current frame to grayscale
+        currGray = currGray[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]]  # Crop to ROI
 
-        # Handle first frame image
+        # Handle the first frame initialization
         if self.prevFrame is None:
-            self.prevOrig = cv2_frame
-            self.prevFrame = cv2_frame
-            self.prevGray = currGray
+            self.prevOrig = cv2_frame  # Store original frame
+            self.prevFrame = cv2_frame  # Store frame for future reference
+            self.prevGray = currGray  # Store grayscale version of frame
 
-        # Show ROI rectangle box
+        # Display the ROI rectangle on the original frame if enabled
         if self.showrectROI == 1:
             cv2.rectangle(self.prevOrig, (top_left[1], top_left[0]), (bottom_right[1], bottom_right[0]), color=(211, 211, 211), thickness=1)
 
+        # Detect good features to track in the previous frame
         prevPts = cv2.goodFeaturesToTrack(self.prevGray, maxCorners=400, qualityLevel=0.01, minDistance=30, blockSize=3)
         if prevPts is not None:
+            # Calculate optical flow to track feature points in the current frame
             currPts, status, err = cv2.calcOpticalFlowPyrLK(self.prevGray, currGray, prevPts, None, **self.lk_params)
-            assert prevPts.shape == currPts.shape
-            idx = np.where(status == 1)[0]
-            # Add orig video resolution pts to roi pts
+            assert prevPts.shape == currPts.shape  # Ensure shapes match
+            idx = np.where(status == 1)[0]  # Get indices of successfully tracked points
+            # Offset points to match original resolution
             prevPts = prevPts[idx] + np.array([int(res_w_orig / self.roiDiv), int(res_h_orig / self.roiDiv)])
             currPts = currPts[idx] + np.array([int(res_w_orig / self.roiDiv), int(res_h_orig / self.roiDiv)])
             if self.showTrackingPoints == 1:
+                # Display tracking points on the previous original frame
                 for pT in prevPts:
                     cv2.circle(self.prevOrig, (int(pT[0][0]), int(pT[0][1])), 5, (211, 211, 211))
             if prevPts.size & currPts.size:
+                # Estimate affine transformation between frames
                 m, inliers = cv2.estimateAffinePartial2D(prevPts, currPts)
             if m is None:
-                m = self.lastRigidTransform
-            # Smoothing
+                m = self.lastRigidTransform  # Use last transformation if current is invalid
+            # Extract translation and rotation from transformation matrix
             dx = m[0, 2]
             dy = m[1, 2]
-            da = np.arctan2(m[1, 0], m[0, 0])
+            da = np.arctan2(m[1, 0], m[0, 0])  # Rotation angle
         else:
+            # Default transformations if no points were detected
             dx = 0
             dy = 0
             da = 0
 
+        # Update cumulative transformations
         self.x += dx
         self.y += dy
         self.a += da
-        Z = np.array([[self.x, self.y, self.a]], dtype="float")
+        Z = np.array([[self.x, self.y, self.a]], dtype="float")  # Observation vector
 
+        # Initialize Kalman filter parameters if it's the first iteration
         if self.count == 0:
-            self.X_estimate = np.zeros((1, 3), dtype="float")
-            self.P_estimate = np.ones((1, 3), dtype="float")
+            self.X_estimate = np.zeros((1, 3), dtype="float")  # Estimated state vector
+            self.P_estimate = np.ones((1, 3), dtype="float")  # Estimated error covariance
         else:
+            # Predict the next state and error covariance
             self.X_predict = self.X_estimate
             self.P_predict = self.P_estimate + self.Q
+            # Compute Kalman gain
             K = self.P_predict / (self.P_predict + self.R)
+            # Update the estimate with measurements
             self.X_estimate = self.X_predict + K * (Z - self.X_predict)
             self.P_estimate = (np.ones((1, 3), dtype="float") - K) * self.P_predict
-            self.K_collect.append(K)
-            self.P_collect.append(self.P_estimate)
+            self.K_collect.append(K)  # Store Kalman gain for analysis
+            self.P_collect.append(self.P_estimate)  # Store error covariance
 
+        # Compute smoothed transformations
         diff_x = self.X_estimate[0, 0] - self.x
         diff_y = self.X_estimate[0, 1] - self.y
         diff_a = self.X_estimate[0, 2] - self.a
         dx += diff_x
         dy += diff_y
         da += diff_a
-        m = np.zeros((2, 3), dtype="float")
+        m = np.zeros((2, 3), dtype="float")  # Create a new transformation matrix
         m[0, 0] = np.cos(da)
         m[0, 1] = -np.sin(da)
         m[1, 0] = np.sin(da)
@@ -200,34 +215,48 @@ class Stabilizer:
         m[0, 2] = dx
         m[1, 2] = dy
 
-        fS = cv2.warpAffine(self.prevOrig, m, (res_w_orig, res_h_orig))  # Apply magic stabilizer sauce to frame
+        # Apply affine transformation for stabilization
+        fS = cv2.warpAffine(self.prevOrig, m, (res_w_orig, res_h_orig))
         s = fS.shape
+        # Apply zoom transformation
         T = cv2.getRotationMatrix2D((s[1] / 2, s[0] / 2), 0, self.zoomFactor)
         f_stabilized = cv2.warpAffine(fS, T, (s[1], s[0]))
-        window_name = f"Video Viewer Stabilized: {res_w}x{res_h}"
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(window_name, res_w, res_h)  # Set window to the original size
 
+        # Apply masking if enabled
         if self.maskFrame == 1:
             mask = np.zeros(f_stabilized.shape[:2], dtype="uint8")
             cv2.rectangle(mask, (100, 200), (1180, 620), 255, -1)
             f_stabilized = cv2.bitwise_and(f_stabilized, f_stabilized, mask=mask)
+
+        end_time = time.time()  # End timing execution
+        elapsed_time_ms = (end_time - start_time) * 1000  # Calculate elapsed time in milliseconds
+        print(f"Code block execution time: {elapsed_time_ms:.3f} ms")
+        fps = 1000 / elapsed_time_ms  # Calculate FPS
+
+        # Display the stabilized frame
+        window_name = "Video Viewer Stabilized"
         if self.showFullScreen == 1:
             cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(window_name, res_w, res_h)  # Resize the window
         if self.useStabilizer:
-            cv2.imshow(window_name, f_stabilized)  # Ensure f_stabilized is an image (NumPy array)
+            cv2.setWindowTitle(window_name, f"Video Viewer Stabilized: {res_w}x{res_h} | FPS: {fps:.2f}")
+            cv2.imshow(window_name, f_stabilized)  # Show stabilized frame
         else:
-            cv2.imshow(window_name, currFrame)  # Ensure currFrame is an image (NumPy array)
+            cv2.setWindowTitle(window_name, f"Video Viewer Unstabilized: {res_w}x{res_h} | FPS: {fps:.2f}")
+            cv2.imshow(window_name, currFrame)  # Show original frame
 
+        # Display unstabilized ROI if enabled
         if self.showUnstabilized == 1:
             cv2.imshow("Unstabilized ROI", self.prevGray)
 
+        # Update previous frame data
         self.prevOrig = Orig
         self.prevGray = currGray
         self.prevFrame = currFrame
-        self.lastRigidTransform = m
-        self.count += 1
+        self.lastRigidTransform = m  # Store last transformation matrix
+        self.count += 1  # Increment frame count
 
 def handle_interrupt(signal_num, frame):
     print("video stabilizer set exit_flag ... ...")
@@ -275,10 +304,10 @@ def main():
     # Initialize Stabilizer with user-defined parameters
     stabilizer = Stabilizer(
         downSample=1.0,
-        zoomFactor=1.0,
+        zoomFactor=0.9,
         processVar=0.03,
         measVar=2,
-        roiDiv=4.0,
+        roiDiv=3.5,
         showrectROI=0,
         showTrackingPoints=0,
         showUnstabilized=0,
@@ -300,7 +329,7 @@ def main():
         numFrames += 1
 
         cv2_frame = cudaToNumpy(img)
-        stabilizer.stabilize(cv2_frame)
+        stabilizer.stabilize_ejowerks(cv2_frame)
 
         # render the image
         output.Render(img)
