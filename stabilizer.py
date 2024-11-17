@@ -230,7 +230,7 @@ class Stabilizer:
 
         end_time = time.time()  # End timing execution
         elapsed_time_ms = (end_time - start_time) * 1000  # Calculate elapsed time in milliseconds
-        print(f"Code block execution time: {elapsed_time_ms:.3f} ms")
+        #print(f"Code block execution time: {elapsed_time_ms:.3f} ms")
         fps = 1000 / elapsed_time_ms  # Calculate FPS
 
         # Display the stabilized frame
@@ -396,7 +396,7 @@ class Stabilizer:
 
         end_time = time.time()  # End timing execution
         elapsed_time_ms = (end_time - start_time) * 1000  # Calculate elapsed time in milliseconds
-        print(f"Code block execution time: {elapsed_time_ms:.3f} ms")
+        #print(f"Code block execution time: {elapsed_time_ms:.3f} ms")
         fps = 1000 / elapsed_time_ms  # Calculate FPS
 
         # Display the stabilized frame
