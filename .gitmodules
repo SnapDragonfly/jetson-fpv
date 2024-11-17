@@ -1,0 +1,6 @@
+[submodule "module/jetson-inference"]
+	path = module/jetson-inference
+	url = https://github.com/dusty-nv/jetson-inference.git
+[submodule "module/jetson-utils"]
+	path = module/jetson-utils
+	url = https://github.com/dusty-nv/jetson-utils.git
