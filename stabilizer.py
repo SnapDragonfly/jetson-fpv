@@ -258,6 +258,174 @@ class Stabilizer:
         self.lastRigidTransform = m  # Store last transformation matrix
         self.count += 1  # Increment frame count
 
+
+    def stabilize_cuda(self, cv2_frame):
+
+        start_time = time.time()  # Start timing execution
+
+        # Resize the image
+        res_w_orig = cv2_frame.shape[1]  # Original width of the frame
+        res_h_orig = cv2_frame.shape[0]  # Original height of the frame
+        res_w = int(res_w_orig * self.downSample)  # Width after downsampling
+        res_h = int(res_h_orig * self.downSample)  # Height after downsampling
+
+        Orig = cv2_frame  # Store the original frame
+        if self.downSample != 1:
+            #cv2_frame = cv2.resize(cv2_frame, (res_w, res_h))  # Downsample if applicable
+            # Use CUDA for resizing to improve performance
+            gpu_frame = cv2.cuda_GpuMat()
+            gpu_frame.upload(cv2_frame)  # Upload frame to GPU
+            gpu_frame_resized = cv2.cuda.resize(gpu_frame, (res_w, res_h))
+            cv2_frame = gpu_frame_resized.download()  # Download back to CPU
+
+        # Set Region of Interest (ROI) dimensions
+        top_left = [int(res_h / self.roiDiv), int(res_w / self.roiDiv)]  # Top-left corner of ROI
+        bottom_right = [int(res_h - (res_h / self.roiDiv)), int(res_w - (res_w / self.roiDiv))]  # Bottom-right corner of ROI
+
+        currFrame = cv2_frame  # Current frame
+
+        #currGray = cv2.cvtColor(currFrame, cv2.COLOR_BGR2GRAY)  # Convert current frame to grayscale
+        # Use CUDA for grayscale conversion
+        gpu_frame = cv2.cuda_GpuMat()
+        gpu_frame.upload(currFrame)  # Upload frame to GPU
+        gpu_gray = cv2.cuda.cvtColor(gpu_frame, cv2.COLOR_BGR2GRAY)
+        currGray = gpu_gray.download()  # Download back to CPU
+
+        currGray = currGray[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]]  # Crop to ROI
+
+        # Handle the first frame initialization
+        if self.prevFrame is None:
+            self.prevOrig = cv2_frame  # Store original frame
+            self.prevFrame = cv2_frame  # Store frame for future reference
+            self.prevGray = currGray  # Store grayscale version of frame
+
+        # Display the ROI rectangle on the original frame if enabled
+        if self.showrectROI == 1:
+            cv2.rectangle(self.prevOrig, (top_left[1], top_left[0]), (bottom_right[1], bottom_right[0]), color=(211, 211, 211), thickness=1)
+
+        # Detect good features to track in the previous frame
+        prevPts = cv2.goodFeaturesToTrack(self.prevGray, maxCorners=400, qualityLevel=0.01, minDistance=30, blockSize=3)
+        if prevPts is not None and len(prevPts) > 0:
+            # Calculate optical flow to track feature points in the current frame
+            currPts, status, err = cv2.calcOpticalFlowPyrLK(self.prevGray, currGray, prevPts, None, **self.lk_params)
+
+            assert prevPts.shape == currPts.shape  # Ensure shapes match
+            idx = np.where(status == 1)[0]  # Get indices of successfully tracked points
+            # Offset points to match original resolution
+            prevPts = prevPts[idx] + np.array([int(res_w_orig / self.roiDiv), int(res_h_orig / self.roiDiv)])
+            currPts = currPts[idx] + np.array([int(res_w_orig / self.roiDiv), int(res_h_orig / self.roiDiv)])
+            if self.showTrackingPoints == 1:
+                # Display tracking points on the previous original frame
+                for pT in prevPts:
+                    cv2.circle(self.prevOrig, (int(pT[0][0]), int(pT[0][1])), 5, (211, 211, 211))
+            if prevPts.size & currPts.size:
+                # Estimate affine transformation between frames
+                m, inliers = cv2.estimateAffinePartial2D(prevPts, currPts)
+            m = self.lastRigidTransform if m is None else m # Use last transformation if current is invalid
+            # Extract translation and rotation from transformation matrix
+            dx = m[0, 2]
+            dy = m[1, 2]
+            da = np.arctan2(m[1, 0], m[0, 0])  # Rotation angle
+        else:
+            # Default transformations if no points were detected
+            dx = 0
+            dy = 0
+            da = 0
+
+        # Update cumulative transformations
+        self.x += dx
+        self.y += dy
+        self.a += da
+        Z = np.array([[self.x, self.y, self.a]], dtype="float")  # Observation vector
+
+        # Initialize Kalman filter parameters if it's the first iteration
+        if self.count == 0:
+            self.X_estimate = np.zeros((1, 3), dtype="float")  # Estimated state vector
+            self.P_estimate = np.ones((1, 3), dtype="float")  # Estimated error covariance
+        else:
+            # Predict the next state and error covariance
+            self.X_predict = self.X_estimate
+            self.P_predict = self.P_estimate + self.Q
+            # Compute Kalman gain
+            K = self.P_predict / (self.P_predict + self.R)
+            # Update the estimate with measurements
+            self.X_estimate = self.X_predict + K * (Z - self.X_predict)
+            self.P_estimate = (np.ones((1, 3), dtype="float") - K) * self.P_predict
+            self.K_collect.append(K)  # Store Kalman gain for analysis
+            self.P_collect.append(self.P_estimate)  # Store error covariance
+
+        # Compute smoothed transformations
+        dx += self.X_estimate[0, 0] - self.x
+        dy += self.X_estimate[0, 1] - self.y
+        da += self.X_estimate[0, 2] - self.a
+        # Create a new transformation matrix
+        m = np.array([[np.cos(da), -np.sin(da), dx],
+                    [np.sin(da), np.cos(da), dy]], dtype="float")
+
+        # Apply affine transformation for stabilization
+        #fS = cv2.warpAffine(self.prevOrig, m, (res_w_orig, res_h_orig))
+        # Use CUDA for affine transformations
+        gpu_prev_orig = cv2.cuda_GpuMat()
+        gpu_prev_orig.upload(self.prevOrig)
+        gpu_fs = cv2.cuda.warpAffine(gpu_prev_orig, m, (res_w_orig, res_h_orig))
+        fS = gpu_fs.download()  # Download stabilized frame back to CPU
+
+        s = fS.shape
+        # Apply zoom transformation
+        #T = cv2.getRotationMatrix2D((s[1] / 2, s[0] / 2), 0, self.zoomFactor)
+        #f_stabilized = cv2.warpAffine(fS, T, (s[1], s[0]))
+        # Use CUDA for zoom application
+        gpu_fs.upload(fS)
+        T = cv2.getRotationMatrix2D((s[1] / 2, s[0] / 2), 0, self.zoomFactor)
+        gpu_f_stabilized = cv2.cuda.warpAffine(gpu_fs, T, (s[1], s[0]))
+        f_stabilized = gpu_f_stabilized.download()
+
+        # Apply masking if enabled
+        if self.maskFrame == 1:
+            #mask = np.zeros(f_stabilized.shape[:2], dtype="uint8")
+            #cv2.rectangle(mask, (100, 200), (1180, 620), 255, -1)
+            #f_stabilized = cv2.bitwise_and(f_stabilized, f_stabilized, mask=mask)
+            # Use CUDA for mask application
+            mask = np.zeros(f_stabilized.shape[:2], dtype="uint8")
+            cv2.rectangle(mask, (100, 200), (1180, 620), 255, -1)
+            gpu_mask = cv2.cuda_GpuMat()
+            gpu_mask.upload(mask)
+            gpu_f_stabilized.upload(f_stabilized)
+            gpu_masked = cv2.cuda.bitwise_and(gpu_f_stabilized, gpu_f_stabilized, mask=gpu_mask)
+            f_stabilized = gpu_masked.download()
+
+        end_time = time.time()  # End timing execution
+        elapsed_time_ms = (end_time - start_time) * 1000  # Calculate elapsed time in milliseconds
+        print(f"Code block execution time: {elapsed_time_ms:.3f} ms")
+        fps = 1000 / elapsed_time_ms  # Calculate FPS
+
+        # Display the stabilized frame
+        window_name = "Video Viewer Stabilized"
+        if self.showFullScreen == 1:
+            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(window_name, res_w, res_h)  # Resize the window
+        if self.useStabilizer:
+            cv2.setWindowTitle(window_name, f"Video Viewer Stabilized: {res_w}x{res_h} | FPS: {fps:.2f}")
+            cv2.imshow(window_name, f_stabilized)  # Show stabilized frame
+        else:
+            cv2.setWindowTitle(window_name, f"Video Viewer Unstabilized: {res_w}x{res_h} | FPS: {fps:.2f}")
+            cv2.imshow(window_name, currFrame)  # Show original frame
+
+        # Display unstabilized ROI if enabled
+        if self.showUnstabilized == 1:
+            cv2.imshow("Unstabilized ROI", self.prevGray)
+
+        # Update previous frame data
+        self.prevOrig = Orig
+        self.prevGray = currGray
+        self.prevFrame = currFrame
+        self.lastRigidTransform = m  # Store last transformation matrix
+        self.count += 1  # Increment frame count
+
+
+
 def handle_interrupt(signal_num, frame):
     print("video stabilizer set exit_flag ... ...")
     exit_flag.set()
@@ -329,7 +497,7 @@ def main():
         numFrames += 1
 
         cv2_frame = cudaToNumpy(img)
-        stabilizer.stabilize_ejowerks(cv2_frame)
+        stabilizer.stabilize_cuda(cv2_frame)
 
         # render the image
         output.Render(img)
