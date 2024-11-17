@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Configuration:
-VIRTUAL_SCREEN_WIDTH=1920
-VIRTUAL_SCREEN_HEIGHT=1080
-VIRTUAL_SCREEN_FPS=60
-
 # PID files for tracking processes
 MSPOSD_PIDFILE="/var/run/msposd.pid"
 WFB_PIDFILE="/var/run/wfb.pid"
