@@ -70,7 +70,7 @@ start() {
     # Step 1: Start wfb (wifibroadcast)
     echo "Starting wifibroadcast..."
     systemctl start wifibroadcast@gs
-    sleep 1 # initialization
+    sleep 2 # initialization
     ${CMD_WFBRX} &
     echo $! > $WFB_PIDFILE
     sleep 3 # initialization
@@ -88,9 +88,10 @@ start() {
     # Step 3: Start msposd (OSD drawing)
     echo "Starting msposd..."
     export DISPLAY=:0
-    #export DISPLAY=:${VIRTUAL_SCREEN}
+    cd ./utils/msposd
     ${CMD_MSPOSD} &
     echo $! > $MSPOSD_PIDFILE
+    cd ../../
     sleep 3 # initialization
 
     echo "${MODULE_NAME} started."

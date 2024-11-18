@@ -2,16 +2,16 @@
 
 # PID files for tracking processes
 MSPOSD_PIDFILE="/var/run/msposd.pid"
+STABILIZER_PIDFILE="/var/run/stabilizer.pid"
 WFB_PIDFILE="/var/run/wfb.pid"
-SEGNET_PIDFILE="/var/run/segnet.pid"
 
 # commands for wrapper
 # wfb_rx -p 17 -i 7669206 -u 14560 -K /etc/gs.key wlan1
 CMD_WFBRX="wfb_rx -p 17 -i 7669206 -u 14560 -K /etc/gs.key wlan1"
 # ./msposd --master 127.0.0.1:14560 --osd -r 50 --ahi 1 --matrix 11
 CMD_MSPOSD="./msposd --master 127.0.0.1:14560 --osd -r 50 --ahi 1 --matrix 11"
-# segnet --input-codec=h265 rtp://@:5600
-CMD_SEGNET="segnet --input-codec=h265 rtp://@:5600"
+# python3 stabilizer.py rtp://@:5600 --input-codec=h265 
+CMD_STABILIZER="python3 ./utils/stabilizer.py rtp://@:5600"
 
 # Define the module's lock file directory (ensure the directory exists)
 LOCK_DIR="/tmp/module_locks"
@@ -33,14 +33,14 @@ look() {
     fi
 
     echo ""
-    echo ${CMD_SEGNET}
-    # Check if segnet is running and print PID
-    if ps aux | grep "${CMD_SEGNET}" | grep -v grep; then
+    echo ${CMD_STABILIZER}
+    # Check if stabilizer is running and print PID
+    if ps aux | grep "${CMD_STABILIZER}" | grep -v grep; then
         export DISPLAY=:0
-        SEGNET_PIDFILE=$(ps aux | grep "${CMD_SEGNET} | grep -v grep" | awk '{print $2}')
-        echo "segnet is running with PID: $SEGNET_PIDFILE"
+        STABILIZER_PID=$(ps aux | grep "${CMD_STABILIZER} | grep -v grep" | awk '{print $2}')
+        echo "Stabilizer is running with PID: $STABILIZER_PID"
     else
-        echo "segnet is not running."
+        echo "Stabilizer is not running."
     fi
 
     echo ""
@@ -50,11 +50,11 @@ look() {
         WFB_PID=$(ps aux | grep "${CMD_WFBRX} | grep -v grep" | awk '{print $2}')
         echo "wfb_rx is running with PID: $WFB_PID"
         echo ""
-        systemctl status wifibroadcast@gs
+        sudo systemctl status wifibroadcast@gs
     else
         echo "wfb_rx is not running."
         echo ""
-        systemctl status wifibroadcast@gs
+        sudo systemctl status wifibroadcast@gs
     fi
 }
 
@@ -69,20 +69,19 @@ start() {
 
     # Step 1: Start wfb (wifibroadcast)
     echo "Starting wifibroadcast..."
-    systemctl start wifibroadcast@gs
+    sudo systemctl start wifibroadcast@gs
     sleep 2 # initialization
-    ${CMD_WFBRX} &
+    sudo ${CMD_WFBRX} &
     echo $! > $WFB_PIDFILE
     sleep 3 # initialization
 
-    # Step 2: Start video-viewer script
-    echo "Starting video-viewer..."
+    # Step 2: Start stabilizer script
+    echo "Starting stabilizer..."
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_SEGNET="${CMD_SEGNET} ${OUTPUT_FILE}"
-    echo ${CMD_SEGNET}
-    ${CMD_SEGNET} &
-    echo $! > $SEGNET_PIDFILE
+    CMD_STABILIZER="${CMD_STABILIZER} ${OUTPUT_FILE} --input-codec=h265"
+    ${CMD_STABILIZER} &
+    echo $! > $STABILIZER_PIDFILE
     sleep 3 # initialization
 
     # Step 3: Start msposd (OSD drawing)
@@ -115,11 +114,11 @@ stop() {
             echo "msposd stopped."
         fi
 
-        if [ -f "$SEGNET_PIDFILE" ]; then
-            kill -s SIGINT $(cat $SEGNET_PIDFILE)
+        if [ -f "$STABILIZER_PIDFILE" ]; then
+            kill -s SIGINT $(cat $STABILIZER_PIDFILE)
             sleep 1
-            rm -f $SEGNET_PIDFILE
-            echo "segnet stopped."
+            rm -f $STABILIZER_PIDFILE
+            echo "Stabilizer stopped."
         fi
 
         if [ -f "$WFB_PIDFILE" ]; then
@@ -127,7 +126,7 @@ stop() {
             kill $(cat $WFB_PIDFILE)
             sleep 1
             rm -f $WFB_PIDFILE
-            systemctl stop wifibroadcast@gs
+            sudo systemctl stop wifibroadcast@gs
             echo "wifibroadcast stopped."
         fi
 
@@ -140,6 +139,8 @@ stop() {
 # Show the status of the module
 status() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
+        echo "Module ${MODULE_NAME} is running."
+
         # Check if each process is running based on PID files and display their PIDs
         echo "Checking status of all processes..."
 
@@ -151,21 +152,21 @@ status() {
         fi
 
         echo ""
-        if [ -f "$SEGNET_PIDFILE" ] && ps -p $(cat $SEGNET_PIDFILE) > /dev/null; then
-            echo "segnet is running with PID: $(cat $SEGNET_PIDFILE)"
+        if [ -f "$STABILIZER_PIDFILE" ] && ps -p $(cat $STABILIZER_PIDFILE) > /dev/null; then
+            echo "Stabilizer is running with PID: $(cat $STABILIZER_PIDFILE)"
         else
-            echo "segnet is not running."
+            echo "Stabilizer is not running."
         fi
 
         echo ""
         if [ -f "$WFB_PIDFILE" ] && ps -p $(cat $WFB_PIDFILE) > /dev/null; then
             echo "wifibroadcast (wfb_rx) is running with PID: $(cat $WFB_PIDFILE)"
             echo ""
-            systemctl status wifibroadcast@gs
+            sudo systemctl status wifibroadcast@gs
         else
             echo "wifibroadcast (wfb_rx) is not running."
             echo ""
-            systemctl status wifibroadcast@gs
+            sudo systemctl status wifibroadcast@gs
         fi
     else
         echo "Module ${MODULE_NAME} is not running."

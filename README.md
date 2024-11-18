@@ -5,7 +5,7 @@ Use Jetson as a ground station for FPV enthusiasts.
 Main features as follows:
 
 - [x] MSPOSD for ground station
-- [ ] Real time video stabilizer
+- [x] Real time video stabilizer
 - [x] video-viewer
 - [x] imagenet for image recognition
 - [x] detectnet for object detection
@@ -18,7 +18,8 @@ Main features as follows:
 1. finish main features that planned to implement
 2. extension commands for video-viewer/imagenet/detectnet/segnet/posenet
 3. adaptive Open IPC link management
-4. follow me Rover drive
+4. stabilizer doesn't seem to be that stabilized
+5. follow me Rover drive
 
 # Happy Flying!
 
