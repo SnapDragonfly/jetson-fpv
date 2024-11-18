@@ -139,8 +139,6 @@ stop() {
 # Show the status of the module
 status() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
-        echo "Module ${MODULE_NAME} is running."
-
         # Check if each process is running based on PID files and display their PIDs
         echo "Checking status of all processes..."
 

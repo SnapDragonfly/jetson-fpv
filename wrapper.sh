@@ -1,150 +1,133 @@
 #!/bin/bash
 
-# Define a directory to store the lock files (you can change the path if needed)
 LOCK_DIR="/tmp/module_locks"
-
-# Define available modules
 MODULES=("stabilizer" "viewer" "imagenet" "detectnet" "segnet" "posenet")
 
-# Check if the script is run as root or with sudo
-if [ "$(id -u)" -eq 0 ]; then
-    echo "The script is being run as root."
-elif [ ! -z "$SUDO_USER" ]; then
-    echo "The script is being run with sudo by $SUDO_USER."
-else
+# Ensure script runs as root or with sudo
+if [ "$(id -u)" -ne 0 ] && [ -z "$SUDO_USER" ]; then
     echo "You must run this script as root or with sudo."
     exit 1
 fi
 
-# Check if LOCK_DIR exists, if not, create it
-if [ ! -d "$LOCK_DIR" ]; then
-    echo "Lock directory does not exist, creating it..."
-    mkdir -p "$LOCK_DIR"
-fi
+# Create lock directory if it doesn't exist
+mkdir -p "$LOCK_DIR"
 
-# Help function to display usage and available modules
+# Display help information
 help() {
-    echo "Usage: $0 {start|stop|status|restart} <module_name>"
+    echo "Usage: $0 <module_name> {start|stop|status|restart|help|<other_command>} [additional_arguments]"
+    echo
+    echo "Commands:"
+    echo "  start           Start a module"
+    echo "  stop            Stop a module"
+    echo "  status          Check the status of a module"
+    echo "  restart         Restart a module"
+    echo "  help            Display this help message"
+    echo "  <other_command> Pass any other command directly to the module script"
+    echo
     echo "Available modules:"
-    
-    # Loop through MODULES array and print each module
     for module in "${MODULES[@]}"; do
         echo "  $module"
     done
 }
 
-# Function to check if a module is valid
+# Check if the module name is valid
 is_valid_module() {
-    MODULE_NAME=$1
     for module in "${MODULES[@]}"; do
-        if [ "$module" == "$MODULE_NAME" ]; then
-            return 0  # Valid module
+        if [ "$module" == "$1" ]; then
+            return 0
         fi
     done
-    echo "Invalid module: $MODULE_NAME"
+    echo "Invalid module: $1"
     help
-    return 1  # Invalid module
+    return 1
 }
 
-# Function to check if a module is already running
-is_module_running() {
-    MODULE_NAME=$1
-    LOCK_FILE="${LOCK_DIR}/${MODULE_NAME}.lock"
-
-    if [ -e "$LOCK_FILE" ]; then
-        echo "Module ${MODULE_NAME} is already running."
-        return 0  # Return false if the module is running
-    else
-        return 1  # Return true if the module is not running
-    fi
-}
-
-# Function to check if any module is currently running
+# Check if any module is running
 is_any_module_running() {
-    echo "Checking if any module is currently running..."
-    
-    # Iterate through all lock files in the LOCK_DIR
-    for lock_file in ${LOCK_DIR}/*.lock; do
-        # Print the name of the current lock file being checked
-        echo "Checking lock file: $lock_file"
-        
-        # If the lock file exists, print a debug message and return false
-        if [ -e "$lock_file" ]; then
-            echo "Module ${lock_file} is running (lock file found)."
-            return 0  # Return false if any module is running
+    for module in "${MODULES[@]}"; do
+        if [ -e "${LOCK_DIR}/${module}.lock" ]; then
+            echo "Module ${module} is running (${LOCK_DIR}/${module}.lock found)."
+            return 0
         fi
     done
-
-    # If no lock files are found, print a debug message and return true
-    echo "No modules are currently running."
-    return 1  # Return true if no module is running
+    return 1
 }
 
+# Check if a specific module is running
+is_module_running() {
+    [ -e "${LOCK_DIR}/$1.lock" ]
+}
 
-# Function to start the module and create the lock file
+# Start a module
 start_module() {
-    MODULE_NAME=$1
+    if ! is_valid_module "$1"; then return 1; fi
 
-    # Check if the module is valid
-    if ! is_valid_module "$MODULE_NAME"; then
-        return 1
-    fi
-
-    # Check if any module is already running
     if is_any_module_running; then
-        echo "Cannot start ${MODULE_NAME}. Another module is running."
+        echo "Cannot start $1. Another module is running."
         return 1
     fi
 
-    # Check if the specific module is already running
-    if ! is_module_running "$MODULE_NAME"; then
-        echo "Starting module ${MODULE_NAME}..."
-        touch "${LOCK_DIR}/${MODULE_NAME}.lock"  # Create a lock file to indicate the module is running
-        # Call the module's start function here, e.g., start_stabilizer
-        ./${MODULE_NAME}.sh start
+    if is_module_running "$1"; then
+        echo "Module $1 is already running."
     else
-        echo "Module ${MODULE_NAME} is already running. Cannot start a new one."
+        echo "Starting module $1..."
+        touch "${LOCK_DIR}/$1.lock"
+        "./$1.sh" start || echo "Failed to start $1."
     fi
 }
 
-# Function to stop the module and remove the lock file
+# Stop a module
 stop_module() {
-    MODULE_NAME=$1
+    if ! is_valid_module "$1"; then return 1; fi
 
-    # Check if the module is valid
-    if ! is_valid_module "$MODULE_NAME"; then
-        return 1
-    fi
-
-    if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
-        echo "Stopping module ${MODULE_NAME}..."
-        #rm "${LOCK_DIR}/${MODULE_NAME}.lock"  # Remove the lock file
-        # Call the module's stop function here, e.g., stop_stabilizer
-        ./${MODULE_NAME}.sh stop
+    if is_module_running "$1"; then
+        echo "Stopping module $1..."
+        "./$1.sh" stop || echo "Failed to stop $1."
+        rm -f "${LOCK_DIR}/$1.lock"
     else
-        echo "Module ${MODULE_NAME} is not running."
+        echo "Module $1 is not running."
     fi
 }
 
-# Dispatcher to handle the main commands
-case "$1" in
+# Status of a module
+status_module() {
+    if ! is_valid_module "$1"; then return 1; fi
+
+    if is_module_running "$1"; then
+        echo "Module $1 is running."
+        "./$1.sh" status || echo "Failed to check $1 status."
+    else
+        echo "Module $1 is not running."
+    fi
+}
+
+# Pass additional commands to the module
+execute_module_command() {
+    if ! is_valid_module "$1"; then return 1; fi
+    module="$1"
+    shift
+    echo "Executing command on module $module: $*"
+    "./$module.sh" "$@"
+}
+
+case "$2" in
     start)
-        start_module "$2"
+        start_module "$1"
         ;;
     stop)
-        stop_module "$2"
+        stop_module "$1"
         ;;
     status)
-        echo "Checking status of module $2..."
-        # Call the module's status function here, e.g., status_stabilizer
-        ./$2.sh status
+        status_module "$1"
         ;;
     restart)
-        stop_module "$2"
-        start_module "$2"
+        stop_module "$1"
+        start_module "$1"
+        ;;
+    help)
+        help
         ;;
     *)
-        help
-        exit 1
+        execute_module_command "$@"
         ;;
 esac
