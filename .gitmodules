@@ -4,3 +4,6 @@
 [submodule "module/jetson-utils"]
 	path = module/jetson-utils
 	url = https://github.com/dusty-nv/jetson-utils.git
+[submodule "module/wfb-ng"]
+	path = module/wfb-ng
+	url = https://github.com/svpcom/wfb-ng.git
