@@ -7,7 +7,7 @@ Main features as follows:
 - [x] MSPOSD for ground station
 - [x] Real time video stabilizer
 - [x] video-viewer
-- [ ] imagenet for image recognition
+- [x] imagenet for image recognition
 - [x] detectnet for object detection
 - [x] segnet for segmentation
 - [ ] posenet for pose estimation
