@@ -72,7 +72,7 @@ start_module() {
     else
         echo "Starting module $1..."
         touch "${LOCK_DIR}/$1.lock"
-        "./$1.sh" start || echo "Failed to start $1."
+        "./scripts/$1.sh" start || echo "Failed to start $1."
     fi
 }
 
@@ -82,7 +82,7 @@ stop_module() {
 
     if is_module_running "$1"; then
         echo "Stopping module $1..."
-        "./$1.sh" stop || echo "Failed to stop $1."
+        "./scripts/$1.sh" stop || echo "Failed to stop $1."
         rm -f "${LOCK_DIR}/$1.lock"
     else
         echo "Module $1 is not running."
@@ -98,7 +98,7 @@ status_module() {
     else
         echo "Module $1 is not running."
     fi
-    "./$1.sh" status || echo "Failed to check $1 status."
+    "./scripts/$1.sh" status || echo "Failed to check $1 status."
 }
 
 # Pass additional commands to the module
@@ -107,7 +107,7 @@ execute_module_command() {
     module="$1"
     shift
     echo "Executing command on module $module: $*"
-    "./$module.sh" "$@"
+    "./scripts/$module.sh" "$@"
 }
 
 case "$2" in
