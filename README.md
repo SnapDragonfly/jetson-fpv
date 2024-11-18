@@ -9,7 +9,7 @@ Main features as follows:
 - [x] video-viewer
 - [ ] imagenet for image recognition
 - [x] detectnet for object detection
-- [ ] segnet for segmentation
+- [x] segnet for segmentation
 - [ ] posenet for pose estimation
 
 # Happy Flying!
