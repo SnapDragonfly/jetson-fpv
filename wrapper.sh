@@ -95,10 +95,10 @@ status_module() {
 
     if is_module_running "$1"; then
         echo "Module $1 is running."
-        "./$1.sh" status || echo "Failed to check $1 status."
     else
         echo "Module $1 is not running."
     fi
+    "./$1.sh" status || echo "Failed to check $1 status."
 }
 
 # Pass additional commands to the module
