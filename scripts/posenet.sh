@@ -37,8 +37,8 @@ look() {
     # Check if posenet is running and print PID
     if ps aux | grep "${CMD_POSENET}" | grep -v grep; then
         export DISPLAY=:0
-        POSENET_PIDFILE=$(ps aux | grep "${CMD_POSENET} | grep -v grep" | awk '{print $2}')
-        echo "posenet is running with PID: $POSENET_PIDFILE"
+        POSENET_PID=$(ps aux | grep "${CMD_POSENET} | grep -v grep" | awk '{print $2}')
+        echo "posenet is running with PID: $POSENET_PID"
     else
         echo "posenet is not running."
     fi

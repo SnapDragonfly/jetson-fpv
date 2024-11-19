@@ -37,8 +37,8 @@ look() {
     # Check if imagenet is running and print PID
     if ps aux | grep "${CMD_IMAGENET}" | grep -v grep; then
         export DISPLAY=:0
-        IMAGENET_PIDFILE=$(ps aux | grep "${CMD_IMAGENET} | grep -v grep" | awk '{print $2}')
-        echo "imagenet is running with PID: $IMAGENET_PIDFILE"
+        IMAGENET_PID=$(ps aux | grep "${CMD_IMAGENET} | grep -v grep" | awk '{print $2}')
+        echo "imagenet is running with PID: $IMAGENET_PID"
     else
         echo "imagenet is not running."
     fi

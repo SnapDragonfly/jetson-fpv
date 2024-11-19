@@ -37,8 +37,8 @@ look() {
     # Check if segnet is running and print PID
     if ps aux | grep "${CMD_SEGNET}" | grep -v grep; then
         export DISPLAY=:0
-        SEGNET_PIDFILE=$(ps aux | grep "${CMD_SEGNET} | grep -v grep" | awk '{print $2}')
-        echo "segnet is running with PID: $SEGNET_PIDFILE"
+        SEGNET_PID=$(ps aux | grep "${CMD_SEGNET} | grep -v grep" | awk '{print $2}')
+        echo "segnet is running with PID: $SEGNET_PID"
     else
         echo "segnet is not running."
     fi

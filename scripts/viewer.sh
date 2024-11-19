@@ -37,8 +37,8 @@ look() {
     # Check if video-viewer is running and print PID
     if ps aux | grep "${CMD_VIDEO}" | grep -v grep; then
         export DISPLAY=:0
-        VIDEO_PIDFILE=$(ps aux | grep "${CMD_VIDEO} | grep -v grep" | awk '{print $2}')
-        echo "video-viewer is running with PID: $VIDEO_PIDFILE"
+        VIDEO_PID=$(ps aux | grep "${CMD_VIDEO} | grep -v grep" | awk '{print $2}')
+        echo "video-viewer is running with PID: $VIDEO_PID"
     else
         echo "video-viewer is not running."
     fi

@@ -37,8 +37,8 @@ look() {
     # Check if detectnet is running and print PID
     if ps aux | grep "${CMD_DETECTNET}" | grep -v grep; then
         export DISPLAY=:0
-        DETECTNET_PIDFILE=$(ps aux | grep "${CMD_DETECTNET} | grep -v grep" | awk '{print $2}')
-        echo "detectnet is running with PID: $DETECTNET_PIDFILE"
+        DETECTNET_PID=$(ps aux | grep "${CMD_DETECTNET} | grep -v grep" | awk '{print $2}')
+        echo "detectnet is running with PID: $DETECTNET_PID"
     else
         echo "detectnet is not running."
     fi
