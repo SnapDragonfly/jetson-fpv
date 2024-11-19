@@ -37,7 +37,7 @@ look() {
     # Check if video-viewer is running and print PID
     if ps aux | grep "${CMD_VIDEO}" | grep -v grep; then
         export DISPLAY=:0
-        VIDEO_PID=$(ps aux | grep "${CMD_VIDEO} | grep -v grep" | awk '{print $2}')
+        VIDEO_PID=$(ps aux | grep "${CMD_VIDEO}" | grep -v grep | awk '{print $2}')
         echo "video-viewer is running with PID: $VIDEO_PID"
     else
         echo "video-viewer is not running."
@@ -47,7 +47,7 @@ look() {
     echo ${CMD_WFBRX}
     # Check if wfb_rx is running and print PID
     if ps aux | grep "${CMD_WFBRX}" | grep -v grep; then
-        WFB_PID=$(ps aux | grep "${CMD_WFBRX} | grep -v grep" | awk '{print $2}')
+        WFB_PID=$(ps aux | grep "${CMD_WFBRX}" | grep -v grep | awk '{print $2}')
         echo "wfb_rx is running with PID: $WFB_PID"
     else
         echo "wfb_rx is not running."

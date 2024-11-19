@@ -37,7 +37,7 @@ look() {
     # Check if detectnet is running and print PID
     if ps aux | grep "${CMD_DETECTNET}" | grep -v grep; then
         export DISPLAY=:0
-        DETECTNET_PID=$(ps aux | grep "${CMD_DETECTNET} | grep -v grep" | awk '{print $2}')
+        DETECTNET_PID=$(ps aux | grep "${CMD_DETECTNET}" | grep -v grep | awk '{print $2}')
         echo "detectnet is running with PID: $DETECTNET_PID"
     else
         echo "detectnet is not running."
@@ -47,7 +47,7 @@ look() {
     echo ${CMD_WFBRX}
     # Check if wfb_rx is running and print PID
     if ps aux | grep "${CMD_WFBRX}" | grep -v grep; then
-        WFB_PID=$(ps aux | grep "${CMD_WFBRX} | grep -v grep" | awk '{print $2}')
+        WFB_PID=$(ps aux | grep "${CMD_WFBRX}" | grep -v grep | awk '{print $2}')
         echo "wfb_rx is running with PID: $WFB_PID"
     else
         echo "wfb_rx is not running."

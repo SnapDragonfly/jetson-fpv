@@ -37,7 +37,7 @@ look() {
     # Check if stabilizer is running and print PID
     if ps aux | grep "${CMD_STABILIZER}" | grep -v grep; then
         export DISPLAY=:0
-        STABILIZER_PID=$(ps aux | grep "${CMD_STABILIZER} | grep -v grep" | awk '{print $2}')
+        STABILIZER_PID=$(ps aux | grep "${CMD_STABILIZER}" | grep -v grep | awk '{print $2}')
         echo "Stabilizer is running with PID: $STABILIZER_PID"
     else
         echo "Stabilizer is not running."
@@ -47,7 +47,7 @@ look() {
     echo ${CMD_WFBRX}
     # Check if wfb_rx is running and print PID
     if ps aux | grep "${CMD_WFBRX}" | grep -v grep; then
-        WFB_PID=$(ps aux | grep "${CMD_WFBRX} | grep -v grep" | awk '{print $2}')
+        WFB_PID=$(ps aux | grep "${CMD_WFBRX}" | grep -v grep | awk '{print $2}')
         echo "wfb_rx is running with PID: $WFB_PID"
     else
         echo "wfb_rx is not running."
