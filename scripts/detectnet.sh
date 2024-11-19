@@ -34,13 +34,13 @@ look() {
 
     echo ""
     echo ${CMD_DETECTNET}
-    # Check if video-viewer is running and print PID
+    # Check if detectnet is running and print PID
     if ps aux | grep "${CMD_DETECTNET}" | grep -v grep; then
         export DISPLAY=:0
         DETECTNET_PIDFILE=$(ps aux | grep "${CMD_DETECTNET} | grep -v grep" | awk '{print $2}')
-        echo "video-viewer is running with PID: $DETECTNET_PIDFILE"
+        echo "detectnet is running with PID: $DETECTNET_PIDFILE"
     else
-        echo "video-viewer is not running."
+        echo "detectnet is not running."
     fi
 
     echo ""
@@ -49,20 +49,18 @@ look() {
     if ps aux | grep "${CMD_WFBRX}" | grep -v grep; then
         WFB_PID=$(ps aux | grep "${CMD_WFBRX} | grep -v grep" | awk '{print $2}')
         echo "wfb_rx is running with PID: $WFB_PID"
-        echo ""
-        systemctl status wifibroadcast@gs
     else
         echo "wfb_rx is not running."
-        echo ""
-        systemctl status wifibroadcast@gs
     fi
+
+    echo ""
+    systemctl status wifibroadcast@gs
 }
 
 # Start the module
 start() {
     # Create lock file to indicate the module is running
     touch "${LOCK_DIR}/${MODULE_NAME}.lock"
-    echo "Starting module ${MODULE_NAME}..."
     
     # Add the logic to start the module here, e.g., running a specific command or script
     # Example: ./start_module_command.sh
@@ -71,12 +69,14 @@ start() {
     echo "Starting wifibroadcast..."
     systemctl start wifibroadcast@gs
     sleep 2 # initialization
+
+    # Step 2: Start extra-msposd wfb
     ${CMD_WFBRX} &
     echo $! > $WFB_PIDFILE
     sleep 3 # initialization
 
-    # Step 2: Start video-viewer script
-    echo "Starting video-viewer..."
+    # Step 3: Start detectnet script
+    echo "Starting detectnet..."
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     CMD_DETECTNET="${CMD_DETECTNET} ${OUTPUT_FILE}"
@@ -85,7 +85,7 @@ start() {
     echo $! > $DETECTNET_PIDFILE
     sleep 3 # initialization
 
-    # Step 3: Start msposd (OSD drawing)
+    # Step 4: Start msposd (OSD drawing)
     echo "Starting msposd..."
     export DISPLAY=:0
     cd ./utils/msposd
@@ -119,7 +119,7 @@ stop() {
             kill -s SIGINT $(cat $DETECTNET_PIDFILE)
             sleep 1
             rm -f $DETECTNET_PIDFILE
-            echo "video-viewer stopped."
+            echo "detectnet stopped."
         fi
 
         if [ -f "$WFB_PIDFILE" ]; then
@@ -127,6 +127,7 @@ stop() {
             kill $(cat $WFB_PIDFILE)
             sleep 1
             rm -f $WFB_PIDFILE
+
             systemctl stop wifibroadcast@gs
             echo "wifibroadcast stopped."
         fi
@@ -160,13 +161,12 @@ status() {
         echo ""
         if [ -f "$WFB_PIDFILE" ] && ps -p $(cat $WFB_PIDFILE) > /dev/null; then
             echo "wifibroadcast (wfb_rx) is running with PID: $(cat $WFB_PIDFILE)"
-            echo ""
-            systemctl status wifibroadcast@gs
         else
             echo "wifibroadcast (wfb_rx) is not running."
-            echo ""
-            systemctl status wifibroadcast@gs
         fi
+
+        echo ""
+        systemctl status wifibroadcast@gs
     else
         echo "Module ${MODULE_NAME} is not running."
         look

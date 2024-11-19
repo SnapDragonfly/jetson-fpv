@@ -49,20 +49,18 @@ look() {
     if ps aux | grep "${CMD_WFBRX}" | grep -v grep; then
         WFB_PID=$(ps aux | grep "${CMD_WFBRX} | grep -v grep" | awk '{print $2}')
         echo "wfb_rx is running with PID: $WFB_PID"
-        echo ""
-        sudo systemctl status wifibroadcast@gs
     else
         echo "wfb_rx is not running."
-        echo ""
-        sudo systemctl status wifibroadcast@gs
     fi
+
+    echo ""
+    sudo systemctl status wifibroadcast@gs
 }
 
 # Start the module
 start() {
     # Create lock file to indicate the module is running
     touch "${LOCK_DIR}/${MODULE_NAME}.lock"
-    echo "Starting module ${MODULE_NAME}..."
     
     # Add the logic to start the module here, e.g., running a specific command or script
     # Example: ./start_module_command.sh
@@ -71,11 +69,13 @@ start() {
     echo "Starting wifibroadcast..."
     sudo systemctl start wifibroadcast@gs
     sleep 2 # initialization
+
+    # Step 2: Start extra-msposd wfb
     sudo ${CMD_WFBRX} &
     echo $! > $WFB_PIDFILE
     sleep 3 # initialization
 
-    # Step 2: Start stabilizer script
+    # Step 3: Start stabilizer script
     echo "Starting stabilizer..."
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
@@ -84,7 +84,7 @@ start() {
     echo $! > $STABILIZER_PIDFILE
     sleep 3 # initialization
 
-    # Step 3: Start msposd (OSD drawing)
+    # Step 4: Start msposd (OSD drawing)
     echo "Starting msposd..."
     export DISPLAY=:0
     cd ./utils/msposd
@@ -99,8 +99,8 @@ start() {
 # Stop the module
 stop() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
-        echo "Stopping module ${MODULE_NAME}..."
         rm "${LOCK_DIR}/${MODULE_NAME}.lock"
+
         # Add the logic to stop the module here, e.g., killing a process or stopping a service
         # Example: kill $(pidof module_process)
 
@@ -126,6 +126,7 @@ stop() {
             kill $(cat $WFB_PIDFILE)
             sleep 1
             rm -f $WFB_PIDFILE
+
             sudo systemctl stop wifibroadcast@gs
             echo "wifibroadcast stopped."
         fi
@@ -161,13 +162,12 @@ status() {
         echo ""
         if [ -f "$WFB_PIDFILE" ] && ps -p $(cat $WFB_PIDFILE) > /dev/null; then
             echo "wifibroadcast (wfb_rx) is running with PID: $(cat $WFB_PIDFILE)"
-            echo ""
-            sudo systemctl status wifibroadcast@gs
         else
             echo "wifibroadcast (wfb_rx) is not running."
-            echo ""
-            sudo systemctl status wifibroadcast@gs
         fi
+
+        echo ""
+        sudo systemctl status wifibroadcast@gs
     else
         echo "Module ${MODULE_NAME} is not running."
         look

@@ -69,6 +69,7 @@ start_module() {
 
     if is_module_running "$1"; then
         echo "Module $1 is already running."
+        echo "If it's NOT. Please use status check or restart the module."
     else
         echo "Starting module $1..."
         touch "${LOCK_DIR}/$1.lock"
@@ -96,7 +97,7 @@ status_module() {
     if is_module_running "$1"; then
         echo "Module $1 is running."
     else
-        echo "Module $1 is not running."
+        echo "Module $1 is not running. look into now ..."
     fi
     "./scripts/$1.sh" status || echo "Failed to check $1 status."
 }
