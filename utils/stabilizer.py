@@ -489,6 +489,9 @@ def main():
         img = input.Capture()
 
         if img is None: # timeout
+            if exit_flag.is_set():
+                print("video stabilizer ready to exit ... ...")
+                break
             continue  
             
         if numFrames % 25 == 0 or numFrames < 15:
