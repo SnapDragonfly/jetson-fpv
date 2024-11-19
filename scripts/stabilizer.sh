@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Cast all printf info to NULL
+CMD_NULL=""
+
 # PID files for tracking processes
 MSPOSD_PIDFILE="/var/run/msposd.pid"
 STABILIZER_PIDFILE="/var/run/stabilizer.pid"
@@ -68,30 +71,32 @@ start() {
     # Step 1: Start wfb (wifibroadcast)
     echo "Starting wifibroadcast..."
     sudo systemctl start wifibroadcast@gs
-    sleep 2 # initialization
+    sleep 3 # initialization
 
     # Step 2: Start extra-msposd wfb
-    sudo ${CMD_WFBRX} &
+    echo ${CMD_WFBRX}
+    sudo ${CMD_WFBRX} ${CMD_NULL} &
     echo $! > $WFB_PIDFILE
-    sleep 3 # initialization
+    sleep 2 # initialization
 
     # Step 3: Start stabilizer script
     echo "Starting stabilizer..."
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     CMD_STABILIZER="${CMD_STABILIZER} ${OUTPUT_FILE} --input-codec=h265"
-    ${CMD_STABILIZER} &
+    ${CMD_STABILIZER} ${CMD_NULL} &
     echo $! > $STABILIZER_PIDFILE
-    sleep 3 # initialization
+    sleep 2 # initialization
 
     # Step 4: Start msposd (OSD drawing)
     echo "Starting msposd..."
     export DISPLAY=:0
     cd ./utils/msposd
-    ${CMD_MSPOSD} &
+    echo ${CMD_MSPOSD}
+    ${CMD_MSPOSD} ${CMD_NULL} &
     echo $! > $MSPOSD_PIDFILE
     cd ../../
-    sleep 3 # initialization
+    sleep 2 # initialization
 
     echo "${MODULE_NAME} started."
 }

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Cast all printf info to NULL
+CMD_NULL=""
+
 # PID files for tracking processes
 MSPOSD_PIDFILE="/var/run/msposd.pid"
 WFB_PIDFILE="/var/run/wfb.pid"
@@ -68,13 +71,14 @@ start() {
 
     # Step 1: Start wfb (wifibroadcast)
     echo "Starting wifibroadcast..."
-    systemctl start wifibroadcast@gs
-    sleep 2 # initialization
+    sudo systemctl start wifibroadcast@gs
+    sleep 3 # initialization
 
     # Step 2: Start extra-msposd wfb
-    ${CMD_WFBRX} &
+    echo ${CMD_WFBRX}
+    sudo ${CMD_WFBRX} ${CMD_NULL} &
     echo $! > $WFB_PIDFILE
-    sleep 3 # initialization
+    sleep 2 # initialization
 
     # Step 3: Start segnet script
     echo "Starting segnet..."
@@ -82,18 +86,19 @@ start() {
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     CMD_SEGNET="${CMD_SEGNET} ${OUTPUT_FILE}"
     echo ${CMD_SEGNET}
-    ${CMD_SEGNET} &
+    ${CMD_SEGNET} ${CMD_NULL} &
     echo $! > $SEGNET_PIDFILE
-    sleep 3 # initialization
+    sleep 2 # initialization
 
     # Step 4: Start msposd (OSD drawing)
     echo "Starting msposd..."
     export DISPLAY=:0
     cd ./utils/msposd
-    ${CMD_MSPOSD} &
+    echo ${CMD_MSPOSD}
+    ${CMD_MSPOSD} ${CMD_NULL} &
     echo $! > $MSPOSD_PIDFILE
     cd ../../
-    sleep 3 # initialization
+    sleep 2 # initialization
 
     echo "${MODULE_NAME} started."
 }

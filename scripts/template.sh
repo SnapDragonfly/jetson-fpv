@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Cast all printf info to NULL
+CMD_NULL=""
+
 # Define the module's lock file directory (ensure the directory exists)
 LOCK_DIR="/tmp/module_locks"
 MODULE_NAME=$(basename "$0" .sh)
