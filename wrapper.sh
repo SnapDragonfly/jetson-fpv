@@ -1,7 +1,7 @@
 #!/bin/bash
 
 LOCK_DIR="/tmp/module_locks"
-MODULES=("stabilizer" "viewer" "imagenet" "detectnet" "segnet" "posenet")
+MODULES=("stabilizer" "viewer" "imagenet" "detectnet" "segnet" "posenet" "yolo")
 
 # Ensure script runs as root or with sudo
 if [ "$(id -u)" -ne 0 ] && [ -z "$SUDO_USER" ]; then

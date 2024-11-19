@@ -11,7 +11,7 @@ Main features as follows:
 - [x] detectnet for object detection
 - [x] segnet for segmentation
 - [x] posenet for pose estimation
-- [ ] yolo for object detection
+- [x] yolo for object detection
 
 # To Do
 
@@ -19,11 +19,16 @@ Main features as follows:
 2. extension commands for video-viewer/imagenet/detectnet/segnet/posenet
 3. adaptive Open IPC link management
 4. stabilizer doesn't seem to be that stabilized
-5. follow me Rover drive
+5. optimize yolo performance
+6. follow me Rover drive
 
 # Happy Flying!
 
 All these fun points serve as potential starting points for deepening the project.
+
+# Q & A
+
+- How to install the software?
 
 # Thanks to:
 
