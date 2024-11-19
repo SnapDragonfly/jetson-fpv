@@ -27,11 +27,13 @@ import time
 import signal
 import argparse
 import threading
+import numpy as np
 
 from ultralytics import YOLO
 from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
 
 # Define font color as a parameter (e.g., white or yellow)
+YOLO_SIZE  = 600
 FONT_COLOR = (255, 255, 255)  # White color
 # FONT_COLOR = (0, 255, 255)  # Uncomment for yellow text
 
@@ -68,6 +70,21 @@ def main():
         action="store_false",
         dest="headless",
         help="Enable the OpenGL GUI window (default: headless mode is enabled)"
+    )
+
+    parser.add_argument(
+        "--mode",
+        type=int,
+        default=0,
+        dest="mode",
+        help="Set the corp mode (default: 0-resize; 1-vertical-center; 2-center-640; other)"
+    )
+
+    parser.add_argument(
+        "--show-predict",
+        action='store_true',  # Store True if the argument is passed, otherwise False
+        default=False,
+        help="Set to True to show 'pfame' as the Predict box label (default: False)"
     )
 
     args = parser.parse_known_args()[0]
@@ -142,27 +159,165 @@ def main():
         numFrames += 1
 
         # Perform inference on the frame using YOLO
+        # Resize/crop the original frame to a maximum of YOLO_SIZE(640) pixels
+        crop_width  = YOLO_SIZE
+        crop_height = YOLO_SIZE
         cv2_frame = cudaToNumpy(img)
-        results = model.predict(source=cv2_frame, show=False)
-        #results = model.predict(source=img, show=False)
 
-        # Draw the bounding boxes on the image
-        for result in results:  # Iterate over the results for each object detected
-            boxes = result.boxes  # Detected boxes (each box corresponds to a detected object)
-            for box in boxes:
-                x1, y1, x2, y2 = box.xyxy[0]  # Get the coordinates of the bounding box
-                confidence = box.conf[0]  # Confidence score for the detected object
-                class_id = int(box.cls[0])  # Class ID of the detected object
+        if args.mode == 0:
+            #print("Mode 0: Performing Resize")
+            h, w = cv2_frame.shape[:2]
 
-                # Only process the boxes for the configured classes
-                if class_id in class_indices:
-                    label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
+            # Calculate scale factor to resize the frame to fit the crop width while maintaining aspect ratio
+            scale_factor = min(crop_width / h, crop_width / w)  # Calculate scale factor
+            new_w, new_h = int(w * scale_factor), int(h * scale_factor)  # Calculate new dimensions
 
-                    # Draw the bounding box with a light color (e.g., light blue)
-                    cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue color
+            # Resize the frame to fit within 640x640 without padding
+            resized_frame = cv2.resize(cv2_frame, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
 
-                    # Draw the label with a larger font and the chosen font color
-                    cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)  # Using FONT_COLOR
+            # Perform YOLO inference on the resized frame
+            results = model.predict(source=resized_frame, show=False)
+
+            # Iterate over the results for each detected object
+            for result in results:
+                boxes = result.boxes  # Detected boxes
+                for box in boxes:
+                    x1, y1, x2, y2 = box.xyxy[0]  # Bounding box coordinates in resized frame
+                    confidence = box.conf[0]  # Confidence score
+                    class_id = int(box.cls[0])  # Class ID
+
+                    if class_id in class_indices:  # Filter by configured classes
+                        # Map bounding box back to original frame dimensions
+                        x1, x2 = x1 / scale_factor, x2 / scale_factor
+                        y1, y2 = y1 / scale_factor, y2 / scale_factor
+
+                        # Create label for bounding box
+                        label = f"{model.names[class_id]} {confidence:.2f}"
+
+                        # Draw the bounding box on the original frame
+                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue
+
+                        # Draw label on the original frame
+                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)
+
+        elif args.mode == 1:
+            #print("Mode 1: Performing corp width")
+            # Get the dimensions of the original frame
+            frame_height, frame_width, _ = cv2_frame.shape
+
+            # Calculate cropping coordinates for the center 640-pixel width
+            start_x = max(0, (frame_width - crop_width) // 2)
+            end_x = start_x + crop_width
+
+            # Crop the central 640-pixel width
+            cropped_frame = cv2_frame[:, start_x:end_x]
+
+            # Perform YOLO prediction on the cropped frame
+            results = model.predict(source=cropped_frame, show=False)
+
+            # Map detected bounding boxes back to the original frame coordinates
+            for result in results:  # Iterate over the results for each object detected
+                boxes = result.boxes  # Detected boxes (each box corresponds to a detected object)
+                for box in boxes:
+                    x1, y1, x2, y2 = box.xyxy[0]  # Get the coordinates of the bounding box
+                    confidence = box.conf[0]  # Confidence score for the detected object
+                    class_id = int(box.cls[0])  # Class ID of the detected object
+
+                    # Only process the boxes for the configured classes
+                    if class_id in class_indices:
+                        # Map the bounding box coordinates back to the original frame
+                        x1, y1, x2, y2 = box.xyxy[0].clone()  # Clone the tensor to make it editable
+                        x1 += start_x
+                        x2 += start_x
+
+                        label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
+
+                        # Draw the bounding box with a light color (e.g., light blue)
+                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue color
+
+                        # Draw the label with a larger font and the chosen font color
+                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)  # Using FONT_COLOR
+
+            if args.show_predict:
+                # Draw a rectangle to indicate the cropped area on the original frame
+                margin = 50  # Increase the margin by this amount
+                cv2.rectangle(cv2_frame, (start_x-margin, 0), (end_x+margin, frame_height), (0, 255, 0), 2)  # Green rectangle
+
+                # Add a label to indicate this is the prediction area
+                cv2.putText(cv2_frame, "Predict", (start_x + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)  # Green text
+
+        elif args.mode == 2:
+            #print("Mode 2: Performing corp width-height")
+            # Get the dimensions of the original frame
+            h, w = cv2_frame.shape[:2]
+
+            # Calculate cropping dimensions for the center 640x640 region
+            start_x = max((w - crop_width) // 2, 0)  # Ensure cropping starts within bounds
+            start_y = max((h - crop_height) // 2, 0)
+            end_x = min(w, start_x + crop_width)  # Ensure the rectangle does not exceed the image boundary
+            end_y = min(h, start_y + crop_height)  # Ensure the rectangle does not exceed the image boundary
+
+            # Crop the central region of the frame
+            cropped_frame = cv2_frame[start_y:start_y + crop_height, start_x:start_x + crop_width]
+
+            # Perform YOLO inference on the cropped frame
+            results = model.predict(source=cropped_frame, show=False)
+
+            # Draw the bounding boxes on the original frame, mapped from the cropped region
+            for result in results:  # Iterate over the results for each object detected
+                boxes = result.boxes  # Detected boxes
+                for box in boxes:
+                    x1, y1, x2, y2 = box.xyxy[0]  # Get the coordinates of the bounding box
+                    confidence = box.conf[0]  # Confidence score for the detected object
+                    class_id = int(box.cls[0])  # Class ID of the detected object
+
+                    # Only process the boxes for the configured classes
+                    if class_id in class_indices:
+                        label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
+
+                        # Map bounding box coordinates back to the original frame
+                        x1, y1, x2, y2 = box.xyxy[0].clone()  # Clone the tensor to make it editable
+                        x1 += start_x
+                        x2 += start_x
+                        y1 += start_y
+                        y2 += start_y
+
+                        # Draw the bounding box with a light color (e.g., light blue)
+                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue color
+
+                        # Draw the label with a larger font and the chosen font color
+                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)  # Using FONT_COLOR
+
+            if args.show_predict:
+                # Draw a rectangle around the cropped region with an increased width and height
+                margin = 50  # Increase the margin by this amount
+                cv2.rectangle(cv2_frame, (start_x - margin, start_y - margin), (end_x + margin, end_y + margin), (0, 255, 0), 2)  # Green rectangle
+
+                # Add a label to indicate the prediction area
+                cv2.putText(cv2_frame, "Predict", (start_x - margin + 10, start_y - margin - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)  # Green text
+
+        else:
+            #print(f"Other Mode: {args.mode}. Performing all")
+            results = model.predict(source=cv2_frame, show=False)
+            #results = model.predict(source=img, show=False)
+
+            # Draw the bounding boxes on the image
+            for result in results:  # Iterate over the results for each object detected
+                boxes = result.boxes  # Detected boxes (each box corresponds to a detected object)
+                for box in boxes:
+                    x1, y1, x2, y2 = box.xyxy[0]  # Get the coordinates of the bounding box
+                    confidence = box.conf[0]  # Confidence score for the detected object
+                    class_id = int(box.cls[0])  # Class ID of the detected object
+
+                    # Only process the boxes for the configured classes
+                    if class_id in class_indices:
+                        label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
+
+                        # Draw the bounding box with a light color (e.g., light blue)
+                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue color
+
+                        # Draw the label with a larger font and the chosen font color
+                        cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)  # Using FONT_COLOR
 
         # Update the window title and display the frame with detections
         cv2.imshow("YOLO Prediction", cv2_frame)

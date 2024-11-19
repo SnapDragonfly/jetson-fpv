@@ -83,7 +83,7 @@ start() {
     echo "Starting yolo..."
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} --input-codec=h265"
+    CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} --input-codec=h265 $@"
     echo ${CMD_YOLO}
     ${CMD_YOLO} ${CMD_NULL} &
     echo $! > $YOLO_PIDFILE
@@ -186,6 +186,14 @@ restart() {
     start
 }
 
+# Test the module
+test() {
+    # Create lock file to indicate the module is running
+    echo "Testing module ${MODULE_NAME}..."
+
+    start ${@:2}
+}
+
 # Dispatcher to handle commands
 case "$1" in
     start)
@@ -199,6 +207,9 @@ case "$1" in
         ;;
     restart)
         restart
+        ;;
+    test)
+        test "$@"
         ;;
     *)
         echo "Usage: $0 {start|stop|status|restart}"
