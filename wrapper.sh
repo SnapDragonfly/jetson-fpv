@@ -29,7 +29,9 @@ help() {
         echo "  $module"
     done
     echo
-    echo "System Environment:"
+    jetson_release
+    echo
+    echo "Python Environment:"
     python3 --version
     python3 -c "import cv2; print(cv2.getBuildInformation())" | grep -E "CUDA|GStreamer"
     python3 -c "import cv2; print('OpenCV version:', cv2.__version__, ', CUDA support:', cv2.cuda.getCudaEnabledDeviceCount() > 0)"
