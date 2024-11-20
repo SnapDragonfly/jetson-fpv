@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Cast all printf info to NULL
+CMD_NULL=" 2>/dev/null"
+
 LOCK_DIR="/tmp/module_locks"
 MODULES=("stabilizer" "viewer" "imagenet" "detectnet" "segnet" "posenet" "yolo")
 
@@ -28,13 +31,28 @@ help() {
     for module in "${MODULES[@]}"; do
         echo "  $module"
     done
+
+    export DISPLAY=:0
+
     echo
     jetson_release
     echo
     echo "Python Environment:"
-    python3 --version
-    python3 -c "import cv2; print(cv2.getBuildInformation())" | grep -E "CUDA|GStreamer"
-    python3 -c "import cv2; print('OpenCV version:', cv2.__version__, ', CUDA support:', cv2.cuda.getCudaEnabledDeviceCount() > 0)"
+
+    # Python version
+    eval "python3 --version $CMD_NULL"
+
+    # OpenCV build information
+    eval "python3 -c \"import cv2; print(cv2.getBuildInformation())\" $CMD_NULL" | grep -E "CUDA|GStreamer"
+
+    # OpenCV version and CUDA support
+    eval "python3 -c \"import cv2; print('OpenCV version:', cv2.__version__, ', CUDA support:', cv2.cuda.getCudaEnabledDeviceCount() > 0)\" $CMD_NULL" | grep -v "EGL display"
+
+    # PyTorch version
+    eval "python3 -c \"import torch; print('Torch version:', torch.__version__)\" $CMD_NULL" | grep -v "EGL display"
+
+    # Torchvision version
+    eval "python3 -c \"import torchvision; print('Torchvision version:', torchvision.__version__)\" $CMD_NULL" | grep -v "EGL display"
 }
 
 # Check if the module name is valid
