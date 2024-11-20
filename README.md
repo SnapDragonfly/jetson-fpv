@@ -1,17 +1,20 @@
-# jetson_fpv
+# jetson-fpv
 
 Use Jetson as a ground station for FPV enthusiasts. 
 
 Main features as follows:
 
-- [x] MSPOSD for ground station
-- [x] Real time video stabilizer
-- [x] video-viewer
-- [x] imagenet for image recognition
-- [x] detectnet for object detection
-- [x] segnet for segmentation
-- [x] posenet for pose estimation
+- [x] FPV features
+    - [x] MSPOSD for ground station
+    - [x] video-viewer
+    - [ ] Adaptive wireless link
+- [x] Jetson video analysis
+    - [x] detectnet for object detection
+    - [x] segnet for segmentation
+    - [x] posenet for pose estimation
+    - [x] imagenet for image recognition
 - [x] yolo for object detection
+- [x] Real time video stabilizer
 
 # To Do
 
@@ -28,7 +31,8 @@ All these fun points serve as potential starting points for deepening the projec
 
 # Q & A
 
-- How to install the software?
+- [How to install the software?](doc/INSTALL.md)
+- [How to use the software?](doc/MANUAL.md)
 
 # Thanks to:
 
