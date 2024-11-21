@@ -7,3 +7,6 @@
 [submodule "module/wfb-ng"]
 	path = module/wfb-ng
 	url = https://github.com/svpcom/wfb-ng.git
+[submodule "module/msposd"]
+	path = module/msposd
+	url = https://github.com/OpenIPC/msposd.git

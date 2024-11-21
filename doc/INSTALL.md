@@ -5,7 +5,8 @@
 3. install [jetson-utils](../module)
 4. install [jetson-inference](../module)
 5. install [wfb-ng](../module)
-6. install yolo: [git link](https://github.com/ultralytics/ultralytics)
+6. update [msposd](../module), and there is a binary version in [../utils/msposd](../utils/msposd)
+7. install yolo: [git link](https://github.com/ultralytics/ultralytics)
 
 *Note: Tested version is in the submodule if it's installed from source.*
 
