@@ -131,6 +131,12 @@ stop() {
             # Stop wfb_rx manually if it's running
             kill $(cat $WFB_PIDFILE)
             sleep 1
+            if ps aux | grep "${CMD_WFBRX}" | grep -v grep; then
+                WFB_PID=$(ps aux | grep "${CMD_WFBRX}" | grep -v grep | awk '{print $2}')
+                echo "wfb_rx is still running with PID: $WFB_PID"
+                kill -s SIGTERM $WFB_PID
+            fi
+            sleep 1
             rm -f $WFB_PIDFILE
 
             systemctl stop wifibroadcast@gs

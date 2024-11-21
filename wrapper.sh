@@ -2,6 +2,7 @@
 
 # Cast all printf info to NULL
 CMD_NULL=" 2>/dev/null"
+CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 
 LOCK_DIR="/tmp/module_locks"
 MODULES=("stabilizer" "viewer" "imagenet" "detectnet" "segnet" "posenet" "yolo")
@@ -103,6 +104,9 @@ start_module() {
         echo "Starting module $1..."
         touch "${LOCK_DIR}/$1.lock"
         "./scripts/$1.sh" start || echo "Failed to start $1."
+        CMD_KEYMONITOR="$CMD_KEYMONITOR $1"
+        echo $CMD_KEYMONITOR
+        $CMD_KEYMONITOR
     fi
 }
 

@@ -75,10 +75,14 @@ start() {
 
     # Step 2: Start extra-msposd wfb
     echo ${CMD_WFBRX}
-    sudo -E ${CMD_WFBRX} ${CMD_NULL} &
+    sudo ${CMD_WFBRX} ${CMD_NULL} &
     echo $! > $WFB_PIDFILE
     sleep 2 # initialization
 
+    # Well, default SDL2 is 2.0.0
+    # But I have installed SDL2 2.30.9, then the mess is here
+    export LD_PRELOAD=/lib/aarch64-linux-gnu/libGLdispatch.so.0
+    
     # Step 3: Start yolo script
     echo "Starting yolo..."
     export DISPLAY=:0
@@ -131,11 +135,18 @@ stop() {
             # Stop wfb_rx manually if it's running
             kill $(cat $WFB_PIDFILE)
             sleep 1
+            if ps aux | grep "${CMD_WFBRX}" | grep -v grep; then
+                WFB_PID=$(ps aux | grep "${CMD_WFBRX}" | grep -v grep | awk '{print $2}')
+                echo "wfb_rx is still running with PID: $WFB_PID"
+                kill -s SIGTERM $WFB_PID
+            fi
+            sleep 1
             rm -f $WFB_PIDFILE
 
             sudo systemctl stop wifibroadcast@gs
             echo "wifibroadcast stopped."
         fi
+        sleep 1
 
         echo "${MODULE_NAME} stopped."
     else
