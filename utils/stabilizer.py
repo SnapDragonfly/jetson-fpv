@@ -401,8 +401,6 @@ class Stabilizer:
 
         # Display the stabilized frame
         window_name = "Video Viewer Stabilized"
-        if self.showFullScreen == 1:
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(window_name, res_w, res_h)  # Resize the window
@@ -416,6 +414,9 @@ class Stabilizer:
         # Display unstabilized ROI if enabled
         if self.showUnstabilized == 1:
             cv2.imshow("Unstabilized ROI", self.prevGray)
+
+        if self.showFullScreen == 1:
+            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         # Update previous frame data
         self.prevOrig = Orig
@@ -472,7 +473,7 @@ def main():
     # Initialize Stabilizer with user-defined parameters
     stabilizer = Stabilizer(
         downSample=1.0,
-        zoomFactor=0.9,
+        zoomFactor=0.98,
         processVar=0.03,
         measVar=2,
         roiDiv=3.5,
@@ -480,7 +481,7 @@ def main():
         showTrackingPoints=0,
         showUnstabilized=0,
         maskFrame=0,
-        showFullScreen=0,
+        showFullScreen=1,
         useStabilizer=True
     )
 
