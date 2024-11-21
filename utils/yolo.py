@@ -34,17 +34,24 @@ from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
 
 # Define font color as a parameter (e.g., white or yellow)
 YOLO_SIZE  = 600
+FONT_SCALE = 0.6
 FONT_COLOR = (255, 255, 255)  # White color
 # FONT_COLOR = (0, 255, 255)  # Uncomment for yellow text
+FONT_THICKNESS = 1
+BOX_THICKNESS  = 1
 
 # thread exit control:
 exit_flag = threading.Event()
+
+# window title
+window_title = "YOLO Prediction"
 
 def handle_interrupt(signal_num, frame):
     print("yolo set exit_flag ... ...")
     exit_flag.set()
 
 def main():
+    global window_title
 
     # parse command line
     parser = argparse.ArgumentParser(description="View various types of video streams", 
@@ -75,7 +82,7 @@ def main():
     parser.add_argument(
         "--mode",
         type=int,
-        default=0,
+        default=3,
         dest="mode",
         help="Set the corp mode (default: 0-resize; 1-vertical-center; 2-center-640; other)"
     )
@@ -144,18 +151,9 @@ def main():
         if firt_frame_check:
             firt_frame_check = False
 
-            # Create a named window to avoid opening multiple windows
-            cv2.namedWindow("YOLO Prediction", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("YOLO Prediction", img.width, img.height)
+            cv2.namedWindow(window_title, cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty(window_title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             
-        if numFrames % 25 == 0 or numFrames < 15:
-            Log.Verbose(f"video-viewer:  captured {numFrames} frames ({img.width} x {img.height})")
-            
-            # Set the window title with the FPS value
-            window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {fps:.2f}"
-            #window_title = "YOLO Prediction | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, input.GetFrameRate())
-            cv2.setWindowTitle("YOLO Prediction", window_title)
-
         numFrames += 1
 
         # Perform inference on the frame using YOLO
@@ -163,6 +161,13 @@ def main():
         crop_width  = YOLO_SIZE
         crop_height = YOLO_SIZE
         cv2_frame = cudaToNumpy(img)
+
+        if numFrames % 25 == 0 or numFrames < 15:
+            Log.Verbose(f"video-viewer:  captured {numFrames} frames ({img.width} x {img.height})")
+            
+            # Set the window title with the FPS value
+            window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {fps:.2f}"
+            #cv2.setWindowTitle("YOLO Prediction", window_title)
 
         if args.mode == 0:
             #print("Mode 0: Performing Resize")
@@ -195,10 +200,10 @@ def main():
                         label = f"{model.names[class_id]} {confidence:.2f}"
 
                         # Draw the bounding box on the original frame
-                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue
+                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue
 
                         # Draw label on the original frame
-                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)
+                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
 
         elif args.mode == 1:
             #print("Mode 1: Performing corp width")
@@ -233,18 +238,18 @@ def main():
                         label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
 
                         # Draw the bounding box with a light color (e.g., light blue)
-                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue color
+                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
 
                         # Draw the label with a larger font and the chosen font color
-                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)  # Using FONT_COLOR
+                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
 
             if args.show_predict:
                 # Draw a rectangle to indicate the cropped area on the original frame
                 margin = 50  # Increase the margin by this amount
-                cv2.rectangle(cv2_frame, (start_x-margin, 0), (end_x+margin, frame_height), (0, 255, 0), 2)  # Green rectangle
+                cv2.rectangle(cv2_frame, (start_x-margin, 0), (end_x+margin, frame_height), (0, 255, 0), BOX_THICKNESS)  # Green rectangle
 
                 # Add a label to indicate this is the prediction area
-                cv2.putText(cv2_frame, "Predict", (start_x + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)  # Green text
+                cv2.putText(cv2_frame, "Predict", (start_x + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 255, 0), FONT_THICKNESS)  # Green text
 
         elif args.mode == 2:
             #print("Mode 2: Performing corp width-height")
@@ -283,18 +288,18 @@ def main():
                         y2 += start_y
 
                         # Draw the bounding box with a light color (e.g., light blue)
-                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue color
+                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
 
                         # Draw the label with a larger font and the chosen font color
-                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)  # Using FONT_COLOR
+                        cv2.putText(cv2_frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
 
             if args.show_predict:
                 # Draw a rectangle around the cropped region with an increased width and height
                 margin = 50  # Increase the margin by this amount
-                cv2.rectangle(cv2_frame, (start_x - margin, start_y - margin), (end_x + margin, end_y + margin), (0, 255, 0), 2)  # Green rectangle
+                cv2.rectangle(cv2_frame, (start_x - margin, start_y - margin), (end_x + margin, end_y + margin), (0, 255, 0), BOX_THICKNESS)  # Green rectangle
 
                 # Add a label to indicate the prediction area
-                cv2.putText(cv2_frame, "Predict", (start_x - margin + 10, start_y - margin - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)  # Green text
+                cv2.putText(cv2_frame, "Predict", (start_x - margin + 10, start_y - margin - 10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 255, 0), FONT_THICKNESS)  # Green text
 
         else:
             #print(f"Other Mode: {args.mode}. Performing all")
@@ -314,10 +319,16 @@ def main():
                         label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
 
                         # Draw the bounding box with a light color (e.g., light blue)
-                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), 2)  # Light blue color
+                        cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
 
                         # Draw the label with a larger font and the chosen font color
-                        cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, FONT_COLOR, 2)  # Using FONT_COLOR
+                        cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
+
+        # FPS text
+        text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
+        text_x = img.width - text_size[0] - 10  # right
+        text_y = 20  # to the top
+        cv2.putText(cv2_frame, window_title, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
 
         # Update the window title and display the frame with detections
         cv2.imshow("YOLO Prediction", cv2_frame)
