@@ -223,7 +223,7 @@ case "$1" in
         test "$@"
         ;;
     *)
-        echo "Usage: $0 {start|stop|status|restart}"
+        echo "Usage: $0 {start|stop|status|restart|test}"
         exit 1
         ;;
 esac
