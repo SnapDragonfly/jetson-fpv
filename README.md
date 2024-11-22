@@ -24,6 +24,7 @@ Main features as follows:
 4. stabilizer doesn't seem to be that stabilized
 5. optimize yolo performance
 6. follow me Rover drive
+7. add Ultralytics YOLO11 on NVIDIA Jetson using DeepStream SDK and TensorRT
 
 # Happy Flying!
 
@@ -33,6 +34,7 @@ All these fun points serve as potential starting points for deepening the projec
 
 - [How to install the software?](doc/INSTALL.md)
 - [How to use the software?](doc/MANUAL.md)
+- [How to optimize YOLO performance?](doc/YOLO.md)
 
 # Thanks to:
 

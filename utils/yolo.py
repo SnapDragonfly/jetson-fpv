@@ -46,6 +46,34 @@ exit_flag = threading.Event()
 # window title
 window_title = "YOLO Prediction"
 
+def display_help():
+    """
+    Displays a formatted help message for the command-line arguments.
+    """
+    help_message = """
+Usage: python script.py [options] <input> [output]
+
+Description:
+    View various types of video streams.
+
+Positional arguments:
+    input               URI of the input stream
+    output              URI of the output stream (default: file://output_video.mp4)
+
+Optional arguments:
+    --no-headless       Enable the OpenGL GUI window (default: headless mode is enabled)
+    --mode <int>        Set the crop mode (default: 3; 
+                        options: 0-resize, 1-vertical-center, 2-center-640, other)
+    --model <str>       Set the model to use (default: 11n; options: 11n, 5nu, 8n, 8s)
+    --show-predict      Show 'pfame' as the Predict box label (default: False)
+    -h, --help          Show this help message and exit.
+
+Examples:
+    python script.py "file://input_video.mp4" "file://output_video.mp4"
+    python script.py "rtsp://camera_stream" --no-headless --mode 2 --model 8n
+"""
+    print(help_message)
+
 def handle_interrupt(signal_num, frame):
     print("yolo set exit_flag ... ...")
     exit_flag.set()
@@ -88,6 +116,14 @@ def main():
     )
 
     parser.add_argument(
+        "--model",
+        type=str,
+        default="11n",
+        dest="model",
+        help="Set the model 11n(default)/5nu/8n"
+    )
+
+    parser.add_argument(
         "--show-predict",
         action='store_true',  # Store True if the argument is passed, otherwise False
         default=False,
@@ -101,7 +137,19 @@ def main():
     signal.signal(signal.SIGINT, handle_interrupt)
 
     # Load the YOLO model
-    model = YOLO('./model/yolo11n.engine')
+    #model = YOLO('./model/yolo11n.engine')
+    #model = YOLO('./model/yolov5nu.engine')
+    #model = YOLO('./model/yolov8n.engine')
+    if args.model == "11n":
+        model = YOLO('./model/yolo11n.engine')
+    elif args.model == "5nu":
+        model = YOLO('./model/yolov5nu.engine')
+    elif args.model == "8n":
+        model = YOLO('./model/yolov8n.engine')
+    else:
+        raise ValueError(f"Unsupported model: {args.model}. Please choose from 11n, 5nu, or 8n.")
+        display_help()
+        sys.exit(1)
 
     # Configurable list of target classes to detect
     class_names = model.names  # This is likely a dictionary {index: class_name}
@@ -354,6 +402,11 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
+    import sys
+    if "--help" in sys.argv or "-h" in sys.argv:
+        display_help()
+        sys.exit(0)
+
     main()
     print("yolo done!")
     sys.exit(0)

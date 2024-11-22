@@ -142,6 +142,10 @@ execute_module_command() {
     shift
     echo "Executing command on module $module: $*"
     "./scripts/$module.sh" "$@"
+
+    CMD_KEYMONITOR="$CMD_KEYMONITOR $module"
+    echo $CMD_KEYMONITOR
+    $CMD_KEYMONITOR
 }
 
 case "$2" in
