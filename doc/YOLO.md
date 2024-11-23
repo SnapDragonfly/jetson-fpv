@@ -24,7 +24,9 @@ $ yolo export model=yolo11n.pt format=engine int8=True
 ```
 
 *Note1: int8 improves a lot. So it's crucial to export model, adapting hardware acceleration.*
+
 *Note2: Make sure maximize Jetson Orin's performance.*
+
 ```
 $ sudo nvpmodel -m 0
 $ sudo jetson_clocks
@@ -53,7 +55,9 @@ $ yolo export model=yolov8n.pt format="engine" batch=8 workspace=2.0 imgsz=320 d
 ```
 
 *Note1: It's NOT good choice with `imgsz=1920,1080`, 640(default)/320 or 416(real time+GOOD accuracy)/256 or 128(embedded+NG accuracy).*
+
 *Note2: `dynamic=False` improves speed, but input size will be different from image size on fpv requirements. Maybe more coding logical to handle larger sensor data coverage.*
+
 *Note3: batch improves real time response, but need large resources. There is a balance between time delay/accuracy.*
 
 # Ultralytics YOLO11 on NVIDIA Jetson using DeepStream SDK and TensorRT
