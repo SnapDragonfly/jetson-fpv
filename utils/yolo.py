@@ -30,6 +30,7 @@ import threading
 import screeninfo
 import numpy as np
 
+from collections import deque
 from ultralytics import YOLO
 from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
 
@@ -40,6 +41,9 @@ FONT_COLOR = (255, 255, 255)  # White color
 # FONT_COLOR = (0, 255, 255)  # Uncomment for yellow text
 FONT_THICKNESS = 1
 BOX_THICKNESS  = 1
+
+FRAME_SKIP_CNT = 25
+fps_window = deque(maxlen=FRAME_SKIP_CNT)
 
 # thread exit control:
 exit_flag = threading.Event()
@@ -169,7 +173,6 @@ def main():
     print("Configured detection classes:", configurable_classes)
     print("Class indices for detection:", class_indices)
 
-
     # create video sources & outputs
     input = videoSource(args.input, argv=sys.argv)
     output = videoOutput(args.output, argv=sys.argv)
@@ -196,6 +199,9 @@ def main():
         elapsed_time = current_time - previous_time
         fps = 1.0 / elapsed_time if elapsed_time > 0 else 0
         previous_time = current_time
+
+        fps_window.append(fps)
+        avg_fps = sum(fps_window) / len(fps_window)
 
         if firt_frame_check:
             firt_frame_check = False
@@ -233,11 +239,11 @@ def main():
         crop_height = YOLO_SIZE
         cv2_frame = cudaToNumpy(img)
 
-        if numFrames % 25 == 0 or numFrames < 15:
+        if numFrames % FRAME_SKIP_CNT == 0 or numFrames < 15:
             Log.Verbose(f"YOLO:  captured {numFrames} frames ({img.width} x {img.height})")
             
             # Set the window title with the FPS value
-            window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {fps:.2f}"
+            window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {avg_fps:.2f}"
             #cv2.setWindowTitle("YOLO Prediction", window_title)
 
         if args.mode == 0:
