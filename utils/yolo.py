@@ -159,12 +159,10 @@ def main():
     # Configurable list of target classes to detect
     class_names = model.names  # This is likely a dictionary {index: class_name}
     configurable_classes = [
-        'person', 'bicycle', 'car', 'motorcycle', 'bus', 'truck', 
-        'fire hydrant', 'bench', 'bird', 'cat', 'dog', 'umbrella', 
-        'handbag', 'suitcase', 'backpack', 'frisbee', 'skis', 'snowboard', 
-        'sports ball', 'bottle', 'wine glass', 'cup', 'knife', 'chair', 
-        'couch', 'potted plant', 'bed', 'dining table', 'tv', 'laptop', 
-        'microwave', 'sink', 'refrigerator', 'vase', 'scissors', 'teddy bear'
+        'person', 'bicycle', 'car', 'motorcycle', 'bus', 
+        'truck', 'bench', 'bird', 'cat', 'dog', 
+        'chair', 'couch', 'bed', 'dining table', 'tv', 
+        'laptop'
     ]  # User-defined classes to detect
 
     # Convert class_names dict to list of class names and map them to indices
@@ -258,7 +256,7 @@ def main():
             resized_frame = cv2.resize(cv2_frame, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
 
             # Perform YOLO inference on the resized frame
-            results = model.predict(source=resized_frame, show=False)
+            results = model.predict(source=resized_frame, show=False, classes=class_indices, imgsz=[320, 320])
 
             # Iterate over the results for each detected object
             for result in results:
@@ -295,7 +293,7 @@ def main():
             cropped_frame = cv2_frame[:, start_x:end_x]
 
             # Perform YOLO prediction on the cropped frame
-            results = model.predict(source=cropped_frame, show=False)
+            results = model.predict(source=cropped_frame, show=False, classes=class_indices, imgsz=[320, 320])
 
             # Map detected bounding boxes back to the original frame coordinates
             for result in results:  # Iterate over the results for each object detected
@@ -343,7 +341,7 @@ def main():
             cropped_frame = cv2_frame[start_y:start_y + crop_height, start_x:start_x + crop_width]
 
             # Perform YOLO inference on the cropped frame
-            results = model.predict(source=cropped_frame, show=False)
+            results = model.predict(source=cropped_frame, show=False, classes=class_indices, imgsz=[320, 320])
 
             # Draw the bounding boxes on the original frame, mapped from the cropped region
             for result in results:  # Iterate over the results for each object detected
@@ -380,7 +378,7 @@ def main():
 
         else:
             #print(f"Other Mode: {args.mode}. Performing all")
-            results = model.predict(source=cv2_frame, show=False)
+            results = model.predict(source=cv2_frame, show=False, classes=class_indices, imgsz=[320, 320])
             #results = model.predict(source=img, show=False)
 
             # Draw the bounding boxes on the image
