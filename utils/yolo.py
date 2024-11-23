@@ -27,6 +27,7 @@ import time
 import signal
 import argparse
 import threading
+import screeninfo
 import numpy as np
 
 from ultralytics import YOLO
@@ -199,8 +200,30 @@ def main():
         if firt_frame_check:
             firt_frame_check = False
 
-            cv2.namedWindow(window_title, cv2.WND_PROP_FULLSCREEN)
-            cv2.setWindowProperty(window_title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            # Get the current screen resolution
+            screen = screeninfo.get_monitors()[0]  # Assuming the first monitor
+            screen_width = screen.width
+            screen_height = screen.height
+
+            # Calculate the image dimensions
+            img_width = img.width
+            img_height = img.height
+            
+            # Check if the screen resolution is large enough for full screen
+            if screen_width <= img_width and screen_height <= img_height:
+                cv2.namedWindow(window_title, cv2.WND_PROP_FULLSCREEN)
+                cv2.setWindowProperty(window_title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                Log.Verbose(f"YOLO:  Full screen {screen_width} x {screen_height}")
+            else:
+                #cv2.namedWindow(window_title, cv2.WND_PROP_FULLSCREEN)
+                #cv2.namedWindow(window_title, cv2.WND_PROP_NORMAL)
+                cv2.namedWindow(window_title, cv2.WND_PROP_AUTOSIZE)
+
+                # Calculate the center position if image size is smaller than the screen
+                window_x = (screen_width - img_width) // 2
+                window_y = (screen_height - img_height) // 2
+                cv2.moveWindow(window_title, window_x, window_y)
+                Log.Verbose(f"YOLO:  Image size ({img.width} x {img.height})")
             
         numFrames += 1
 
@@ -211,7 +234,7 @@ def main():
         cv2_frame = cudaToNumpy(img)
 
         if numFrames % 25 == 0 or numFrames < 15:
-            Log.Verbose(f"video-viewer:  captured {numFrames} frames ({img.width} x {img.height})")
+            Log.Verbose(f"YOLO:  captured {numFrames} frames ({img.width} x {img.height})")
             
             # Set the window title with the FPS value
             window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {fps:.2f}"
