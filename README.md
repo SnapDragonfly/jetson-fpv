@@ -30,6 +30,14 @@ Main features as follows:
 
 All these fun points serve as potential starting points for deepening the project.
 
+## Watch the Rover Video
+
+[![YouTube Video](https://img.youtube.com/vi/9soDNJgm1w0/0.jpg)](https://www.youtube.com/watch?v=9soDNJgm1w0)
+
+## Watch the Copter Video
+
+Coming soon!
+
 # Q & A
 
 - [How to install the software?](doc/INSTALL.md)
