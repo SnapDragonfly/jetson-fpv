@@ -83,81 +83,31 @@ def handle_interrupt(signal_num, frame):
     print("yolo set exit_flag ... ...")
     exit_flag.set()
 
-def interpolate(model, frame, path):
-    # Get the tracker object and the activated tracking targets
-    tracker_obj = model.predictor.trackers[0]
-    tracks = [t for t in tracker_obj.tracked_stracks if t.is_activated]
+def interpolate(model, frame, path, class_indices):
+    tracker = model.predictor.trackers[0]
+    tracks = [t for t in tracker.tracked_stracks if t.is_activated]
+    # Apply Kalman filter to get predicted locations
+    tracker.multi_predict(tracks)
+    tracker.frame_id += 1
+    boxes = [np.hstack([t.xyxy, t.track_id, t.score, t.cls]) for t in tracks]
+    # Update frame_id in tracks
+    def update_fid(t, fid):
+        t.frame_id = fid
+    [update_fid(t, tracker.frame_id) for t in tracks]
+    return Results(frame, path, model.names, np.array(boxes))
 
-    # Use Kalman filter to predict object locations
-    tracker_obj.multi_predict(tracks)
-    tracker_obj.frame_id += 1
-
-    # Construct the boxes array (each box: [x1, y1, x2, y2, confidence, class_id])
-    boxes = [
-        [*t.xyxy, t.score, t.cls]  # Unpack bounding box coordinates, confidence, and class
-        for t in tracks
-    ]
-
-    # Convert boxes to a numpy array; if no boxes, return an empty array
-    boxes = np.array(boxes, dtype=np.float32) if boxes else np.empty((0, 6), dtype=np.float32)
-
-    # Debug print the number of detected boxes
-    #print(f"Debug: Interpolated Boxes - {boxes.shape[0]} found")
-
-    # Return the Results object
-    return Results(orig_img=frame, path=path, names=model.names, boxes=boxes)
-
-def interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices):
-    result = None  # Initialize result
-
-    # Check if interpolation is needed
-    if numFrames >= start_frame and numFrames % stride != 0:
-        # Interpolation mode
-        results = interpolate(model, cv2_frame, path)
-
-        # Check if boxes exist in the result
-        if hasattr(results, 'boxes') and results.boxes is not None and len(results.boxes.data) > 0:
-            boxes = results.boxes.data  # Access the raw tensor or ndarray containing box information
-            for box in boxes:
-                #print("Debug: Individual Box:", box)  # Debug each box's content
-                x1, y1, x2, y2 = box[:4]  # Coordinates
-                confidence = box[4]       # Confidence score
-                class_id = int(box[5])    # Class ID
-
-                # Draw the bounding box
-                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), FONT_COLOR, BOX_THICKNESS)
-                label = f"{model.names[class_id]} {confidence:.2f}"
-                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
-        #else:
-        #    print("Debug: No bounding boxes found during interpolation.")
+def interpolate_frame(frame_id, start_frame, stride, model, frame, path, class_indices):
+    # Interpolate if we reach start_frame and the current frame is not divisible by stride
+    if frame_id % stride != 0 and frame_id >= start_frame:
+        result = interpolate(model, frame, path, class_indices)
     else:
-        # Normal tracking mode
-        result = model.track(cv2_frame, persist=True, verbose=True, classes=class_indices, imgsz=[320, 320], iou=0.5, conf=0.15)[0]
+        result = model.track(frame, persist=True, verbose=False, classes=class_indices, imgsz=[320, 320], iou=0.9)[0]
+        # We need this to create Results object manually
+        if path is None:
+            path[0] = result.path
 
-        # Check if result contains bounding boxes
-        if hasattr(result, 'boxes') and result.boxes is not None and len(result.boxes.data) > 0:
-            boxes = result.boxes.data  # Access the raw tensor or ndarray containing box information
-            for box in boxes:
-                #print("Debug: Individual Box:", box)  # Debug each box's content
-                x1, y1, x2, y2 = box[:4]  # Coordinates
-                confidence = box[4]
-                class_id = int(box[5])
-
-                # Draw the bounding box
-                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), FONT_COLOR, BOX_THICKNESS)
-                label = f"{model.names[class_id]} {confidence:.2f}"
-                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
-        #else:
-        #    print("Debug: No bounding boxes found in tracking mode.")
-
-        # Update path if not already set
-        if path == "":
-            path = result.path
-
-    return result, path
-
-def predict_frame(numFrames, model, cv2_frame, class_indices):
-    results = model.predict(source=cv2_frame, show=False, classes=class_indices, imgsz=[320, 320])
+def predict_frame(frame_id, model, frame, class_indices):
+    results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[320, 320])
     # Draw the bounding boxes on the image
     for result in results:  # Iterate over the results for each object detected
         boxes = result.boxes  # Detected boxes (each box corresponds to a detected object)
@@ -171,10 +121,10 @@ def predict_frame(numFrames, model, cv2_frame, class_indices):
                 label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
 
                 # Draw the bounding box with a light color (e.g., light blue)
-                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
+                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
 
                 # Draw the label with a larger font and the chosen font color
-                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
+                cv2.putText(frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
 
 def capture_image(input):
     while True:
@@ -185,22 +135,6 @@ def capture_image(input):
             # If capture is successful, return the image
             if img is not None:
                 return img
-
-        except jetson.utils.videoSourceError as e:
-            # Catch specific error for video source issues
-            print(f"Error capturing image (videoSourceError): {e}")
-            
-            # Optionally, wait before retrying
-            #time.sleep(1)
-            return None  # Return None on error
-
-        except jetson.utils.videoSourceTimeoutError as e:
-            # Catch timeout error when waiting for image buffer
-            print(f"Timeout error while capturing image: {e}")
-            
-            # Optionally, wait before retrying
-            #time.sleep(1)
-            return None  # Return None on error
 
         except Exception as e:
             # Catch any other exceptions and log them
@@ -375,10 +309,10 @@ def main():
 
         if args.interpolate:
             # Interpolate if we reach start_frame and the current frame is not divisible by stride
-            results = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
+            result = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
         else:
             # Predict using Yolo algorithm
-            results = predict_frame(numFrames, model, cv2_frame, class_indices)
+            result = predict_frame(numFrames, model, cv2_frame, class_indices)
         
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
