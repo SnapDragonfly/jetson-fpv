@@ -303,8 +303,8 @@ def main():
             # Interpolate if we reach start_frame and the current frame is not divisible by stride
             results = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
 
-            # We need this to create Results object manually
             if path is None and results is not None:
+                Log.Verbose(f"YOLO: path = {path}, results.path = ({results.path})")
                 path = results.path
         else:
             # Predict using Yolo algorithm
