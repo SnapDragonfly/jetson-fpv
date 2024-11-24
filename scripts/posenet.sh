@@ -190,6 +190,12 @@ restart() {
     start
 }
 
+# Display help
+help() {
+    CMD_POSENET_HELP="posenet --help"
+    ${CMD_POSENET_HELP}
+}
+
 # Test the module
 test() {
     # Create lock file to indicate the module is running
@@ -211,6 +217,9 @@ case "$1" in
         ;;
     restart)
         restart
+        ;;
+    help)
+        help
         ;;
     test)
         test  "$@"

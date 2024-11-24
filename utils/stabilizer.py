@@ -425,6 +425,29 @@ class Stabilizer:
         self.lastRigidTransform = m  # Store last transformation matrix
         self.count += 1  # Increment frame count
 
+def display_help():
+    help_message = """
+View various types of video streams
+
+Usage:
+    stabilizer.py <input> [output] [--no-headless]
+
+Positional Arguments:
+    input               URI of the input stream
+    output              URI of the output stream (default: file://output_video.mp4)
+
+Optional Arguments:
+    --no-headless       Enable the OpenGL GUI window (default: headless mode is enabled)
+
+Description:
+    This script allows viewing various types of video streams, optionally processing them
+    and saving to an output file. The program supports headless mode by default, but the
+    GUI can be enabled using the --no-headless option.
+
+For more information about the supported input/output URIs and advanced logging, refer to:
+    videoSource.Usage(), videoOutput.Usage(), Log.Usage()
+"""
+    print(help_message)
 
 
 def handle_interrupt(signal_num, frame):
@@ -528,6 +551,11 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
+    import sys
+    if "--help" in sys.argv or "-h" in sys.argv:
+        display_help()
+        sys.exit(0)
+
     main()
     print("video stabilizer done!")
     sys.exit(0)

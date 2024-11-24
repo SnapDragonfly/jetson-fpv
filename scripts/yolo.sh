@@ -197,6 +197,12 @@ restart() {
     start
 }
 
+# Display help
+help() {
+    CMD_YOLO_HELP="python3 ./utils/yolo.py --help"
+    ${CMD_YOLO_HELP}
+}
+
 # Test the module
 test() {
     # Create lock file to indicate the module is running
@@ -218,6 +224,9 @@ case "$1" in
         ;;
     restart)
         restart
+        ;;
+    help)
+        help
         ;;
     test)
         test "$@"

@@ -56,7 +56,7 @@ def display_help():
     Displays a formatted help message for the command-line arguments.
     """
     help_message = """
-Usage: python script.py [options] <input> [output]
+Usage: python yolo.py [options] <input> [output]
 
 Description:
     View various types of video streams.
@@ -72,8 +72,8 @@ Optional arguments:
     -h, --help          Show this help message and exit.
 
 Examples:
-    python script.py "file://input_video.mp4" "file://output_video.mp4"
-    python script.py "rtsp://camera_stream" --no-headless --mode 2 --model 8n
+    python yolo.py "file://input_video.mp4" "file://output_video.mp4"
+    python yolo.py "rtsp://camera_stream" --no-headless --model 8n
 """
     print(help_message)
 

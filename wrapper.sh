@@ -148,6 +148,14 @@ execute_module_command() {
     $CMD_KEYMONITOR
 }
 
+execute_module_help() {
+    if ! is_valid_module "$1"; then return 1; fi
+    module="$1"
+    shift
+    echo "Executing help on module $module: $*"
+    "./scripts/$module.sh" "$@"
+}
+
 case "$2" in
     start)
         start_module "$1"
@@ -163,7 +171,7 @@ case "$2" in
         start_module "$1"
         ;;
     help)
-        help
+        execute_module_help "$@"
         ;;
     *)
         execute_module_command "$@"

@@ -191,6 +191,12 @@ restart() {
     start
 }
 
+# Display help
+help() {
+    CMD_SEGNET_HELP="segnet --help"
+    ${CMD_SEGNET_HELP}
+}
+
 # Test the module
 test() {
     # Create lock file to indicate the module is running
@@ -212,6 +218,9 @@ case "$1" in
         ;;
     restart)
         restart
+        ;;
+    help)
+        help
         ;;
     test)
         test  "$@"

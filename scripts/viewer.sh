@@ -190,6 +190,20 @@ restart() {
     start
 }
 
+# Display help
+help() {
+    CMD_VIDEO_HELP="video-viewer --help"
+    ${CMD_VIDEO_HELP}
+}
+
+# Test the module
+test() {
+    # Create lock file to indicate the module is running
+    echo "Testing module ${MODULE_NAME}..."
+
+    start ${@:2}
+}
+
 # Dispatcher to handle commands
 case "$1" in
     start)
@@ -203,6 +217,12 @@ case "$1" in
         ;;
     restart)
         restart
+        ;;
+    help)
+        help
+        ;;
+    test)
+        test "$@"
         ;;
     *)
         echo "Usage: $0 {start|stop|status|restart|test}"
