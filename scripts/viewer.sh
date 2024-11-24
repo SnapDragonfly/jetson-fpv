@@ -123,6 +123,12 @@ stop() {
         if [ -f "$VIDEO_PIDFILE" ]; then
             kill -s SIGINT $(cat $VIDEO_PIDFILE)
             sleep 1
+            if ps aux | grep "${CMD_VIDEO}" | grep -v grep; then
+                VIDEO_PID=$(ps aux | grep "${CMD_VIDEO}" | grep -v grep | awk '{print $2}')
+                echo "video-viewer is still running with PID: $VIDEO_PID"
+                kill -s SIGTERM $VIDEO_PID
+            fi
+            sleep 1
             rm -f $VIDEO_PIDFILE
             echo "video-viewer stopped."
         fi

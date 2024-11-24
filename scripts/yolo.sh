@@ -127,6 +127,12 @@ stop() {
         if [ -f "$YOLO_PIDFILE" ]; then
             kill -s SIGINT $(cat $YOLO_PIDFILE)
             sleep 1
+            if ps aux | grep "${CMD_YOLO}" | grep -v grep; then
+                YOLO_PID=$(ps aux | grep "${CMD_YOLO}" | grep -v grep | awk '{print $2}')
+                echo "yolo is still running with PID: $YOLO_PID"
+                kill -s SIGTERM $YOLO_PID
+            fi
+            sleep 1
             rm -f $YOLO_PIDFILE
             echo "yolo stopped."
         fi

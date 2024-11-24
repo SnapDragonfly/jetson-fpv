@@ -122,6 +122,12 @@ stop() {
         if [ -f "$STABILIZER_PIDFILE" ]; then
             kill -s SIGINT $(cat $STABILIZER_PIDFILE)
             sleep 1
+            if ps aux | grep "${CMD_STABILIZER}" | grep -v grep; then
+                STABILIZER_PID=$(ps aux | grep "${CMD_STABILIZER}" | grep -v grep | awk '{print $2}')
+                echo "stabilizer is still running with PID: $STABILIZER_PID"
+                kill -s SIGTERM $STABILIZER_PID
+            fi
+            sleep 1
             rm -f $STABILIZER_PIDFILE
             echo "Stabilizer stopped."
         fi
