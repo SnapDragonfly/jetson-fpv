@@ -102,51 +102,21 @@ def interpolate(model, frame, path, class_indices):
     return Results(frame, path, model.names, np.array(boxes))
 
 def interpolate_frame(frame_id, start_frame, stride, model, frame, path, class_indices):
-    # Interpolate if we reach start_frame and the current frame is not divisible by stride
+    results = None  # Initialize result
+
+    # Check if interpolation is needed
     if frame_id % stride != 0 and frame_id >= start_frame:
-        result = interpolate(model, frame, path, class_indices)
+        # Interpolation mode
+        results = interpolate(model, frame, path, class_indices)
     else:
-        result = model.track(frame, persist=True, verbose=False, classes=class_indices, imgsz=[320, 320], iou=0.9)[0]
+        # Normal tracking mode
+        results = model.track(frame, persist=True, verbose=False, classes=class_indices, imgsz=[320, 320], iou=0.9)[0]
 
-    #if result is not None and result.boxes is not None:
-    #    # Iterate through the boxes in the Results object
-    #    for box in result.boxes:
-    #        x1, y1, x2, y2 = box.xyxy[0]  # Extract bounding box coordinates (xyxy)
-    #        confidence = box.conf[0]      # Confidence score
-    #        class_id = int(box.cls[0])    # Class ID of the detected object
-#
-    #        # Only process boxes that are in the class_indices list
-    #        if class_id in class_indices:
-    #            # Generate label with class name and confidence
-    #            label = f"{model.names[class_id]} {confidence:.2f}"
-#
-    #            # Draw the bounding box with a light blue color
-    #            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)
-#
-    #            # Draw the label above the bounding box
-    #            cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
-
-    return result
+    return results
 
 def predict_frame(frame_id, model, frame, class_indices):
     results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[320, 320])
-    # Draw the bounding boxes on the image
-    for result in results:  # Iterate over the results for each object detected
-        boxes = result.boxes  # Detected boxes (each box corresponds to a detected object)
-        for box in boxes:
-            x1, y1, x2, y2 = box.xyxy[0]  # Get the coordinates of the bounding box
-            confidence = box.conf[0]  # Confidence score for the detected object
-            class_id = int(box.cls[0])  # Class ID of the detected object
-
-            # Only process the boxes for the configured classes
-            if class_id in class_indices:
-                label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
-
-                # Draw the bounding box with a light color (e.g., light blue)
-                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
-
-                # Draw the label with a larger font and the chosen font color
-                cv2.putText(frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
+    return results
 
 def capture_image(input):
     while True:
@@ -331,23 +301,25 @@ def main():
 
         if args.interpolate:
             # Interpolate if we reach start_frame and the current frame is not divisible by stride
-            result = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
+            results = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
 
             # We need this to create Results object manually
-            if path is None and result is not None:
-                path = result.path
+            if path is None and results is not None:
+                path = results.path
         else:
             # Predict using Yolo algorithm
-            result = predict_frame(numFrames, model, cv2_frame, class_indices)
+            results = predict_frame(numFrames, model, cv2_frame, class_indices)
+
+        annotated_frame = results[0].plot()
         
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
         text_x = img.width - text_size[0] - 10  # right
         text_y = 20  # to the top
-        cv2.putText(cv2_frame, window_title, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
+        cv2.putText(annotated_frame, window_title, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
 
         # Update the window title and display the frame with detections
-        cv2.imshow("YOLO Prediction", cv2_frame)
+        cv2.imshow("YOLO Prediction", annotated_frame)
 
         # render the image
         output.Render(img)
