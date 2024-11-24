@@ -186,22 +186,6 @@ def capture_image(input):
             if img is not None:
                 return img
 
-        except jetson.utils.videoSourceError as e:
-            # Catch specific error for video source issues
-            print(f"Error capturing image (videoSourceError): {e}")
-            
-            # Optionally, wait before retrying
-            #time.sleep(1)
-            return None  # Return None on error
-
-        except jetson.utils.videoSourceTimeoutError as e:
-            # Catch timeout error when waiting for image buffer
-            print(f"Timeout error while capturing image: {e}")
-            
-            # Optionally, wait before retrying
-            #time.sleep(1)
-            return None  # Return None on error
-
         except Exception as e:
             # Catch any other exceptions and log them
             print(f"Unexpected error: {e}")
