@@ -122,7 +122,7 @@ stop() {
 
         if [ -f "$IMAGENET_PIDFILE" ]; then
             kill -s SIGINT $(cat $IMAGENET_PIDFILE)
-            sleep 1
+            sleep 5
             if ps aux | grep "${CMD_IMAGENET}" | grep -v grep; then
                 IMAGENET_PID=$(ps aux | grep "${CMD_IMAGENET}" | grep -v grep | awk '{print $2}')
                 echo "stabilizer is still running with PID: $IMAGENET_PID"

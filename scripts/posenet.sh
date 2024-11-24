@@ -122,7 +122,7 @@ stop() {
 
         if [ -f "$POSENET_PIDFILE" ]; then
             kill -s SIGINT $(cat $POSENET_PIDFILE)
-            sleep 1
+            sleep 5
             if ps aux | grep "${CMD_POSENET}" | grep -v grep; then
                 POSENET_PID=$(ps aux | grep "${CMD_POSENET}" | grep -v grep | awk '{print $2}')
                 echo "stabilizer is still running with PID: $POSENET_PID"

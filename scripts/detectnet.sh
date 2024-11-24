@@ -122,7 +122,7 @@ stop() {
 
         if [ -f "$DETECTNET_PIDFILE" ]; then
             kill -s SIGINT $(cat $DETECTNET_PIDFILE)
-            sleep 1
+            sleep 5
             if ps aux | grep "${CMD_DETECTNET}" | grep -v grep; then
                 DETECTNET_PID=$(ps aux | grep "${CMD_DETECTNET}" | grep -v grep | awk '{print $2}')
                 echo "stabilizer is still running with PID: $DETECTNET_PID"
