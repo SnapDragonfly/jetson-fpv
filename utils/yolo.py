@@ -68,6 +68,7 @@ Positional arguments:
 
 Optional arguments:
     --no-headless       Enable the OpenGL GUI window (default: headless mode is enabled)
+    --interpolate       Enable the frame interpolated (default: interpolate is disabled)
     --model <str>       Set the model to use (default: 11n; options: 11n, 5nu, 8n, 8s)
     --show-predict      Show 'pfame' as the Predict box label (default: False)
     -h, --help          Show this help message and exit.
@@ -106,8 +107,7 @@ def interpolate(model, frame, path):
     # Return the Results object
     return Results(orig_img=frame, path=path, names=model.names, boxes=boxes)
 
-
-def process_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices):
+def interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices):
     result = None  # Initialize result
 
     # Check if interpolation is needed
@@ -155,6 +155,26 @@ def process_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_
             path = result.path
 
     return result, path
+
+def predict_frame(numFrames, model, cv2_frame, class_indices):
+    results = model.predict(source=cv2_frame, show=False, classes=class_indices, imgsz=[320, 320])
+    # Draw the bounding boxes on the image
+    for result in results:  # Iterate over the results for each object detected
+        boxes = result.boxes  # Detected boxes (each box corresponds to a detected object)
+        for box in boxes:
+            x1, y1, x2, y2 = box.xyxy[0]  # Get the coordinates of the bounding box
+            confidence = box.conf[0]  # Confidence score for the detected object
+            class_id = int(box.cls[0])  # Class ID of the detected object
+
+            # Only process the boxes for the configured classes
+            if class_id in class_indices:
+                label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
+
+                # Draw the bounding box with a light color (e.g., light blue)
+                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
+
+                # Draw the label with a larger font and the chosen font color
+                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
 
 def capture_image(input):
     while True:
@@ -218,6 +238,13 @@ def main():
         action="store_false",
         dest="headless",
         help="Enable the OpenGL GUI window (default: headless mode is enabled)"
+    )
+
+    parser.add_argument(
+        "--interpolate",
+        action="store_true",
+        dest="interpolate",
+        help="Enable interpolate frame (default: interpolate is disabled)"
     )
 
     parser.add_argument(
@@ -346,9 +373,12 @@ def main():
             window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {avg_fps:.2f}"
             #cv2.setWindowTitle("YOLO Prediction", window_title)
 
-        #results = model.predict(source=cv2_frame, show=False, classes=class_indices, imgsz=[320, 320])
-        # Interpolate if we reach start_frame and the current frame is not divisible by stride
-        results = process_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
+        if args.interpolate:
+            # Interpolate if we reach start_frame and the current frame is not divisible by stride
+            results = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
+        else:
+            # Predict using Yolo algorithm
+            results = predict_frame(numFrames, model, cv2_frame, class_indices)
         
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
