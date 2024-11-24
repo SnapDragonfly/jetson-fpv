@@ -60,6 +60,14 @@ $ yolo export model=yolov8n.pt format="engine" batch=8 workspace=2.0 imgsz=320 d
 
 *Note3: batch improves real time response, but need large resources. There is a balance between time delay/accuracy.*
 
+- Step 6: [Boosting Inference FPS With Tracker Interpolated Detections](https://y-t-g.github.io/tutorials/yolo-tracker-interpolate/)
+
+> stride=3 means that the detector would only be run on every 3rd frame. The other two frames would be interpolated using the Kalman filter predictions.
+
+https://github.com/SnapDragonfly/jetson-fpv/blob/68d205311434012907e324a22828818150ef680f/utils/yolo.py#L110-L157
+
+*Note: It's significantly speed up performance.*
+
 # Ultralytics YOLO11 on NVIDIA Jetson using DeepStream SDK and TensorRT
 
 - [Ultralytics YOLO11 on NVIDIA Jetson using DeepStream SDK and TensorRT](https://docs.ultralytics.com/guides/deepstream-nvidia-jetson/)
