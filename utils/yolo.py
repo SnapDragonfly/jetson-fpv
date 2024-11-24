@@ -32,6 +32,7 @@ import numpy as np
 
 from collections import deque
 from ultralytics import YOLO
+from ultralytics.engine.results import Results
 from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
 
 # Define font color as a parameter (e.g., white or yellow)
@@ -80,6 +81,80 @@ Examples:
 def handle_interrupt(signal_num, frame):
     print("yolo set exit_flag ... ...")
     exit_flag.set()
+
+def interpolate(model, frame, path):
+    # Get the tracker object and the activated tracking targets
+    tracker_obj = model.predictor.trackers[0]
+    tracks = [t for t in tracker_obj.tracked_stracks if t.is_activated]
+
+    # Use Kalman filter to predict object locations
+    tracker_obj.multi_predict(tracks)
+    tracker_obj.frame_id += 1
+
+    # Construct the boxes array (each box: [x1, y1, x2, y2, confidence, class_id])
+    boxes = [
+        [*t.xyxy, t.score, t.cls]  # Unpack bounding box coordinates, confidence, and class
+        for t in tracks
+    ]
+
+    # Convert boxes to a numpy array; if no boxes, return an empty array
+    boxes = np.array(boxes, dtype=np.float32) if boxes else np.empty((0, 6), dtype=np.float32)
+
+    # Debug print the number of detected boxes
+    #print(f"Debug: Interpolated Boxes - {boxes.shape[0]} found")
+
+    # Return the Results object
+    return Results(orig_img=frame, path=path, names=model.names, boxes=boxes)
+
+
+def process_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices):
+    result = None  # Initialize result
+
+    # Check if interpolation is needed
+    if numFrames >= start_frame and numFrames % stride != 0:
+        # Interpolation mode
+        results = interpolate(model, cv2_frame, path)
+
+        # Check if boxes exist in the result
+        if hasattr(results, 'boxes') and results.boxes is not None and len(results.boxes.data) > 0:
+            boxes = results.boxes.data  # Access the raw tensor or ndarray containing box information
+            for box in boxes:
+                #print("Debug: Individual Box:", box)  # Debug each box's content
+                x1, y1, x2, y2 = box[:4]  # Coordinates
+                confidence = box[4]       # Confidence score
+                class_id = int(box[5])    # Class ID
+
+                # Draw the bounding box
+                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), FONT_COLOR, BOX_THICKNESS)
+                label = f"{model.names[class_id]} {confidence:.2f}"
+                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
+        #else:
+        #    print("Debug: No bounding boxes found during interpolation.")
+    else:
+        # Normal tracking mode
+        result = model.track(cv2_frame, persist=True, verbose=True, classes=class_indices, imgsz=[320, 320], iou=0.5, conf=0.15)[0]
+
+        # Check if result contains bounding boxes
+        if hasattr(result, 'boxes') and result.boxes is not None and len(result.boxes.data) > 0:
+            boxes = result.boxes.data  # Access the raw tensor or ndarray containing box information
+            for box in boxes:
+                #print("Debug: Individual Box:", box)  # Debug each box's content
+                x1, y1, x2, y2 = box[:4]  # Coordinates
+                confidence = box[4]
+                class_id = int(box[5])
+
+                # Draw the bounding box
+                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), FONT_COLOR, BOX_THICKNESS)
+                label = f"{model.names[class_id]} {confidence:.2f}"
+                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
+        #else:
+        #    print("Debug: No bounding boxes found in tracking mode.")
+
+        # Update path if not already set
+        if path == "":
+            path = result.path
+
+    return result, path
 
 def main():
     global window_title
@@ -169,6 +244,11 @@ def main():
     # capture frames until EOS or user exits
     numFrames = 0
 
+    # tricking objects
+    path        = None
+    stride      = 3
+    start_frame = 5
+
     while True:
         # capture the next image
         img = input.Capture()
@@ -231,26 +311,10 @@ def main():
             window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {avg_fps:.2f}"
             #cv2.setWindowTitle("YOLO Prediction", window_title)
 
-        results = model.predict(source=cv2_frame, show=False, classes=class_indices, imgsz=[320, 320])
-
-        # Draw the bounding boxes on the image
-        for result in results:  # Iterate over the results for each object detected
-            boxes = result.boxes  # Detected boxes (each box corresponds to a detected object)
-            for box in boxes:
-                x1, y1, x2, y2 = box.xyxy[0]  # Get the coordinates of the bounding box
-                confidence = box.conf[0]  # Confidence score for the detected object
-                class_id = int(box.cls[0])  # Class ID of the detected object
-
-                # Only process the boxes for the configured classes
-                if class_id in class_indices:
-                    label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
-
-                    # Draw the bounding box with a light color (e.g., light blue)
-                    cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
-
-                    # Draw the label with a larger font and the chosen font color
-                    cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
-
+        #results = model.predict(source=cv2_frame, show=False, classes=class_indices, imgsz=[320, 320])
+        # Interpolate if we reach start_frame and the current frame is not divisible by stride
+        results = process_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
+        
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
         text_x = img.width - text_size[0] - 10  # right
