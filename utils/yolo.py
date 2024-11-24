@@ -90,10 +90,15 @@ def interpolate(model, frame, path, class_indices):
     tracker.multi_predict(tracks)
     tracker.frame_id += 1
     boxes = [np.hstack([t.xyxy, t.track_id, t.score, t.cls]) for t in tracks]
+
     # Update frame_id in tracks
     def update_fid(t, fid):
         t.frame_id = fid
     [update_fid(t, tracker.frame_id) for t in tracks]
+
+    if not boxes:
+        return None
+
     return Results(frame, path, model.names, np.array(boxes))
 
 def interpolate_frame(frame_id, start_frame, stride, model, frame, path, class_indices):
@@ -102,9 +107,26 @@ def interpolate_frame(frame_id, start_frame, stride, model, frame, path, class_i
         result = interpolate(model, frame, path, class_indices)
     else:
         result = model.track(frame, persist=True, verbose=False, classes=class_indices, imgsz=[320, 320], iou=0.9)[0]
-        # We need this to create Results object manually
-        if path is None:
-            path[0] = result.path
+
+    #if result is not None and result.boxes is not None:
+    #    # Iterate through the boxes in the Results object
+    #    for box in result.boxes:
+    #        x1, y1, x2, y2 = box.xyxy[0]  # Extract bounding box coordinates (xyxy)
+    #        confidence = box.conf[0]      # Confidence score
+    #        class_id = int(box.cls[0])    # Class ID of the detected object
+#
+    #        # Only process boxes that are in the class_indices list
+    #        if class_id in class_indices:
+    #            # Generate label with class name and confidence
+    #            label = f"{model.names[class_id]} {confidence:.2f}"
+#
+    #            # Draw the bounding box with a light blue color
+    #            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)
+#
+    #            # Draw the label above the bounding box
+    #            cv2.putText(frame, label, (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
+
+    return result
 
 def predict_frame(frame_id, model, frame, class_indices):
     results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[320, 320])
@@ -310,6 +332,10 @@ def main():
         if args.interpolate:
             # Interpolate if we reach start_frame and the current frame is not divisible by stride
             result = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
+
+            # We need this to create Results object manually
+            if path is None and result is not None:
+                path = result.path
         else:
             # Predict using Yolo algorithm
             result = predict_frame(numFrames, model, cv2_frame, class_indices)
