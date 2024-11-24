@@ -156,6 +156,41 @@ def process_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_
 
     return result, path
 
+def capture_image(input):
+    while True:
+        try:
+            # Attempt to capture the next image
+            img = input.Capture()
+
+            # If capture is successful, return the image
+            if img is not None:
+                return img
+
+        except jetson.utils.videoSourceError as e:
+            # Catch specific error for video source issues
+            print(f"Error capturing image (videoSourceError): {e}")
+            
+            # Optionally, wait before retrying
+            #time.sleep(1)
+            return None  # Return None on error
+
+        except jetson.utils.videoSourceTimeoutError as e:
+            # Catch timeout error when waiting for image buffer
+            print(f"Timeout error while capturing image: {e}")
+            
+            # Optionally, wait before retrying
+            #time.sleep(1)
+            return None  # Return None on error
+
+        except Exception as e:
+            # Catch any other exceptions and log them
+            print(f"Unexpected error: {e}")
+            
+            # Optionally, break the loop or handle it differently
+            return None  # Return None on error
+
+    return None  # Return None if failed to capture after retries
+
 def main():
     global window_title
 
@@ -251,7 +286,7 @@ def main():
 
     while True:
         # capture the next image
-        img = input.Capture()
+        img = capture_image(input)
 
         if img is None: # timeout
             if exit_flag.is_set():
