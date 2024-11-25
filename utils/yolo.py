@@ -52,6 +52,9 @@ exit_flag = threading.Event()
 # window title
 window_title = "YOLO Prediction"
 
+# path for interpolate tracking method
+paths        = []
+
 def display_help():
     """
     Displays a formatted help message for the command-line arguments.
@@ -83,78 +86,53 @@ def handle_interrupt(signal_num, frame):
     print("yolo set exit_flag ... ...")
     exit_flag.set()
 
-def interpolate(model, frame, path):
-    # Get the tracker object and the activated tracking targets
-    tracker_obj = model.predictor.trackers[0]
-    tracks = [t for t in tracker_obj.tracked_stracks if t.is_activated]
+def interpolate(model, frame, paths, class_indices):
+    tracker = model.predictor.trackers[0]
+    tracks = [t for t in tracker.tracked_stracks if t.is_activated]
+    # Apply Kalman filter to get predicted locations
+    tracker.multi_predict(tracks)
+    tracker.frame_id += 1
+    boxes = [np.hstack([t.xyxy, t.track_id, t.score, t.cls]) for t in tracks]
 
-    # Use Kalman filter to predict object locations
-    tracker_obj.multi_predict(tracks)
-    tracker_obj.frame_id += 1
+    # Update frame_id in tracks
+    def update_fid(t, fid):
+        t.frame_id = fid
+    [update_fid(t, tracker.frame_id) for t in tracks]
 
-    # Construct the boxes array (each box: [x1, y1, x2, y2, confidence, class_id])
-    boxes = [
-        [*t.xyxy, t.score, t.cls]  # Unpack bounding box coordinates, confidence, and class
-        for t in tracks
-    ]
+    if not boxes:
+        return None
 
-    # Convert boxes to a numpy array; if no boxes, return an empty array
-    boxes = np.array(boxes, dtype=np.float32) if boxes else np.empty((0, 6), dtype=np.float32)
+    # If paths is empty or None, pass None for the current path
+    current_path = None if not paths else paths[-1]
 
-    # Debug print the number of detected boxes
-    #print(f"Debug: Interpolated Boxes - {boxes.shape[0]} found")
+    return Results(frame, current_path, model.names, np.array(boxes))
 
-    # Return the Results object
-    return Results(orig_img=frame, path=path, names=model.names, boxes=boxes)
+def interpolate_frame(frame_id, start_frame, stride, model, frame, class_indices):
+    global paths  # Declare `paths` as a global variable
+    results = []  # Initialize a list to store results
 
-def interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices):
-    result = None  # Initialize result
+    # Log.Verbose(f"YOLO: paths = {paths}, frame_id = ({frame_id})")
 
     # Check if interpolation is needed
-    if numFrames >= start_frame and numFrames % stride != 0:
+    if frame_id % stride != 0 and frame_id >= start_frame:
         # Interpolation mode
-        results = interpolate(model, cv2_frame, path)
-
-        # Check if boxes exist in the result
-        if hasattr(results, 'boxes') and results.boxes is not None and len(results.boxes.data) > 0:
-            boxes = results.boxes.data  # Access the raw tensor or ndarray containing box information
-            for box in boxes:
-                #print("Debug: Individual Box:", box)  # Debug each box's content
-                x1, y1, x2, y2 = box[:4]  # Coordinates
-                confidence = box[4]       # Confidence score
-                class_id = int(box[5])    # Class ID
-
-                # Draw the bounding box
-                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), FONT_COLOR, BOX_THICKNESS)
-                label = f"{model.names[class_id]} {confidence:.2f}"
-                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
-        #else:
-        #    print("Debug: No bounding boxes found during interpolation.")
+        result = interpolate(model, frame, None if not paths else paths[-1], class_indices)
+        if result is not None:
+            results.append(result)
     else:
         # Normal tracking mode
-        result = model.track(cv2_frame, persist=True, verbose=True, classes=class_indices, imgsz=[320, 320], iou=0.5, conf=0.15)[0]
+        tracked_results = model.track(frame, persist=True, verbose=True, classes=class_indices, imgsz=[320, 320])
+        results.extend(tracked_results)  # Add all tracked results
 
-        # Check if result contains bounding boxes
-        if hasattr(result, 'boxes') and result.boxes is not None and len(result.boxes.data) > 0:
-            boxes = result.boxes.data  # Access the raw tensor or ndarray containing box information
-            for box in boxes:
-                #print("Debug: Individual Box:", box)  # Debug each box's content
-                x1, y1, x2, y2 = box[:4]  # Coordinates
-                confidence = box[4]
-                class_id = int(box[5])
+    # Update the `paths` list
+    for result in results:
+        if result.path is not None:
+            if paths is None:
+                paths = []  # Initialize the `paths` list
+            paths.append(result.path)
+            Log.Verbose(f"YOLO: paths updated with result.path = ({result.path})")
 
-                # Draw the bounding box
-                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), FONT_COLOR, BOX_THICKNESS)
-                label = f"{model.names[class_id]} {confidence:.2f}"
-                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
-        #else:
-        #    print("Debug: No bounding boxes found in tracking mode.")
-
-        # Update path if not already set
-        if path == "":
-            path = result.path
-
-    return result, path
+    return results
 
 def predict_frame(frame_id, model, frame, class_indices):
     results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[320, 320])
@@ -254,7 +232,7 @@ def main():
         'person', 'bicycle', 'car', 'motorcycle', 'bus', 
         'truck', 'bench', 'bird', 'cat', 'dog', 
         'chair', 'couch', 'bed', 'dining table', 'tv', 
-        'laptop'
+        'laptop', 'bottle', 'cup'
     ]  # User-defined classes to detect
 
     # Convert class_names dict to list of class names and map them to indices
@@ -274,8 +252,7 @@ def main():
     # capture frames until EOS or user exits
     numFrames = 0
 
-    # tricking objects
-    path        = None
+    # interpolate method tracking objects
     stride      = 3
     start_frame = 5
 
@@ -343,7 +320,7 @@ def main():
 
         if args.interpolate:
             # Interpolate if we reach start_frame and the current frame is not divisible by stride
-            results = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, class_indices)
+            results = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, class_indices)
         else:
             # Predict using Yolo algorithm
             results = predict_frame(numFrames, model, cv2_frame, class_indices)
