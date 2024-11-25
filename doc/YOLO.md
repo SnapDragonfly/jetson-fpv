@@ -60,7 +60,11 @@ $ yolo export model=yolov8n.pt format="engine" batch=8 workspace=2.0 imgsz=320 d
 
 *Note3: batch improves real time response, but need large resources. There is a balance between time delay/accuracy.*
 
-- Step 6: [Boosting Inference FPS With Tracker Interpolated Detections](https://y-t-g.github.io/tutorials/yolo-tracker-interpolate/)
+- Step 6: Using YOLO's plot function increases speed
+
+https://github.com/SnapDragonfly/jetson-fpv/blob/3aeebbbf479ecfdc9ba6883bf2b1a4a300861657/utils/yolo.py#L351-L354
+
+- Step 7: [Boosting Inference FPS With Tracker Interpolated Detections](https://y-t-g.github.io/tutorials/yolo-tracker-interpolate/)
 
 > stride=3 means that the detector would only be run on every 3rd frame. The other two frames would be interpolated using the Kalman filter predictions.
 
