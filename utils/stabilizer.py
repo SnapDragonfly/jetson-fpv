@@ -520,7 +520,7 @@ def main():
 
         if img is None: # timeout
             if exit_flag.is_set():
-                print("video stabilizer ready to exit ... ...")
+                print("stabilizer timeout ready to exit ... ...")
                 break
             continue  
             
@@ -548,7 +548,7 @@ def main():
 
         key = cv2.waitKey(delay_time) & 0xFF  # Capture the key press once
         if chr(key).lower() == 'q':  # Convert the key to lowercase for case-insensitive comparison
-            print("Video stabilizer ready to quit ... ...")
+            print("stabilizer video ready to quit ... ...")
             break
         elif chr(key).lower() == 's':  # Convert the key to lowercase for case-insensitive comparison
             stabilizer.toggle()

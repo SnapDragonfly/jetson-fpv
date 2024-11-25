@@ -137,23 +137,20 @@ def predict_frame(frame_id, model, frame, class_indices):
     return results
 
 def capture_image(input):
-    while True:
-        try:
-            # Attempt to capture the next image
-            img = input.Capture()
+    try:
+        # Attempt to capture the next image
+        img = input.Capture()
 
-            # If capture is successful, return the image
-            if img is not None:
-                return img
+        # If capture is successful, return the image
+        if img is not None:
+            return img
 
-        except Exception as e:
-            # Catch any other exceptions and log them
-            print(f"Unexpected error: {e}")
-            
-            # Optionally, break the loop or handle it differently
-            return None  # Return None on error
-
-    return None  # Return None if failed to capture after retries
+    except Exception as e:
+        # Catch any other exceptions and log them
+        print(f"Unexpected error: {e}")
+        
+        # Optionally, break the loop or handle it differently
+        return None  # Return None on error
 
 def main():
     global window_title
@@ -259,7 +256,7 @@ def main():
 
         if img is None: # timeout
             if exit_flag.is_set():
-                print("video stabilizer ready to exit ... ...")
+                print("yolo timeout ready to exit ... ...")
                 break
             continue  
 
@@ -344,7 +341,7 @@ def main():
             break
 
         if exit_flag.is_set():
-            print("yolo ready to exit ... ...")
+            print("yolo video ready to exit ... ...")
             break
 
         # Exit the loop if the 'q' key is pressed
