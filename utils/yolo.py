@@ -199,7 +199,13 @@ def main():
         help="Set the model 11n(default)/5nu/8n"
     )
 
-    args = parser.parse_known_args()[0]
+    try:
+        args = parser.parse_known_args()[0]
+    except:
+        print("")
+        parser.print_help()
+        sys.exit(0)
+
     if args.headless:
         sys.argv.append("--headless")
 

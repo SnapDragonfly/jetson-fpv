@@ -482,7 +482,13 @@ def main():
         help="Enable the OpenGL GUI window (default: headless mode is enabled)"
     )
 
-    args = parser.parse_known_args()[0]
+    try:
+        args = parser.parse_known_args()[0]
+    except:
+        print("")
+        parser.print_help()
+        sys.exit(0)
+
     if args.headless:
         sys.argv.append("--headless")
 
