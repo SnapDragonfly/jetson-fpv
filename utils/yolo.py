@@ -156,25 +156,9 @@ def interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, path, cl
 
     return result, path
 
-def predict_frame(numFrames, model, cv2_frame, class_indices):
-    results = model.predict(source=cv2_frame, show=False, classes=class_indices, imgsz=[320, 320])
-    # Draw the bounding boxes on the image
-    for result in results:  # Iterate over the results for each object detected
-        boxes = result.boxes  # Detected boxes (each box corresponds to a detected object)
-        for box in boxes:
-            x1, y1, x2, y2 = box.xyxy[0]  # Get the coordinates of the bounding box
-            confidence = box.conf[0]  # Confidence score for the detected object
-            class_id = int(box.cls[0])  # Class ID of the detected object
-
-            # Only process the boxes for the configured classes
-            if class_id in class_indices:
-                label = f"{model.names[class_id]} {confidence:.2f}"  # Class name and confidence
-
-                # Draw the bounding box with a light color (e.g., light blue)
-                cv2.rectangle(cv2_frame, (int(x1), int(y1)), (int(x2), int(y2)), (173, 216, 230), BOX_THICKNESS)  # Light blue color
-
-                # Draw the label with a larger font and the chosen font color
-                cv2.putText(cv2_frame, label, (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)  # Using FONT_COLOR
+def predict_frame(frame_id, model, frame, class_indices):
+    results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[320, 320])
+    return results
 
 def capture_image(input):
     while True:
@@ -363,15 +347,20 @@ def main():
         else:
             # Predict using Yolo algorithm
             results = predict_frame(numFrames, model, cv2_frame, class_indices)
+
+        if len(results) > 0 and hasattr(results[0], 'plot'):
+            annotated_frame = results[0].plot()
+        else:
+            annotated_frame = cv2_frame.copy()
         
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
         text_x = img.width - text_size[0] - 10  # right
         text_y = 20  # to the top
-        cv2.putText(cv2_frame, window_title, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
+        cv2.putText(annotated_frame, window_title, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
 
         # Update the window title and display the frame with detections
-        cv2.imshow("YOLO Prediction", cv2_frame)
+        cv2.imshow("YOLO Prediction", annotated_frame)
 
         # render the image
         output.Render(img)
