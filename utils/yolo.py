@@ -36,7 +36,6 @@ from ultralytics.engine.results import Results
 from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
 
 # Define font color as a parameter (e.g., white or yellow)
-YOLO_SIZE  = 600
 FONT_SCALE = 0.6
 FONT_COLOR = (255, 255, 255)  # White color
 # FONT_COLOR = (0, 255, 255)  # Uncomment for yellow text
@@ -73,7 +72,6 @@ Optional arguments:
     --no-headless       Enable the OpenGL GUI window (default: headless mode is enabled)
     --interpolate       Enable the frame interpolated (default: interpolate is disabled)
     --model <str>       Set the model to use (default: 11n; options: 11n, 5nu, 8n, 8s)
-    --show-predict      Show 'pfame' as the Predict box label (default: False)
     -h, --help          Show this help message and exit.
 
 Examples:
@@ -201,13 +199,6 @@ def main():
         help="Set the model 11n(default)/5nu/8n"
     )
 
-    parser.add_argument(
-        "--show-predict",
-        action='store_true',  # Store True if the argument is passed, otherwise False
-        default=False,
-        help="Set to True to show 'pfame' as the Predict box label (default: False)"
-    )
-
     args = parser.parse_known_args()[0]
     if args.headless:
         sys.argv.append("--headless")
@@ -306,9 +297,6 @@ def main():
         numFrames += 1
 
         # Perform inference on the frame using YOLO
-        # Resize/crop the original frame to a maximum of YOLO_SIZE(640) pixels
-        crop_width  = YOLO_SIZE
-        crop_height = YOLO_SIZE
         cv2_frame = cudaToNumpy(img)
 
         if numFrames % FRAME_SKIP_CNT == 0 or numFrames < 15:
