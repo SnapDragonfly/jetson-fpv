@@ -212,7 +212,7 @@ def main():
         'person', 'bicycle', 'car', 'motorcycle', 'bus', 
         'truck', 'bench', 'bird', 'cat', 'dog', 
         'chair', 'couch', 'bed', 'dining table', 'tv', 
-        'laptop'
+        'laptop', 'bottle', 'cup'
     ]  # User-defined classes to detect
 
     # Convert class_names dict to list of class names and map them to indices
@@ -310,7 +310,10 @@ def main():
             # Predict using Yolo algorithm
             results = predict_frame(numFrames, model, cv2_frame, class_indices)
 
-        annotated_frame = results[0].plot()
+        if len(results) > 0 and hasattr(results[0], 'plot'):
+            annotated_frame = results[0].plot()
+        else:
+            annotated_frame = cv2_frame.copy()
         
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
