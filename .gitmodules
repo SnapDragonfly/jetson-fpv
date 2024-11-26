@@ -10,3 +10,6 @@
 [submodule "module/msposd"]
 	path = module/msposd
 	url = https://github.com/OpenIPC/msposd.git
+[submodule "module/ByteTrack"]
+	path = module/ByteTrack
+	url = https://github.com/ifzhang/ByteTrack.git

@@ -83,6 +83,7 @@ TBD.
 # ByteTrack: Multi-Object Tracking by Associating Every Detection Box
 
 - [An Introduction to BYTETrack: Multi-Object Tracking by Associating Every Detection Box](https://www.datature.io/blog/introduction-to-bytetrack-multi-object-tracking-by-associating-every-detection-box)
+- [Introduction to Multiple Object Tracking and Recent Developments](https://www.datature.io/blog/introduction-to-multiple-object-tracking-and-recent-developments)
 - [ByteTrack: Multi-Object Tracking by Associating Every Detection Box](https://github.com/ifzhang/ByteTrack)
 
 TBD.

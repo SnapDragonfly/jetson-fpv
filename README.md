@@ -55,3 +55,4 @@ Coming soon!
 - [jetson-inference@dusty-nv](https://github.com/dusty-nv/jetson-inference)
 - [Ultralytics YOLO11](https://docs.ultralytics.com/)
 - [OpenIPC for IP camera](https://openipc.org/)
+- [ByteTrack, simple, fast and strong multi-object tracker](https://github.com/ifzhang/ByteTrack)
