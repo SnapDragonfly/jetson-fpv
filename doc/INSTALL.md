@@ -17,3 +17,9 @@
 - Torch 2.1.0a0+41361538.nv23.06
 - Torchvision 0.16.1+fdea156
 - YOLO version 8.3.33
+
+# Reference
+
+- [wfb-ng 开源代码之Jetson Orin安装](https://blog.csdn.net/lida2003/article/details/143145101)
+- [Linux 35.6 + JetPack v5.1.4@yolo安装](https://blog.csdn.net/lida2003/article/details/143618823)
+- [Linux 35.6 + JetPack v5.1.4@python opencv安装](https://blog.csdn.net/lida2003/article/details/143814156)

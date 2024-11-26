@@ -76,4 +76,13 @@ https://github.com/SnapDragonfly/jetson-fpv/blob/68d205311434012907e324a22828818
 
 - [Ultralytics YOLO11 on NVIDIA Jetson using DeepStream SDK and TensorRT](https://docs.ultralytics.com/guides/deepstream-nvidia-jetson/)
 
+Firstly, clarify [Which DS version for Jetson Orin Nano/Jetpack 5.1.4/L4T 35.6.0?](https://forums.developer.nvidia.com/t/which-ds-version-for-jetson-orin-nano-jetpack-5-1-4-l4t-35-6-0/314452)
+
+TBD. 
+
+# ByteTrack: Multi-Object Tracking by Associating Every Detection Box
+
+- [An Introduction to BYTETrack: Multi-Object Tracking by Associating Every Detection Box](https://www.datature.io/blog/introduction-to-bytetrack-multi-object-tracking-by-associating-every-detection-box)
+- [ByteTrack: Multi-Object Tracking by Associating Every Detection Box](https://github.com/ifzhang/ByteTrack)
+
 TBD.

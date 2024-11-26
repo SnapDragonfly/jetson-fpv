@@ -43,6 +43,7 @@ Coming soon!
 - [How to install the software?](doc/INSTALL.md)
 - [How to use the software?](doc/MANUAL.md)
 - [How to optimize YOLO performance?](doc/YOLO.md)
+- [How to work with OpenIPC camera?](doc/OPENIPC.md)
 
 # Thanks to:
 
