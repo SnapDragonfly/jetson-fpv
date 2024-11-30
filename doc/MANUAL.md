@@ -8,6 +8,7 @@
 
 ```
 $ sudo ./wrapper.sh help
+[sudo] password for daniel:
 Invalid module: help
 Usage: ./wrapper.sh <module_name> {start|stop|status|restart|help|<other_command>} [additional_arguments]
 
@@ -74,4 +75,8 @@ $ sudo ./wrapper.sh viewer stop
 ```
 $ sudo ./wrapper.sh viewer status
 ```
+
+# quit fpv
+
+ESC Key to quit and get control back!
 
