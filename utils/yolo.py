@@ -241,7 +241,7 @@ def main():
 
     # Initialize variables for Windows/FPS calculation
     previous_time = time.time()
-    firt_frame_check = True
+    first_frame_check = True
 
     # capture frames until EOS or user exits
     numFrames = 0
@@ -269,8 +269,8 @@ def main():
         fps_window.append(fps)
         avg_fps = sum(fps_window) / len(fps_window)
 
-        if firt_frame_check:
-            firt_frame_check = False
+        if first_frame_check:
+            first_frame_check = False
 
             # Get the current screen resolution
             screen = screeninfo.get_monitors()[0]  # Assuming the first monitor
@@ -335,7 +335,7 @@ def main():
         
         # update the title bar
         output.SetStatus("Video Viewer | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
-        
+
         # exit on input/output EOS
         if not input.IsStreaming() or not output.IsStreaming():
             break
