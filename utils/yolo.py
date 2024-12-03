@@ -252,7 +252,11 @@ def main():
 
     while True:
         # capture the next image
+        start_time = time.time()
         img = capture_image(input)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        Log.Verbose(f"capture_image() execution time: {execution_time:.6f} seconds")
 
         if img is None: # timeout
             if exit_flag.is_set():
@@ -300,7 +304,11 @@ def main():
         numFrames += 1
 
         # Perform inference on the frame using YOLO
+        start_time = time.time()
         cv2_frame = cudaToNumpy(img)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        Log.Verbose(f"cudaToNumpy() execution time: {execution_time:.6f} seconds")
 
         if numFrames % FRAME_SKIP_CNT == 0 or numFrames < 15:
             Log.Verbose(f"YOLO:  captured {numFrames} frames ({img.width} x {img.height})")
@@ -309,18 +317,23 @@ def main():
             window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {avg_fps:.2f}"
             #cv2.setWindowTitle("YOLO Prediction", window_title)
 
+        start_time = time.time()
         if args.interpolate:
             # Interpolate if we reach start_frame and the current frame is not divisible by stride
             results = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, class_indices)
         else:
             # Predict using Yolo algorithm
             results = predict_frame(numFrames, model, cv2_frame, class_indices)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        Log.Verbose(f"predict_frame() execution time: {execution_time:.6f} seconds")
 
         if len(results) > 0 and hasattr(results[0], 'plot'):
             annotated_frame = results[0].plot()
         else:
             annotated_frame = cv2_frame.copy()
         
+        start_time = time.time()
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
         text_x = img.width - text_size[0] - 10  # right
@@ -329,12 +342,19 @@ def main():
 
         # Update the window title and display the frame with detections
         cv2.imshow("YOLO Prediction", annotated_frame)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        Log.Verbose(f"imshow() execution time: {execution_time:.6f} seconds")
 
+        start_time = time.time()
         # render the image
         output.Render(img)
         
         # update the title bar
         output.SetStatus("Video Viewer | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
+        end_time = time.time()
+        execution_time = end_time - start_time
+        Log.Verbose(f"output() execution time: {execution_time:.6f} seconds")
 
         # exit on input/output EOS
         if not input.IsStreaming() or not output.IsStreaming():
