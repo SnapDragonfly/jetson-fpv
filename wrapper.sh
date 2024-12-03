@@ -5,7 +5,7 @@ CMD_NULL=" 2>/dev/null"
 CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 
 LOCK_DIR="/tmp/module_locks"
-MODULES=("stabilizer" "viewer" "imagenet" "detectnet" "segnet" "posenet" "yolo")
+MODULES=("stabilizer" "viewer" "imagenet" "detectnet" "segnet" "posenet" "yolo" "wfb")
 
 # Ensure script runs as root or with sudo
 if [ "$(id -u)" -ne 0 ] && [ -z "$SUDO_USER" ]; then
