@@ -5,7 +5,17 @@ CMD_NULL=" 2>/dev/null"
 CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 
 LOCK_DIR="/tmp/module_locks"
-MODULES=("stabilizer" "viewer" "imagenet" "detectnet" "segnet" "posenet" "yolo" "wfb")
+MODULES=("viewer" "stabilizer" "imagenet" "detectnet" "segnet" "posenet" "yolo" "wfb")
+MODULE_DESCRIPTIONS=(
+    "    Viewer Module: Displays the video stream."
+    "Stabilizer Module: Stabilizes the camera or system."
+    "  Imagenet Module: Image classification using Imagenet model."
+    " Detectnet Module: Object detection using DetectNet."
+    "    Segnet Module: Image segmentation using SegNet."
+    "   Posenet Module: Pose estimation using PoseNet."
+    "      Yolo Module: Real-time object detection using YOLO."
+    "       Wfb Module: Wifibroadcast transmission module."
+)
 
 # Ensure script runs as root or with sudo
 if [ "$(id -u)" -ne 0 ] && [ -z "$SUDO_USER" ]; then
@@ -15,6 +25,18 @@ fi
 
 # Create lock directory if it doesn't exist
 mkdir -p "$LOCK_DIR"
+
+# Function to get the description of a module
+get_module_description() {
+    local module_name=$1
+    for i in "${!MODULES[@]}"; do
+        if [[ "${MODULES[$i]}" == "$module_name" ]]; then
+            echo "${MODULE_DESCRIPTIONS[$i]}"
+            return
+        fi
+    done
+    echo "Module not found."
+}
 
 # Display help information
 help() {
@@ -29,8 +51,10 @@ help() {
     echo "  <other_command> Pass any other command directly to the module script"
     echo
     echo "Available modules:"
+    echo
     for module in "${MODULES[@]}"; do
-        echo "  $module"
+        #echo "  $module"
+        get_module_description $module
     done
 
     export DISPLAY=:0
