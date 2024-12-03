@@ -5,16 +5,17 @@ CMD_NULL=" 2>/dev/null"
 CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 
 LOCK_DIR="/tmp/module_locks"
-MODULES=("viewer" "stabilizer" "imagenet" "detectnet" "segnet" "posenet" "yolo" "wfb")
+MODULES=("viewer" "stabilizer" "imagenet" "detectnet" "segnet" "posenet" "yolo" "wfb" "deepstream")
 MODULE_DESCRIPTIONS=(
-    "    Viewer Module: Displays the video stream."
-    "Stabilizer Module: Stabilizes the camera or system."
-    "  Imagenet Module: Image classification using Imagenet model."
-    " Detectnet Module: Object detection using DetectNet."
-    "    Segnet Module: Image segmentation using SegNet."
-    "   Posenet Module: Pose estimation using PoseNet."
-    "      Yolo Module: Real-time object detection using YOLO."
-    "       Wfb Module: Wifibroadcast transmission module."
+    "     Viewer Module: Displays the video stream."
+    " Stabilizer Module: Stabilizes the camera or system."
+    "   Imagenet Module: Image classification using Imagenet model."
+    "  Detectnet Module: Object detection using DetectNet."
+    "     Segnet Module: Image segmentation using SegNet."
+    "    Posenet Module: Pose estimation using PoseNet."
+    "       Yolo Module: Real-time object detection using YOLO."
+    "        Wfb Module: Wifibroadcast transmission module."
+    " Deepstream Module: A comprehensive multimedia framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time."
 )
 
 # Ensure script runs as root or with sudo
