@@ -13,3 +13,6 @@
 [submodule "module/ByteTrack"]
 	path = module/ByteTrack
 	url = https://github.com/ifzhang/ByteTrack.git
+[submodule "module/deepstream_python_apps"]
+	path = module/deepstream_python_apps
+	url = https://github.com/NVIDIA-AI-IOT/deepstream_python_apps.git
