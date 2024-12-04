@@ -21,13 +21,16 @@ Commands:
   <other_command> Pass any other command directly to the module script
 
 Available modules:
-  stabilizer
-  viewer
-  imagenet
-  detectnet
-  segnet
-  posenet
-  yolo
+
+     Viewer Module: Displays the video stream.
+ Stabilizer Module: Stabilizes the camera or system.
+   Imagenet Module: Image classification using Imagenet model.
+  Detectnet Module: Object detection using DetectNet.
+     Segnet Module: Image segmentation using SegNet.
+    Posenet Module: Pose estimation using PoseNet.
+       Yolo Module: Real-time object detection using YOLO.
+        Wfb Module: Wifibroadcast transmission module.
+ Deepstream Module: A comprehensive multimedia framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time.
 
 Software part of jetson-stats 4.2.12 - (c) 2024, Raffaello Bonghi
 Model: NVIDIA Orin Nano Developer Kit - Jetpack 5.1.4 [L4T 35.6.0]
@@ -48,15 +51,17 @@ Libraries:
  - TensorRT: 8.5.2.2
  - VPI: 2.4.8
  - OpenCV: 4.9.0 - with CUDA: YES
+DeepStream C/C++ SDK version: 6.3
 
 Python Environment:
 Python 3.8.10
     GStreamer:                   YES (1.16.3)
   NVIDIA CUDA:                   YES (ver 11.4, CUFFT CUBLAS FAST_MATH)
-     OpenCV version: 4.9.0  CUDA True
-       YOLO version: 8.3.33
-      Torch version: 2.1.0a0+41361538.nv23.06
-Torchvision version: 0.16.1+fdea156
+        OpenCV version: 4.9.0  CUDA True
+          YOLO version: 8.3.33
+         Torch version: 2.1.0a0+41361538.nv23.06
+   Torchvision version: 0.16.1+fdea156
+DeepStream SDK version: 1.1.8
 ```
 
 # simple fpv
