@@ -1,6 +1,6 @@
 
 
-- [How to use the software?](doc/MANUAL.md)
+- [How to use the software?](MANUAL.md)
 
 # Watch the Rover Video
 
