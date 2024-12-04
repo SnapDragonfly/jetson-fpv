@@ -44,13 +44,13 @@ class VideoStreamer:
         """
         if self.input_codec == "h264":
             pipeline_str = (
-                f"udpsrc port={self.port} buffer-size=8388608 ! "
+                f"udpsrc port={self.port} ! "
                 "application/x-rtp,encoding-name=H264,payload=96 ! "
                 "rtph264depay ! h264parse ! nvv4l2decoder ! nv3dsink name=sink sync=0"
             )
         else:
             pipeline_str = (
-                f"udpsrc port={self.port} buffer-size=8388608 ! "
+                f"udpsrc port={self.port} ! "
                 "application/x-rtp,encoding-name=H265,payload=96 ! "
                 "rtph265depay ! h265parse ! nvv4l2decoder ! nv3dsink name=sink sync=0"
             )
