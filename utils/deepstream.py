@@ -9,9 +9,9 @@ from gi.repository import Gst, GLib
 frame_count = 0
 start_time = time.time()  # Initialize start_time globally
 
-def on_new_sample(pad, info):
+def on_new_frame(pad, info):
     """
-    Callback function to increment frame count whenever a new sample (frame) is processed.
+    Callback function to increment frame count whenever a new frame is processed.
     """
     global frame_count
     frame_count += 1
@@ -89,7 +89,7 @@ def main():
     # Set a probe on the video sink to detect frame samples
     if xvimagesink:
         pad = xvimagesink.get_static_pad("sink")
-        pad.add_probe(Gst.PadProbeType.BUFFER, on_new_sample)
+        pad.add_probe(Gst.PadProbeType.BUFFER, on_new_frame)
 
     # Debug: List all elements in the pipeline
     print("Pipeline elements:")
@@ -123,18 +123,6 @@ def main():
 
     # Set a timer to update FPS every second
     GLib.timeout_add(1000, update_fps)
-
-    # Define a function to handle the 'pad-added' signal for the decoder
-    def on_pad_added(element, pad):
-        global frame_count
-        # Every time a new pad is added (which means a frame is decoded), increase the frame count
-        frame_count += 1
-        print(f"Frame {frame_count} decoded.")
-
-    # Connect to the 'pad-added' signal of the decoder
-    decoder = pipeline.get_by_name("nvv4l2decoder0")
-    if decoder:
-        decoder.connect("pad-added", on_pad_added)
 
     # Define a function to handle pipeline messages
     def on_message(bus, message):
