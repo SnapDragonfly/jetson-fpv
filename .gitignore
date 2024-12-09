@@ -1,1 +1,4 @@
 *.mp4
+utils/deepstream/common/__pycache__/
+utils/deepstream/samples/models/Primary_Detector/resnet10.caffemodel_b1_gpu0_int8.engine
+
