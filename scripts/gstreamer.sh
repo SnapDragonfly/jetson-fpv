@@ -86,8 +86,8 @@ start() {
     # Step 3: Start gstreamer script
     echo "Starting gstreamer..."
     export DISPLAY=:0
-    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_GSTREAMER="${CMD_GSTREAMER} ${OUTPUT_FILE} $@"
+    #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    #CMD_GSTREAMER="${CMD_GSTREAMER} ${OUTPUT_FILE} $@"
     echo ${CMD_GSTREAMER}
     ${CMD_GSTREAMER} ${CMD_NULL} &
     echo $! > $GSTREAMER_PIDFILE
