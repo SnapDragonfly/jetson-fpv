@@ -5,10 +5,10 @@
 - Torch 2.1.0a0+41361538.nv23.06
 - Torchvision 0.16.1+fdea156
 - YOLO version 8.3.33
+- DeepStream C/C++(6.3) Python(1.1.8)
 
 ```
 $ sudo ./wrapper.sh help
-[sudo] password for daniel:
 Invalid module: help
 Usage: ./wrapper.sh <module_name> {start|stop|status|restart|help|<other_command>} [additional_arguments]
 
@@ -20,17 +20,20 @@ Commands:
   help            Display this help message
   <other_command> Pass any other command directly to the module script
 
-Available modules:
+Available modules
+     Base modules: wfb viewer imagenet detectnet segnet posenet gstreamer
+ Extended modules: stabilizer yolo deepstream
 
+        Wfb Module: Wifibroadcast transmission module.
      Viewer Module: Displays the video stream.
- Stabilizer Module: Stabilizes the camera or system.
    Imagenet Module: Image classification using Imagenet model.
   Detectnet Module: Object detection using DetectNet.
      Segnet Module: Image segmentation using SegNet.
     Posenet Module: Pose estimation using PoseNet.
+  GStreamer Module: GST pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation.
+ Stabilizer Module: Stabilizes the camera or system.
        Yolo Module: Real-time object detection using YOLO.
-        Wfb Module: Wifibroadcast transmission module.
- Deepstream Module: A comprehensive multimedia framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time.
+ Deepstream Module: Framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time.
 
 Software part of jetson-stats 4.2.12 - (c) 2024, Raffaello Bonghi
 Model: NVIDIA Orin Nano Developer Kit - Jetpack 5.1.4 [L4T 35.6.0]

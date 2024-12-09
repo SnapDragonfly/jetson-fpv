@@ -32,6 +32,7 @@ $ python3 -c "from torch2trt import torch2trt; print('torch2trt installed succes
 
 # Tested version
 
+```
 Software part of jetson-stats 4.2.12 - (c) 2024, Raffaello Bonghi
 Model: NVIDIA Orin Nano Developer Kit - Jetpack 5.1.4 [L4T 35.6.0]
 NV Power Mode[0]: 15W
@@ -62,3 +63,4 @@ Python 3.8.10
          Torch version: 2.1.0a0+41361538.nv23.06
    Torchvision version: 0.16.1+fdea156
 DeepStream SDK version: 1.1.8
+```

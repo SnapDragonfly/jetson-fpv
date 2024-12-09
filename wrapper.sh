@@ -5,19 +5,30 @@ CMD_NULL=" 2>/dev/null"
 CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 
 LOCK_DIR="/tmp/module_locks"
-MODULES=("viewer" "stabilizer" "imagenet" "detectnet" "segnet" "posenet" "yolo" "wfb" "gstreamer" "deepstream")
-MODULE_DESCRIPTIONS=(
+
+# Base Modules
+MODULES_BASE=("wfb" "viewer" "imagenet" "detectnet" "segnet" "posenet" "gstreamer")
+MODULE_BASE_DESCRIPTIONS=(
+    "        Wfb Module: Wifibroadcast transmission module."
     "     Viewer Module: Displays the video stream."
-    " Stabilizer Module: Stabilizes the camera or system."
     "   Imagenet Module: Image classification using Imagenet model."
     "  Detectnet Module: Object detection using DetectNet."
     "     Segnet Module: Image segmentation using SegNet."
     "    Posenet Module: Pose estimation using PoseNet."
-    "       Yolo Module: Real-time object detection using YOLO."
-    "        Wfb Module: Wifibroadcast transmission module."
     "  GStreamer Module: GST pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation."
+)
+
+# Ext Modules
+MODULES_EXT=("stabilizer" "yolo" "deepstream")
+MODULE_EXT_DESCRIPTIONS=(
+    " Stabilizer Module: Stabilizes the camera or system."
+    "       Yolo Module: Real-time object detection using YOLO."
     " Deepstream Module: Framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time."
 )
+
+MODULES=("${MODULES_BASE[@]}" "${MODULES_EXT[@]}")
+MODULE_DESCRIPTIONS=("${MODULE_BASE_DESCRIPTIONS[@]}" "${MODULE_EXT_DESCRIPTIONS[@]}")
+
 
 # Ensure script runs as root or with sudo
 if [ "$(id -u)" -ne 0 ] && [ -z "$SUDO_USER" ]; then
@@ -52,7 +63,9 @@ help() {
     echo "  help            Display this help message"
     echo "  <other_command> Pass any other command directly to the module script"
     echo
-    echo "Available modules:" "${MODULES[@]}"
+    echo "Available modules" 
+    echo "     Base modules:" "${MODULES_BASE[@]}"
+    echo " Extended modules:" "${MODULES_EXT[@]}"
     echo
     for module in "${MODULES[@]}"; do
         get_module_description $module
