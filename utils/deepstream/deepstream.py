@@ -141,50 +141,6 @@ def decodebin_child_added(child_proxy,Object,name,user_data):
         if source_element.find_property('drop-on-latency') != None:
             Object.set_property("drop-on-latency", True)
 
-
-
-# def create_source_bin(index,uri):
-#     print("Creating source bin")
-
-#     # Create a source GstBin to abstract this bin's content from the rest of the
-#     # pipeline
-#     bin_name="source-bin-%02d" %index
-#     print(bin_name)
-#     nbin=Gst.Bin.new(bin_name)
-#     if not nbin:
-#         sys.stderr.write(" Unable to create source bin \n")
-
-#     # Source element for reading from the uri.
-#     # We will use decodebin and let it figure out the container format of the
-#     # stream and the codec and plug the appropriate demux and decode plugins.
-#     if file_loop:
-#         # use nvurisrcbin to enable file-loop
-#         uri_decode_bin=Gst.ElementFactory.make("nvurisrcbin", "uri-decode-bin")
-#         uri_decode_bin.set_property("file-loop", 1)
-#         uri_decode_bin.set_property("cudadec-memtype", 0)
-#     else:
-#         uri_decode_bin=Gst.ElementFactory.make("uridecodebin", "uri-decode-bin")
-#     if not uri_decode_bin:
-#         sys.stderr.write(" Unable to create uri decode bin \n")
-#     # We set the input uri to the source element
-#     uri_decode_bin.set_property("uri",uri)
-#     # Connect to the "pad-added" signal of the decodebin which generates a
-#     # callback once a new pad for raw data has beed created by the decodebin
-#     uri_decode_bin.connect("pad-added",cb_newpad,nbin)
-#     uri_decode_bin.connect("child-added",decodebin_child_added,nbin)
-
-#     # We need to create a ghost pad for the source bin which will act as a proxy
-#     # for the video decoder src pad. The ghost pad will not have a target right
-#     # now. Once the decode bin creates the video decoder and generates the
-#     # cb_newpad callback, we will set the ghost pad target to the video decoder
-#     # src pad.
-#     Gst.Bin.add(nbin,uri_decode_bin)
-#     bin_pad=nbin.add_pad(Gst.GhostPad.new_no_target("src",Gst.PadDirection.SRC))
-#     if not bin_pad:
-#         sys.stderr.write(" Failed to add ghost pad in source bin \n")
-#         return None
-#     return nbin
-
 def parse_rtp_url(rtp_url):
     parsed_url = urlparse(rtp_url)
     
@@ -209,7 +165,7 @@ def parse_rtp_url(rtp_url):
     
     return ip, port
 
-def create_source_bin(index, uri):
+def create_rtp_source_bin(index, uri):
     print("Creating source bin")
 
     # Create a source GstBin to abstract this bin's content from the rest of the
@@ -256,6 +212,48 @@ def create_source_bin(index, uri):
     bin_ghost_pad.set_target(decoder_src_pad)
     return nbin
 
+def create_source_bin(index,uri):
+    print("Creating source bin")
+
+    # Create a source GstBin to abstract this bin's content from the rest of the
+    # pipeline
+    bin_name="source-bin-%02d" %index
+    print(bin_name)
+    nbin=Gst.Bin.new(bin_name)
+    if not nbin:
+        sys.stderr.write(" Unable to create source bin \n")
+
+    # Source element for reading from the uri.
+    # We will use decodebin and let it figure out the container format of the
+    # stream and the codec and plug the appropriate demux and decode plugins.
+    if file_loop:
+        # use nvurisrcbin to enable file-loop
+        uri_decode_bin=Gst.ElementFactory.make("nvurisrcbin", "uri-decode-bin")
+        uri_decode_bin.set_property("file-loop", 1)
+        uri_decode_bin.set_property("cudadec-memtype", 0)
+    else:
+        uri_decode_bin=Gst.ElementFactory.make("uridecodebin", "uri-decode-bin")
+    if not uri_decode_bin:
+        sys.stderr.write(" Unable to create uri decode bin \n")
+    # We set the input uri to the source element
+    uri_decode_bin.set_property("uri",uri)
+    # Connect to the "pad-added" signal of the decodebin which generates a
+    # callback once a new pad for raw data has beed created by the decodebin
+    uri_decode_bin.connect("pad-added",cb_newpad,nbin)
+    uri_decode_bin.connect("child-added",decodebin_child_added,nbin)
+
+    # We need to create a ghost pad for the source bin which will act as a proxy
+    # for the video decoder src pad. The ghost pad will not have a target right
+    # now. Once the decode bin creates the video decoder and generates the
+    # cb_newpad callback, we will set the ghost pad target to the video decoder
+    # src pad.
+    Gst.Bin.add(nbin,uri_decode_bin)
+    bin_pad=nbin.add_pad(Gst.GhostPad.new_no_target("src",Gst.PadDirection.SRC))
+    if not bin_pad:
+        sys.stderr.write(" Failed to add ghost pad in source bin \n")
+        return None
+    return nbin
+
 def main(args, requested_pgie=None, config=None, disable_probe=False):
     global perf_data
     perf_data = PERF_DATA(len(args))
@@ -284,9 +282,14 @@ def main(args, requested_pgie=None, config=None, disable_probe=False):
     for i in range(number_sources):
         print("Creating source_bin ",i," \n ")
         uri_name=args[i]
-        if uri_name.find("rtsp://") == 0 :
+        if uri_name.find("rtsp://") == 0 or uri_name.find("rtp://") == 0:
             is_live = True
-        source_bin=create_source_bin(i, uri_name)
+
+        if uri_name.find("rtp://") == 0:
+            source_bin = create_rtp_source_bin(i, uri_name)
+        else:
+            source_bin = create_source_bin(i, uri_name)
+
         if not source_bin:
             sys.stderr.write("Unable to create source bin \n")
         pipeline.add(source_bin)
