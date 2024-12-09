@@ -7,15 +7,15 @@ CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 LOCK_DIR="/tmp/module_locks"
 
 # Special Modules
-MODULES_SPECIAL=("wfb")
+MODULES_SPECIAL=("wfb" "viewer")
 MODULE_SPECIAL_DESCRIPTIONS=(
     "        Wfb Module: Wifibroadcast transmission module."
+    "     Viewer Module: Displays the video stream."
 )
 
 # Base Modules
-MODULES_BASE=("viewer" "imagenet" "detectnet" "segnet" "posenet" "gstreamer")
+MODULES_BASE=("imagenet" "detectnet" "segnet" "posenet" "gstreamer")
 MODULE_BASE_DESCRIPTIONS=(
-    "     Viewer Module: Displays the video stream."
     "   Imagenet Module: Image classification using Imagenet model."
     "  Detectnet Module: Object detection using DetectNet."
     "     Segnet Module: Image segmentation using SegNet."
