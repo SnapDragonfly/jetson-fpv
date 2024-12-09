@@ -370,19 +370,13 @@ def main(args, requested_pgie=None, config=None, disable_probe=False):
             if not sink:
                 sys.stderr.write(" Unable to create egl sink \n")
 
-        # TODO: Fix fullscreeen issue
-
-        # Set the fullscreen property
-        #if sink:
-        #    sink.set_property('fullscreen', True)
-
         # Use window resizing for fullscreen effect (for nv3dsink)
-        #if sink:
+        if sink:
         #    sink.set_property('fullscreen', True)  # Enable fullscreen
-        #    sink.set_property('window-x', 0)
-        #    sink.set_property('window-y', 0)
-        #    sink.set_property('width', 1920)  # Assuming 1920x1080 resolution
-        #    sink.set_property('height', 1080)
+            sink.set_property('window-x', 0)
+            sink.set_property('window-y', 0)
+            sink.set_property('window-width', 1920)  # Assuming 1920x1080 resolution
+            sink.set_property('window-height', 1080)
 
 
     if not sink:
