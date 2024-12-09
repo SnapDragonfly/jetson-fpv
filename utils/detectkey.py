@@ -8,8 +8,12 @@ from datetime import datetime
 # Get module name from command-line arguments
 module_name = sys.argv[1] if len(sys.argv) > 1 else "Default Module"
 
-# Print the module name
+# Get screen recording preference from command-line arguments
+record_screen = sys.argv[2].lower() == "yes" if len(sys.argv) > 2 else False
+
+# Print the module name and recording preference
 print(f"Module: {module_name}")
+print(f"Screen Recording: {'Enabled' if record_screen else 'Disabled'}")
 print("Press 'ESC' to exit the program.")
 
 # Generate timestamped file name
@@ -35,12 +39,13 @@ def start_screen_recording(output_file, fps=30, screen_region="1920x1080", offse
     except KeyboardInterrupt:
         print(f"Recording stopped. File saved as {output_file}.")
 
-# Generate the output file name with a timestamp
-output_file = generate_filename()
-
-# Start recording in a separate thread
-recording_thread = threading.Thread(target=start_screen_recording, args=(output_file,))
-recording_thread.start()
+# Start screen recording if enabled
+if record_screen:
+    output_file = generate_filename()
+    recording_thread = threading.Thread(target=start_screen_recording, args=(output_file,))
+    recording_thread.start()
+else:
+    output_file = None
 
 # Main loop
 try:
@@ -48,9 +53,10 @@ try:
         if keyboard.is_pressed('esc'):
             print(f"ESC key pressed. {module_name} Exiting...")
             
-            # Stop recording by terminating the ffmpeg process
-            subprocess.run("pkill -f ffmpeg", shell=True)
-            print(f"Screen recording stopped. File saved as {output_file}.")
+            # Stop recording if it was started
+            if record_screen:
+                subprocess.run("pkill -f ffmpeg", shell=True)
+                print(f"Screen recording stopped. File saved as {output_file}.")
             
             # Execute the Bash script
             command = f"sudo ./wrapper.sh {module_name} stop"
@@ -65,4 +71,3 @@ try:
         time.sleep(0.1)  # Add a slight delay to avoid high CPU usage
 except KeyboardInterrupt:
     print("\nProgram interrupted manually.")
-

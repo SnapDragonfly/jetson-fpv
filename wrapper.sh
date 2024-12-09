@@ -6,10 +6,15 @@ CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 
 LOCK_DIR="/tmp/module_locks"
 
-# Base Modules
-MODULES_BASE=("wfb" "viewer" "imagenet" "detectnet" "segnet" "posenet" "gstreamer")
-MODULE_BASE_DESCRIPTIONS=(
+# Special Modules
+MODULES_SPECIAL=("wfb")
+MODULE_SPECIAL_DESCRIPTIONS=(
     "        Wfb Module: Wifibroadcast transmission module."
+)
+
+# Base Modules
+MODULES_BASE=("viewer" "imagenet" "detectnet" "segnet" "posenet" "gstreamer")
+MODULE_BASE_DESCRIPTIONS=(
     "     Viewer Module: Displays the video stream."
     "   Imagenet Module: Image classification using Imagenet model."
     "  Detectnet Module: Object detection using DetectNet."
@@ -26,8 +31,8 @@ MODULE_EXT_DESCRIPTIONS=(
     " Deepstream Module: Framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time."
 )
 
-MODULES=("${MODULES_BASE[@]}" "${MODULES_EXT[@]}")
-MODULE_DESCRIPTIONS=("${MODULE_BASE_DESCRIPTIONS[@]}" "${MODULE_EXT_DESCRIPTIONS[@]}")
+MODULES=("${MODULES_SPECIAL[@]}" "${MODULES_BASE[@]}" "${MODULES_EXT[@]}")
+MODULE_DESCRIPTIONS=("${MODULE_SPECIAL_DESCRIPTIONS[@]}" "${MODULE_BASE_DESCRIPTIONS[@]}" "${MODULE_EXT_DESCRIPTIONS[@]}")
 
 
 # Ensure script runs as root or with sudo
@@ -137,6 +142,17 @@ is_module_running() {
     [ -e "${LOCK_DIR}/$1.lock" ]
 }
 
+# Function to check if a module is special
+is_special_module() {
+  local module="$1"  # Input module name
+  for special_module in "${MODULES_SPECIAL[@]}"; do
+    if [[ "$module" == "$special_module" ]]; then
+      return 0  # Return true (success) if module is special
+    fi
+  done
+  return 1  # Return false (failure) if module is not special
+}
+
 # Start a module
 start_module() {
     if ! is_valid_module "$1"; then return 1; fi
@@ -153,7 +169,15 @@ start_module() {
         echo "Starting module $1..."
         touch "${LOCK_DIR}/$1.lock"
         "./scripts/$1.sh" start || echo "Failed to start $1."
-        CMD_KEYMONITOR="$CMD_KEYMONITOR $1"
+
+        if is_special_module "$1"; then
+            echo "Module $1 is a special module."
+            CMD_KEYMONITOR="$CMD_KEYMONITOR $1 no"
+        else
+            echo "Module $1 is not a special module."
+            CMD_KEYMONITOR="$CMD_KEYMONITOR $1 yes"
+        fi
+
         echo $CMD_KEYMONITOR
         $CMD_KEYMONITOR
     fi
