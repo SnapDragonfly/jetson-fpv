@@ -5,7 +5,7 @@ CMD_NULL=" 2>/dev/null"
 CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 
 LOCK_DIR="/tmp/module_locks"
-MODULES=("viewer" "stabilizer" "imagenet" "detectnet" "segnet" "posenet" "yolo" "wfb" "deepstream")
+MODULES=("viewer" "stabilizer" "imagenet" "detectnet" "segnet" "posenet" "yolo" "wfb" "gstreamer" "deepstream")
 MODULE_DESCRIPTIONS=(
     "     Viewer Module: Displays the video stream."
     " Stabilizer Module: Stabilizes the camera or system."
@@ -15,6 +15,7 @@ MODULE_DESCRIPTIONS=(
     "    Posenet Module: Pose estimation using PoseNet."
     "       Yolo Module: Real-time object detection using YOLO."
     "        Wfb Module: Wifibroadcast transmission module."
+    "  GStreamer Module: A powerful multimedia framework for building pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation."
     " Deepstream Module: A comprehensive multimedia framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time."
 )
 
