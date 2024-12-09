@@ -15,8 +15,8 @@ MODULE_DESCRIPTIONS=(
     "    Posenet Module: Pose estimation using PoseNet."
     "       Yolo Module: Real-time object detection using YOLO."
     "        Wfb Module: Wifibroadcast transmission module."
-    "  GStreamer Module: A powerful multimedia framework for building pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation."
-    " Deepstream Module: A comprehensive multimedia framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time."
+    "  GStreamer Module: GST pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation."
+    " Deepstream Module: Framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time."
 )
 
 # Ensure script runs as root or with sudo
@@ -52,10 +52,9 @@ help() {
     echo "  help            Display this help message"
     echo "  <other_command> Pass any other command directly to the module script"
     echo
-    echo "Available modules:"
+    echo "Available modules:" "${MODULES[@]}"
     echo
     for module in "${MODULES[@]}"; do
-        #echo "  $module"
         get_module_description $module
     done
 
