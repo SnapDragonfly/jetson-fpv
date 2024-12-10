@@ -467,8 +467,8 @@ def main(args, requested_pgie=None, config=None, disable_probe=False):
 
 def parse_args():
 
-    parser = argparse.ArgumentParser(prog="deepstream_test_3",
-                    description="deepstream-test3 multi stream, multi model inference reference app")
+    parser = argparse.ArgumentParser(prog="deepstream",
+                    description="deepstream multi stream, supports rtp:// rtsp:// file://")
     parser.add_argument(
         "-i",
         "--input",
