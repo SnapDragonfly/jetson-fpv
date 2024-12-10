@@ -13,7 +13,7 @@ WFB_PIDFILE="/var/run/wfb.pid"
 CMD_WFBRX="wfb_rx -p 17 -i 7669206 -u 14560 -K /etc/gs.key wlan1"
 # ./msposd --master 127.0.0.1:14560 --osd -r 50 --ahi 1 --matrix 11
 CMD_MSPOSD="./msposd --master 127.0.0.1:14560 --osd -r 50 --ahi 1 --matrix 11"
-# python3 stabilizer.py rtp://@:5600 --input-codec=h265 
+# python3 ./utils/stabilizer.py rtp://@:5600 --input-codec=h265 
 CMD_STABILIZER="python3 ./utils/stabilizer.py rtp://@:5600"
 
 # Define the module's lock file directory (ensure the directory exists)
