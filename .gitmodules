@@ -19,3 +19,6 @@
 [submodule "module/DeepStream-Yolo"]
 	path = module/DeepStream-Yolo
 	url = https://github.com/marcoslucianops/DeepStream-Yolo.git
+[submodule "module/jetson-yolo"]
+	path = module/jetson-yolo
+	url = https://github.com/SnapDragonfly/jetson-yolo.git
