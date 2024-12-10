@@ -51,6 +51,7 @@ All these fun points serve as potential starting points for deepening the projec
 - [wfb-stabilizer@tipoman9](https://github.com/tipoman9/wfb-stabilizer)
 - [video-viewer@dusty-nv](https://github.com/dusty-nv/jetson-utils)
 - [jetson-inference@dusty-nv](https://github.com/dusty-nv/jetson-inference)
+- [DeepStream-Yolo@marcoslucianops](https://github.com/marcoslucianops/DeepStream-Yolo)
 - [deepstream_python_apps](https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/tree/v1.1.8)
 - [Ultralytics YOLO11](https://docs.ultralytics.com/)
 - [OpenIPC for IP camera](https://openipc.org/)

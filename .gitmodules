@@ -16,3 +16,6 @@
 [submodule "module/deepstream_python_apps"]
 	path = module/deepstream_python_apps
 	url = https://github.com/NVIDIA-AI-IOT/deepstream_python_apps.git
+[submodule "module/DeepStream-Yolo"]
+	path = module/DeepStream-Yolo
+	url = https://github.com/marcoslucianops/DeepStream-Yolo.git
