@@ -1,4 +1,4 @@
-# Install
+# Prerequisites
 
 1. install Jetpack/L4T version from nvidia: [link](https://docs.nvidia.com/jetson/archives/)
 > Reference: 
@@ -29,6 +29,21 @@ $ python3 -c "from torch2trt import torch2trt; print('torch2trt installed succes
 ```
 
 *Note: Tested version is in the submodule if it's installed from source.*
+
+# Source Code
+
+```
+$ git clone https://github.com/SnapDragonfly/jetson-fpv.git
+$ cd jetson-fpv
+$ git submodule update --init --recursive
+
+or
+$ git clone https://github.com/SnapDragonfly/jetson-fpv.git
+$ cd jetson-fpv
+$ git submodule status
+$ git submodule init
+$ git submodule update
+```
 
 # Tested version
 
