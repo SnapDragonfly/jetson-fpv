@@ -24,11 +24,12 @@ MODULE_BASE_DESCRIPTIONS=(
 )
 
 # Ext Modules
-MODULES_EXT=("stabilizer" "yolo" "deepstream")
+MODULES_EXT=("stabilizer" "yolo" "deepstream" "dsyolo")
 MODULE_EXT_DESCRIPTIONS=(
     " Stabilizer Module: Stabilizes the camera or system."
     "       Yolo Module: Real-time object detection using YOLO."
     " Deepstream Module: Framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time."
+    " Deepstream + YOLO: DeepStream integrates YOLO for real-time object detection and tracking."
 )
 
 MODULES=("${MODULES_SPECIAL[@]}" "${MODULES_BASE[@]}" "${MODULES_EXT[@]}")
