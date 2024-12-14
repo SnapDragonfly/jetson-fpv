@@ -15,20 +15,22 @@ Main features as follows:
     - [x] imagenet for image recognition
 - [x] yolo for object detection
 - [ ] Real time video stabilizer
-- [ ] DeepStream analysis
+- [x] DeepStream analysis
 - [ ] ByteTrack
 
 # To Do
 
-1. finish main features that planned to implement
+1. ~~finish main features that planned to implement~~
 2. ~~extension commands for video-viewer/imagenet/detectnet/segnet/posenet~~
 3. adaptive Open IPC link management
 4. stabilizer doesn't seem to be that stabilized
 5. ~~optimize yolo performance~~
 6. follow me Rover drive
 7. ~~add Ultralytics YOLO11 on NVIDIA Jetson using DeepStream SDK and TensorRT~~
-8. add DeepStream analysis
+8. ~~add DeepStream analysis~~
 9. add ByteTrack analysis
+10. [ [Request] Add RTP support #1 ](https://github.com/SnapDragonfly/jetson-yolo/issues/1)
+11. optimize performance, especially AI model/tracking algorithm etc.
 
 # Happy Flying!
 
