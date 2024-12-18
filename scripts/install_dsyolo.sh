@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # Ensure the target directory exists
-DST_DIR="utils/dsyolo"
+DST_DIR="./utils/dsyolo"
 mkdir -p "$DST_DIR"
 
 # Function to display help information
 function show_help() {
   echo "Usage: $0 [command]"
   echo "Commands:"
+  echo "  yolov8n   Export YOLOv8n weights if not already present."
   echo "  yolov4    Download YOLOv4 configuration and weights if not already present."
   echo "  help      Show this help message."
 }
@@ -46,10 +47,28 @@ function download_yolov4() {
   verify_file "$YOLOV4_WEIGHTS_FILE" "$YOLOV4_WEIGHTS_URL"
 }
 
+# Function to export YOLOv8N weights
+YOLOV8N_WEIGHTS="./model/yolov8n.pt"
+YOLOV8N_ONNX="./model/yolov8n.pt.onnx"
+function export_yolov8n() {
+  # Check if the ONNX file exists and is non-zero
+  if [ ! -s "$YOLOV8N_ONNX" ]; then
+    echo "ONNX file does not exist or is empty. Exporting YOLOv8N weights..."
+    python3 ./module/DeepStream-Yolo/utils/export_yoloV8.py -w $YOLOV8N_WEIGHTS --dynamic
+    mv $YOLOV8N_ONNX $DST_DIR
+    echo "Export completed and ONNX file moved to $DST_DIR."
+  else
+    echo "ONNX file already exists and is non-zero. Skipping export."
+  fi
+}
+
 # Main logic
 case "$1" in
   yolov4)
     download_yolov4
+    ;;
+  yolov8n)
+    export_yolov8n
     ;;
   help|"")
     show_help
