@@ -16,7 +16,7 @@ Main features as follows:
 - [x] yolo for object detection
 - [ ] Real time video stabilizer
 - [x] DeepStream analysis
-- [ ] ByteTrack
+- [x] ByteTrack
 
 # To Do
 
@@ -28,9 +28,10 @@ Main features as follows:
 6. follow me Rover drive
 7. ~~add Ultralytics YOLO11 on NVIDIA Jetson using DeepStream SDK and TensorRT~~
 8. ~~add DeepStream analysis~~
-9. add ByteTrack analysis
-10. [ [Request] Add RTP support #1 ](https://github.com/SnapDragonfly/jetson-yolo/issues/1)
+9. ~~add ByteTrack analysis~~
+10. [ [Request] Add RTP H265 support #1 ](https://github.com/SnapDragonfly/jetson-yolo/issues/1)
 11. optimize performance, especially AI model/tracking algorithm etc.
+12. improve FPS rate over/up to 60FPS when dsyolo using BYTETrack
 
 # Happy Flying!
 

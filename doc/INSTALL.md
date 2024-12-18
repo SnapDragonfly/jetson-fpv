@@ -19,7 +19,7 @@
 > Reference: 
 >   - [Linux 35.6 + JetPack v5.1.4@DeepStream安装](https://blog.csdn.net/lida2003/article/details/144195002)
 
-9.  install [ByteTrack](../module)
+9. install [ByteTrack](../module)
 ```bash
 $ sudo apt install libhdf5-dev
 $ git clone https://github.com/NVIDIA-AI-IOT/torch2trt.git
@@ -27,6 +27,12 @@ $ cd torch2trt
 $ sudo python3 setup.py install
 $ python3 -c "from torch2trt import torch2trt; print('torch2trt installed successfully')"
 ```
+
+10. install [OpenIPC adaptive link](https://github.com/SnapDragonfly/OpenIPC-Adaptive-Link/tree/arrange_project_structure)
+> Reference: 
+>   - [OpenIPC开源FPV之Adaptive-Link工程解析](https://blog.csdn.net/lida2003/article/details/144498046)
+>   - [OpenIPC开源FPV之Adaptive-Link天空端代码解析](https://blog.csdn.net/lida2003/article/details/144501405)
+>   - [OpenIPC开源FPV之Adaptive-Link地面站代码解析](https://blog.csdn.net/lida2003/article/details/144515266)
 
 *Note: Tested version is in the submodule if it's installed from source.*
 
