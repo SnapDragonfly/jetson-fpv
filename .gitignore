@@ -1,4 +1,11 @@
 *.mp4
+
 utils/deepstream/common/__pycache__/
 utils/deepstream/samples/models/Primary_Detector/resnet10.caffemodel_b1_gpu0_int8.engine
+
+utils/dsyolo/yolov4.cfg
+utils/dsyolo/yolov4.weights
+
+utils/dsyolo/yolov8n.pt.onnx
+utils/dsyolo/yolov8s.pt.onnx
 
