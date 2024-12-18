@@ -13,7 +13,7 @@ WFB_PIDFILE="/var/run/wfb.pid"
 CMD_WFBRX="wfb_rx -p 17 -i 7669206 -u 14560 -K /etc/gs.key wlan1"
 # ./msposd --master 127.0.0.1:14560 --osd -r 50 --ahi 1 --matrix 11
 CMD_MSPOSD="./msposd --master 127.0.0.1:14560 --osd -r 50 --ahi 1 --matrix 11"
-# ./jetson-yolo -c source_config_yolov4.txt
+# ./jetson-yolo -c source_config_yolov8n.txt
 CMD_DSYOLO="./jetson-yolo"
 
 # Define the module's lock file directory (ensure the directory exists)
@@ -89,7 +89,7 @@ start() {
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DSYOLO="${CMD_DSYOLO} ${OUTPUT_FILE} --input-codec=h265 $@"
     if [ $# -eq 0 ]; then
-        CMD_DSYOLO="${CMD_DSYOLO} -c source_config_yolov4.txt"
+        CMD_DSYOLO="${CMD_DSYOLO} -c source_config_yolov8n.txt"
     else
         CMD_DSYOLO="${CMD_DSYOLO} -c $@"
     fi
@@ -214,6 +214,10 @@ restart() {
 help() {
     CMD_YOLO_HELP="./utils/dsyolo/jetson-yolo --help-all"
     ${CMD_YOLO_HELP}
+    echo "Test Options:"
+    echo "  1-> source_config_yolov8n.txt (default)"
+    echo "  2-> source_config_yolov8s.txt"
+    echo "  3-> source_config_yolov4.txt"
 }
 
 # Test the module
