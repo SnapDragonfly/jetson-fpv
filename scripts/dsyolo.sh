@@ -218,6 +218,7 @@ help() {
     echo "  1-> source_config_yolov8n.txt (default)"
     echo "  2-> source_config_yolov8s.txt"
     echo "  3-> source_config_yolov4.txt"
+    echo "  4-> source_config_yolov8n_BYTETrack.txt"
 }
 
 # Test the module
