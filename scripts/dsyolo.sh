@@ -85,6 +85,8 @@ start() {
     
     # Step 3: Start dsyolo script
     echo "Starting dsyolo..."
+    sudo nvpmodel -m 0
+    sudo jetson_clocks
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DSYOLO="${CMD_DSYOLO} ${OUTPUT_FILE} --input-codec=h265 $@"
