@@ -7,7 +7,11 @@ model-engine-file=model_b1_gpu0_fp32.engine
 #int8-calib-file=calib.table
 labelfile-path=labels.txt
 batch-size=1
-network-mode=0
+# network-mode: 0=FP32, 1=INT8 and 2=FP16
+network-mode=2
+model-engine-file=model_b1_gpu0_fp16.engine
+#network-mode=0
+#model-engine-file=model_b1_gpu0_fp32.engine
 num-detected-classes=80
 interval=0
 gie-unique-id=1
