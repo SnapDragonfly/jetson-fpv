@@ -89,7 +89,7 @@ start() {
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_GSTREAMER="${CMD_GSTREAMER} ${OUTPUT_FILE} $@"
     echo ${CMD_GSTREAMER}
-    ${CMD_GSTREAMER} ${CMD_NULL} &
+    ${CMD_GSTREAMER} $@ ${CMD_NULL} &
     echo $! > $GSTREAMER_PIDFILE
     sleep 2 # initialization
 

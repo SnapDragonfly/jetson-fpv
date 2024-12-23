@@ -25,6 +25,7 @@ import os
 no_display = False
 silent = False
 file_loop = False
+codec_h264 = True
 perf_data = None
 
 MAX_DISPLAY_LEN=64
@@ -165,7 +166,7 @@ def parse_rtp_url(rtp_url):
     
     return ip, port
 
-def create_rtp_source_bin(index, uri):
+def create_rtp_h265_source_bin(index, uri):
     print("Creating source bin")
 
     # Create a source GstBin to abstract this bin's content from the rest of the
@@ -203,6 +204,53 @@ def create_rtp_source_bin(index, uri):
     capsfilter.link(rtph265depay)
     rtph265depay.link(h265parse)
     h265parse.link(nvv4l2decoder)
+    bin_ghost_pad = Gst.GhostPad.new_no_target("src",Gst.PadDirection.SRC)
+    bin_pad=nbin.add_pad(bin_ghost_pad)
+    if not bin_pad:
+        sys.stderr.write(" Failed to add ghost pad in source bin \n")
+        return None
+    decoder_src_pad=nvv4l2decoder.get_static_pad("src")
+    bin_ghost_pad.set_target(decoder_src_pad)
+    return nbin
+
+def create_rtp_h264_source_bin(index, uri):
+    print("Creating source bin")
+
+    # Create a source GstBin to abstract this bin's content from the rest of the
+    # pipeline
+    bin_name="source-bin-%02d" %index
+    print(bin_name)
+    nbin=Gst.Bin.new(bin_name)
+    if not nbin:
+        sys.stderr.write(" Unable to create source bin \n")
+
+    ip, port = parse_rtp_url(uri)
+    udpsrc = Gst.ElementFactory.make("udpsrc", "udpsrc")
+    print(f"{ip} {port}")
+    udpsrc.set_property('address', ip)
+    udpsrc.set_property('port', port)
+    caps = Gst.Caps.from_string("application/x-rtp,encoding-name=H264,payload=96")
+    capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
+    capsfilter.set_property("caps", caps)
+    rtph264depay = Gst.ElementFactory.make("rtph264depay", "rtph264depay")
+    h264parse = Gst.ElementFactory.make("h264parse", "h264parse")
+    nvv4l2decoder = Gst.ElementFactory.make("nvv4l2decoder", "nvv4l2decoder")
+
+    # We need to create a ghost pad for the source bin which will act as a proxy
+    # for the video decoder src pad. The ghost pad will not have a target right
+    # now. Once the decode bin creates the video decoder and generates the
+    # cb_newpad callback, we will set the ghost pad target to the video decoder
+    # src pad.
+    #Gst.Bin.add(nbin, udpsrc, capsfilter, rtph265depay,h265parse,nvv4l2decoder)
+    nbin.add(udpsrc)
+    nbin.add(capsfilter)
+    nbin.add(rtph264depay)
+    nbin.add(h264parse)
+    nbin.add(nvv4l2decoder)
+    udpsrc.link(capsfilter)
+    capsfilter.link(rtph264depay)
+    rtph264depay.link(h264parse)
+    h264parse.link(nvv4l2decoder)
     bin_ghost_pad = Gst.GhostPad.new_no_target("src",Gst.PadDirection.SRC)
     bin_pad=nbin.add_pad(bin_ghost_pad)
     if not bin_pad:
@@ -286,7 +334,10 @@ def main(args, requested_pgie=None, config=None, disable_probe=False):
             is_live = True
 
         if uri_name.find("rtp://") == 0:
-            source_bin = create_rtp_source_bin(i, uri_name)
+            if codec_h264:
+                source_bin = create_rtp_h264_source_bin(i, uri_name)
+            else:
+                source_bin = create_rtp_h265_source_bin(i, uri_name)
         else:
             source_bin = create_source_bin(i, uri_name)
 
@@ -479,6 +530,12 @@ def parse_args():
         required=True,
     )
     parser.add_argument(
+        "--input-codec", 
+        type=str, choices=["h264", "h265"], 
+        default="h264", 
+        help="Input codec: h264 or h265 (default: h265)"
+    )
+    parser.add_argument(
         "-c",
         "--configfile",
         metavar="config_location.txt",
@@ -531,12 +588,19 @@ def parse_args():
     pgie = args.pgie
     config = args.configfile
     disable_probe = args.disable_probe
+    
     global no_display
     global silent
     global file_loop
+    global codec_h264
+
     no_display = args.no_display
     silent = args.silent
     file_loop = args.file_loop
+    if args.input_codec == "h264":
+        codec_h264 = True
+    else:
+        codec_h264 = False
 
     if config and not pgie or pgie and not config:
         sys.stderr.write ("\nEither pgie or configfile is missing. Please specify both! Exiting...\n\n\n\n")

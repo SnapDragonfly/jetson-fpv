@@ -74,7 +74,7 @@ start() {
         export DISPLAY=:0
         cd ./utils/msposd
         echo ${CMD_MSPOSD}
-        ${CMD_MSPOSD} ${CMD_NULL} &
+        ${CMD_MSPOSD} $@ ${CMD_NULL} &
         echo $! > $MSPOSD_PIDFILE
         cd ../../
         sleep 2 # initialization

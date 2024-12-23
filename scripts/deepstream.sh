@@ -89,7 +89,7 @@ start() {
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DEEPSTREAM="${CMD_DEEPSTREAM} ${OUTPUT_FILE} $@"
     echo ${CMD_DEEPSTREAM}
-    ${CMD_DEEPSTREAM} ${CMD_NULL} &
+    ${CMD_DEEPSTREAM} $@ ${CMD_NULL} &
     echo $! > $DEEPSTREAM_PIDFILE
     sleep 2 # initialization
 

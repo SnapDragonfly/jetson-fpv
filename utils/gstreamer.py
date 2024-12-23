@@ -119,7 +119,7 @@ def main():
     parser = argparse.ArgumentParser(description="NVIDIA deepstream analytics of video streams")
     parser.add_argument("port", type=int, help="UDP port of RTP video stream")
     parser.add_argument(
-        "--input-codec", type=str, choices=["h264", "h265"], default="h265", help="Input codec: h264 or h265 (default: h265)"
+        "--input-codec", type=str, choices=["h264", "h265"], default="h264", help="Input codec: h264 or h265 (default: h265)"
     )
     parser.add_argument(
         "--fullscreen", type=bool, default=True, help="Enable fullscreen display (default: True)"

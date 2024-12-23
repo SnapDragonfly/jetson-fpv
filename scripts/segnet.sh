@@ -14,7 +14,7 @@ CMD_WFBRX="wfb_rx -p 17 -i 7669206 -u 14560 -K /etc/gs.key wlan1"
 # ./msposd --master 127.0.0.1:14560 --osd -r 50 --ahi 1 --matrix 11
 CMD_MSPOSD="./msposd --master 127.0.0.1:14560 --osd -r 50 --ahi 1 --matrix 11"
 # segnet --input-codec=h265 rtp://@:5600
-CMD_SEGNET="segnet --input-codec=h265 rtp://@:5600"
+CMD_SEGNET="segnet rtp://@:5600"
 
 # Define the module's lock file directory (ensure the directory exists)
 LOCK_DIR="/tmp/module_locks"
@@ -86,7 +86,7 @@ start() {
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     CMD_SEGNET="${CMD_SEGNET} ${OUTPUT_FILE}"
     echo ${CMD_SEGNET}
-    ${CMD_SEGNET} ${CMD_NULL} &
+    ${CMD_SEGNET} $@ ${CMD_NULL} &
     echo $! > $SEGNET_PIDFILE
     sleep 2 # initialization
 

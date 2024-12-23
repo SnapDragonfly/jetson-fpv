@@ -87,9 +87,9 @@ start() {
     echo "Starting yolo..."
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} --input-codec=h265 $@"
+    CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} $@"
     echo ${CMD_YOLO}
-    ${CMD_YOLO} ${CMD_NULL} &
+    ${CMD_YOLO} $@ ${CMD_NULL} &
     echo $! > $YOLO_PIDFILE
     sleep 2 # initialization
 

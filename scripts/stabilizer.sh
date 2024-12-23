@@ -83,8 +83,8 @@ start() {
     echo "Starting stabilizer..."
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_STABILIZER="${CMD_STABILIZER} ${OUTPUT_FILE} --input-codec=h265"
-    ${CMD_STABILIZER} ${CMD_NULL} &
+    CMD_STABILIZER="${CMD_STABILIZER} ${OUTPUT_FILE}"
+    ${CMD_STABILIZER} $@ ${CMD_NULL} &
     echo $! > $STABILIZER_PIDFILE
     sleep 2 # initialization
 
