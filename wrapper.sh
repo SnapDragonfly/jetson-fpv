@@ -70,6 +70,7 @@ help() {
     echo "  <other_command> Pass any other command directly to the module script"
     echo
     echo "Available modules" 
+    echo "  Special modules:" "${MODULES_SPECIAL[@]}"
     echo "     Base modules:" "${MODULES_BASE[@]}"
     echo " Extended modules:" "${MODULES_EXT[@]}"
     echo
