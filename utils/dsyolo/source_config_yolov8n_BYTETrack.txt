@@ -44,6 +44,18 @@ sync=0
 gpu-id=0
 nvbuf-memory-type=0
 
+[sink1]
+enable=1
+# Output Type：1=FakeSink 2=EglSink 3=File 4=UDPSink 5=nvdrmvideosink 6=MsgConvBroker
+type=3  # Output type: 3 means save to a file
+container=1  # Container type: 1 means MP4 format
+codec=1  # Codec type: 1 means H.264 encoding
+bitrate=4000000  # Bitrate: 4 Mbps (adjust as needed)
+output-file=output.mp4
+sync=0  # Disable synchronization of playback
+# Encoder type：0=Hardware 1=Software
+enc-type=1
+
 [osd]
 enable=1
 gpu-id=0
