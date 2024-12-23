@@ -7,15 +7,16 @@ CMD_KEYMONITOR="python3 ./utils/detectkey.py"
 LOCK_DIR="/tmp/module_locks"
 
 # Special Modules
-MODULES_SPECIAL=("wfb" "viewer")
+MODULES_SPECIAL=("version" "wfb")
 MODULE_SPECIAL_DESCRIPTIONS=(
+    "    Version Module: Check depended component versions."
     "        Wfb Module: Wifibroadcast transmission module."
-    "     Viewer Module: Displays the video stream."
 )
 
 # Base Modules
-MODULES_BASE=("imagenet" "detectnet" "segnet" "posenet" "gstreamer")
+MODULES_BASE=("viewer" "imagenet" "detectnet" "segnet" "posenet" "gstreamer")
 MODULE_BASE_DESCRIPTIONS=(
+    "     Viewer Module: Displays the video stream."
     "   Imagenet Module: Image classification using Imagenet model."
     "  Detectnet Module: Object detection using DetectNet."
     "     Segnet Module: Image segmentation using SegNet."
@@ -67,6 +68,7 @@ help() {
     echo "  status          Check the status of a module"
     echo "  restart         Restart a module"
     echo "  help            Display this help message"
+    echo "  version         Display versions"
     echo "  <other_command> Pass any other command directly to the module script"
     echo
     echo "Available modules" 
@@ -77,43 +79,6 @@ help() {
     for module in "${MODULES[@]}"; do
         get_module_description $module
     done
-
-    export DISPLAY=:0
-
-    echo
-    jetson_release
-    # Deepstream C/C++ SDK version
-    DEEPSTREAM_VERSION_FILE="/opt/nvidia/deepstream/deepstream/version"
-    if [[ -f "$DEEPSTREAM_VERSION_FILE" ]]; then
-        DEEPSTREAM_VERSION=$(cat "$DEEPSTREAM_VERSION_FILE" | grep -oP '(?<=Version: ).*')
-        echo "DeepStream C/C++ SDK version: $DEEPSTREAM_VERSION"
-    else
-        echo "DeepStream C/C++ SDK version file not found"
-    fi
-    echo
-    echo "Python Environment:"
-
-    # Python version
-    eval "python3 --version $CMD_NULL"
-
-    # OpenCV build information
-    eval "python3 -c \"import cv2; print(cv2.getBuildInformation())\" $CMD_NULL" | grep -E "CUDA|GStreamer"
-
-    # OpenCV version and CUDA support
-    eval "python3 -c \"import cv2; print('        OpenCV version:', cv2.__version__, ' CUDA', cv2.cuda.getCudaEnabledDeviceCount() > 0)\" $CMD_NULL" | grep -v "EGL"
-
-    # YOLO version
-    YOLO_VERSION=$(eval yolo version $CMD_NULL | grep -v "EGL")
-    echo "          YOLO version: $YOLO_VERSION"
-
-    # PyTorch version
-    eval "python3 -c \"import torch; print('         Torch version:', torch.__version__)\" $CMD_NULL" | grep -v "EGL"
-
-    # Torchvision version
-    eval "python3 -c \"import torchvision; print('   Torchvision version:', torchvision.__version__)\" $CMD_NULL" | grep -v "EGL"
-
-    # Deepstream SDK version
-    eval "python3 -c \"import pyds; print('DeepStream SDK version:', pyds.__version__)\" $CMD_NULL" | grep -v "EGL"
 }
 
 # Check if the module name is valid
@@ -218,6 +183,7 @@ execute_module_command() {
     echo "Executing command on module $module: $*"
     "./scripts/$module.sh" "$@"
 
+    if ! is_special_module "$1"; then return 1; fi
     CMD_KEYMONITOR="$CMD_KEYMONITOR $module"
     echo $CMD_KEYMONITOR
     $CMD_KEYMONITOR
