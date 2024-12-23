@@ -83,6 +83,11 @@ start() {
     echo "${MODULE_NAME} started."
 }
 
+# Start the module without msposd
+ostart() {
+    start "--no-osd" ${@:2}
+}
+
 # Stop the module
 stop() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
@@ -150,12 +155,6 @@ status() {
     fi
 }
 
-# Restart the module
-restart() {
-    stop
-    start
-}
-
 # Display help
 help() {
     #CMD_VIDEO_HELP="wfb-cli --help"
@@ -177,14 +176,14 @@ case "$1" in
     start)
         start
         ;;
+    ostart)
+        ostart
+        ;;
     stop)
         stop
         ;;
     status)
         status
-        ;;
-    restart)
-        restart
         ;;
     help)
         help

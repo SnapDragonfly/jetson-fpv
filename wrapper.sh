@@ -60,16 +60,17 @@ get_module_description() {
 
 # Display help information
 help() {
-    echo "Usage: $0 <module_name> {start|stop|status|restart|help|<other_command>} [additional_arguments]"
+    echo "Usage: $0 <module_name> {start|restart|ostart|orestart|stop|status|help|<other_command>} [additional_arguments]"
     echo
     echo "Commands:"
     echo "  start           Start a module"
+    echo "  restart         Restart a module"
+    echo "  ostart          Start a module without msposd"
+    echo "  orestart        Restart a module without msposd"
     echo "  stop            Stop a module"
     echo "  status          Check the status of a module"
-    echo "  restart         Restart a module"
     echo "  help            Display this help message"
-    echo "  version         Display versions"
-    echo "  <other_command> Pass any other command directly to the module script"
+    echo "  <other_command> Pass any other command directly to the module script, such as test etc."
     echo
     echo "Available modules" 
     echo "  Special modules:" "${MODULES_SPECIAL[@]}"
@@ -150,6 +151,36 @@ start_module() {
     fi
 }
 
+# Start a module without msposd
+ostart_module() {
+    if ! is_valid_module "$1"; then return 1; fi
+
+    if is_any_module_running; then
+        echo "Cannot start $1. Another module is running."
+        return 1
+    fi
+
+    if is_module_running "$1"; then
+        echo "Module $1 is already running."
+        echo "If it's NOT. Please use status check or restart the module."
+    else
+        echo "Starting module $1..."
+        touch "${LOCK_DIR}/$1.lock"
+        "./scripts/$1.sh" ostart || echo "Failed to ostart $1."
+
+        if is_special_module "$1"; then
+            echo "Module $1 is a special module."
+            CMD_KEYMONITOR="$CMD_KEYMONITOR $1 no"
+        else
+            echo "Module $1 is not a special module."
+            CMD_KEYMONITOR="$CMD_KEYMONITOR $1 yes"
+        fi
+
+        echo $CMD_KEYMONITOR
+        $CMD_KEYMONITOR
+    fi
+}
+
 # Stop a module
 stop_module() {
     if ! is_valid_module "$1"; then return 1; fi
@@ -183,7 +214,6 @@ execute_module_command() {
     echo "Executing command on module $module: $*"
     "./scripts/$module.sh" "$@"
 
-    if ! is_special_module "$1"; then return 1; fi
     CMD_KEYMONITOR="$CMD_KEYMONITOR $module"
     echo $CMD_KEYMONITOR
     $CMD_KEYMONITOR
@@ -201,15 +231,22 @@ case "$2" in
     start)
         start_module "$1"
         ;;
+    restart)
+        stop_module "$1"
+        start_module "$1"
+        ;;
+    ostart)
+        ostart_module "$1"
+        ;;
+    orestart)
+        stop_module "$1"
+        ostart_module "$1"
+        ;;
     stop)
         stop_module "$1"
         ;;
     status)
         status_module "$1"
-        ;;
-    restart)
-        stop_module "$1"
-        start_module "$1"
         ;;
     help)
         execute_module_help "$@"

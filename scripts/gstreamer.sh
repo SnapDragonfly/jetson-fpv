@@ -106,6 +106,36 @@ start() {
     echo "${MODULE_NAME} started."
 }
 
+# Start the module without msposd
+ostart() {
+    # Create lock file to indicate the module is running
+    touch "${LOCK_DIR}/${MODULE_NAME}.lock"
+    
+    # Add the logic to start the module here, e.g., running a specific command or script
+    # Example: ./start_module_command.sh
+
+    # Step 1: Start wfb (wifibroadcast)
+    echo "Starting wifibroadcast..."
+    sudo systemctl start wifibroadcast@gs
+    sleep 3 # initialization
+
+    # Well, default SDL2 is 2.0.0
+    # But I have installed SDL2 2.30.9, then the mess is here
+    export LD_PRELOAD=/lib/aarch64-linux-gnu/libGLdispatch.so.0
+    
+    # Step 3: Start gstreamer script
+    echo "Starting gstreamer..."
+    export DISPLAY=:0
+    #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    #CMD_GSTREAMER="${CMD_GSTREAMER} ${OUTPUT_FILE} $@"
+    echo ${CMD_GSTREAMER}
+    ${CMD_GSTREAMER} $@ ${CMD_NULL} &
+    echo $! > $GSTREAMER_PIDFILE
+    sleep 2 # initialization
+
+    echo "${MODULE_NAME} started."
+}
+
 # Stop the module
 stop() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
@@ -197,12 +227,6 @@ status() {
     fi
 }
 
-# Restart the module
-restart() {
-    stop
-    start
-}
-
 # Display help
 help() {
     CMD_GSTREAMER_HELP="python3 ./utils/gstreamer.py --help"
@@ -222,14 +246,14 @@ case "$1" in
     start)
         start
         ;;
+    ostart)
+        ostart
+        ;;
     stop)
         stop
         ;;
     status)
         status
-        ;;
-    restart)
-        restart
         ;;
     help)
         help

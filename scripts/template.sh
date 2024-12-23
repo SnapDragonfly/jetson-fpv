@@ -19,6 +19,18 @@ start() {
     echo "${MODULE_NAME} started."
 }
 
+# Start the module without ...
+ostart() {
+    # Create lock file to indicate the module is running
+    touch "${LOCK_DIR}/${MODULE_NAME}.lock"
+    echo "[template] Starting module ${MODULE_NAME}..."
+    
+    # Add the logic to start the module here, e.g., running a specific command or script
+    # Example: ./start_module_command.sh
+
+    echo "${MODULE_NAME} started."
+}
+
 # Stop the module
 stop() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
@@ -43,12 +55,6 @@ status() {
     fi
 }
 
-# Restart the module
-restart() {
-    stop
-    start
-}
-
 # Display help
 help() {
     echo "Helping module ${MODULE_NAME}..."
@@ -67,14 +73,14 @@ case "$1" in
     start)
         start
         ;;
+    ostart)
+        ostart
+        ;;
     stop)
         stop
         ;;
     status)
         status
-        ;;
-    restart)
-        restart
         ;;
     help)
         help

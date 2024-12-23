@@ -102,6 +102,32 @@ start() {
     echo "${MODULE_NAME} started."
 }
 
+# Start the module without msposd
+ostart() {
+    # Create lock file to indicate the module is running
+    touch "${LOCK_DIR}/${MODULE_NAME}.lock"
+    
+    # Add the logic to start the module here, e.g., running a specific command or script
+    # Example: ./start_module_command.sh
+
+    # Step 1: Start wfb (wifibroadcast)
+    echo "Starting wifibroadcast..."
+    sudo systemctl start wifibroadcast@gs
+    sleep 3 # initialization
+
+    # Step 3: Start detectnet script
+    echo "Starting detectnet..."
+    export DISPLAY=:0
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    CMD_DETECTNET="${CMD_DETECTNET} ${OUTPUT_FILE}"
+    echo ${CMD_DETECTNET}
+    ${CMD_DETECTNET} $@ ${CMD_NULL} &
+    echo $! > $DETECTNET_PIDFILE
+    sleep 2 # initialization
+
+    echo "${MODULE_NAME} started."
+}
+
 # Stop the module
 stop() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
@@ -190,12 +216,6 @@ status() {
     fi
 }
 
-# Restart the module
-restart() {
-    stop
-    start
-}
-
 # Display help
 help() {
     CMD_DETECTNET_HELP="detectnet --help"
@@ -215,14 +235,14 @@ case "$1" in
     start)
         start
         ;;
+    ostart)
+        ostart
+        ;;
     stop)
         stop
         ;;
     status)
         status
-        ;;
-    restart)
-        restart
         ;;
     help)
         help

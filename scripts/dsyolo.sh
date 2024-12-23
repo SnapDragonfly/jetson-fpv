@@ -115,6 +115,45 @@ start() {
     echo "${MODULE_NAME} started."
 }
 
+# Start the module without msposd
+ostart() {
+    # Create lock file to indicate the module is running
+    touch "${LOCK_DIR}/${MODULE_NAME}.lock"
+    
+    # Add the logic to start the module here, e.g., running a specific command or script
+    # Example: ./start_module_command.sh
+
+    # Step 1: Start wfb (wifibroadcast)
+    echo "Starting wifibroadcast..."
+    sudo systemctl start wifibroadcast@gs
+    sleep 3 # initialization
+
+    # Well, default SDL2 is 2.0.0
+    # But I have installed SDL2 2.30.9, then the mess is here
+    export LD_PRELOAD=/lib/aarch64-linux-gnu/libGLdispatch.so.0
+    
+    # Step 3: Start dsyolo script
+    echo "Starting dsyolo..."
+    sudo nvpmodel -m 0
+    sudo jetson_clocks
+    export DISPLAY=:0
+    #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    #CMD_DSYOLO="${CMD_DSYOLO} ${OUTPUT_FILE} --input-codec=h265 $@"
+    if [ $# -eq 0 ]; then
+        CMD_DSYOLO="${CMD_DSYOLO} -c source_config_yolov8n.txt"
+    else
+        CMD_DSYOLO="${CMD_DSYOLO} -c $@"
+    fi
+    echo ${CMD_DSYOLO}
+    cd utils/dsyolo
+    ${CMD_DSYOLO} ${CMD_NULL} &
+    echo $! > $DSYOLO_PIDFILE
+    cd ../..
+    sleep 2 # initialization
+
+    echo "${MODULE_NAME} started."
+}
+
 # Stop the module
 stop() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
@@ -206,12 +245,6 @@ status() {
     fi
 }
 
-# Restart the module
-restart() {
-    stop
-    start
-}
-
 # Display help
 help() {
     CMD_YOLO_HELP="./utils/dsyolo/jetson-yolo --help-all"
@@ -236,14 +269,14 @@ case "$1" in
     start)
         start
         ;;
+    ostart)
+        ostart
+        ;;
     stop)
         stop
         ;;
     status)
         status
-        ;;
-    restart)
-        restart
         ;;
     help)
         help

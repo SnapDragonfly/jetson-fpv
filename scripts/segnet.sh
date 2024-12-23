@@ -103,6 +103,33 @@ start() {
     echo "${MODULE_NAME} started."
 }
 
+# Start the module without msposd
+ostart() {
+    # Create lock file to indicate the module is running
+    touch "${LOCK_DIR}/${MODULE_NAME}.lock"
+    echo "Starting module ${MODULE_NAME}..."
+    
+    # Add the logic to start the module here, e.g., running a specific command or script
+    # Example: ./start_module_command.sh
+
+    # Step 1: Start wfb (wifibroadcast)
+    echo "Starting wifibroadcast..."
+    sudo systemctl start wifibroadcast@gs
+    sleep 3 # initialization
+
+    # Step 3: Start segnet script
+    echo "Starting segnet..."
+    export DISPLAY=:0
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    CMD_SEGNET="${CMD_SEGNET} ${OUTPUT_FILE}"
+    echo ${CMD_SEGNET}
+    ${CMD_SEGNET} $@ ${CMD_NULL} &
+    echo $! > $SEGNET_PIDFILE
+    sleep 2 # initialization
+
+    echo "${MODULE_NAME} started."
+}
+
 # Stop the module
 stop() {
     if [ -e "${LOCK_DIR}/${MODULE_NAME}.lock" ]; then
@@ -191,12 +218,6 @@ status() {
     fi
 }
 
-# Restart the module
-restart() {
-    stop
-    start
-}
-
 # Display help
 help() {
     CMD_SEGNET_HELP="segnet --help"
@@ -216,14 +237,14 @@ case "$1" in
     start)
         start
         ;;
+    ostart)
+        ostart
+        ;;
     stop)
         stop
         ;;
     status)
         status
-        ;;
-    restart)
-        restart
         ;;
     help)
         help
