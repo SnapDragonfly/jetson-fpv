@@ -209,8 +209,16 @@ status_module() {
 # Pass additional commands to the module
 execute_module_command() {
     if ! is_valid_module "$1"; then return 1; fi
+
     module="$1"
     shift
+    # Check if the module is 'version'
+    if [ "$module" = "version" ]; then
+        echo "Skipping CMD_KEYMONITOR execution for module 'version'."
+        echo "Executing command on module $module: $*"
+        "./scripts/$module.sh" "$@"
+        return 0
+    fi
     echo "Executing command on module $module: $*"
     "./scripts/$module.sh" "$@"
 
