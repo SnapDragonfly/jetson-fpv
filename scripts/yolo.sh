@@ -85,6 +85,8 @@ start() {
     
     # Step 3: Start yolo script
     echo "Starting yolo..."
+    sudo nvpmodel -m 0
+    sudo jetson_clocks
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} $@"
@@ -125,6 +127,8 @@ ostart() {
     
     # Step 3: Start yolo script
     echo "Starting yolo..."
+    sudo nvpmodel -m 0
+    sudo jetson_clocks
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} $@"
