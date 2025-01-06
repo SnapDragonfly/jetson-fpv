@@ -229,7 +229,7 @@ status() {
 
 # Display help
 help() {
-    CMD_DEEPSTREAM_HELP="python3 ./utils/deepstream.py --help"
+    CMD_DEEPSTREAM_HELP="python3 ./utils/deepstream/deepstream.py --help"
     ${CMD_DEEPSTREAM_HELP}
 }
 
