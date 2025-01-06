@@ -85,6 +85,8 @@ start() {
     
     # Step 3: Start deepstream script
     echo "Starting deepstream..."
+    sudo nvpmodel -m 0
+    sudo jetson_clocks
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DEEPSTREAM="${CMD_DEEPSTREAM} ${OUTPUT_FILE} $@"
@@ -125,6 +127,8 @@ ostart() {
     
     # Step 3: Start deepstream script
     echo "Starting deepstream..."
+    sudo nvpmodel -m 0
+    sudo jetson_clocks
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DEEPSTREAM="${CMD_DEEPSTREAM} ${OUTPUT_FILE} $@"
