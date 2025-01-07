@@ -16,8 +16,8 @@ Main features as follows:
 - [x] yolo for object detection
 - [ ] Real time video stabilizer
 - [x] DeepStream analysis
-- [x] ByteTrack
-
+    - [x] ByteTrack
+    - [ ] NvDCF tracker
 
 # Happy Flying!
 

@@ -14,6 +14,8 @@
 > Reference: 
 >   - [Linux 35.6 + JetPack v5.1.4@yolo安装](https://blog.csdn.net/lida2003/article/details/143618823)
 >   - [Linux 35.6 + JetPack v5.1.4@python opencv安装](https://blog.csdn.net/lida2003/article/details/143814156)
+>   - [Linux 35.6 + JetPack v5.1.4之 pytorch编译](https://blog.csdn.net/lida2003/article/details/144800701)
+>   - [Linux 35.6 + JetPack v5.1.4之 pytorch升级](https://blog.csdn.net/lida2003/article/details/144965814)
 
 8. install [DeepStream](../module)
 > Reference: 
