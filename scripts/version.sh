@@ -29,6 +29,10 @@ eval "python3 -c \"import cv2; print('        OpenCV version:', cv2.__version__,
 YOLO_VERSION=$(eval yolo version $CMD_NULL | grep -v "EGL")
 echo "          YOLO version: $YOLO_VERSION"
 
+# pyCUDA version
+PYCUDA_VERSION=$(eval "python -c \"import pycuda; print(pycuda.VERSION)\" | sed -E 's/^\(([^,]+), ([^,]+), ([^)]+)\)$/\1.\2.\3/'")
+echo "        PYCUDA version: $PYCUDA_VERSION"
+
 # PyTorch version
 eval "python3 -c \"import torch; print('         Torch version:', torch.__version__)\" $CMD_NULL" | grep -v "EGL"
 
