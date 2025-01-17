@@ -23,21 +23,24 @@ eval "python3 --version"
 eval "python3 -c \"import cv2; print(cv2.getBuildInformation())\" $CMD_NULL" | grep -E "CUDA|GStreamer" 
 
 # OpenCV version and CUDA support
-eval "python3 -c \"import cv2; print('        OpenCV version:', cv2.__version__, ' CUDA', cv2.cuda.getCudaEnabledDeviceCount() > 0)\" $CMD_NULL" | grep -v "EGL"
+eval "python3 -c \"import cv2; print('         OpenCV version:', cv2.__version__, ' CUDA', cv2.cuda.getCudaEnabledDeviceCount() > 0)\" $CMD_NULL" | grep -v "EGL"
 
 # YOLO version
 YOLO_VERSION=$(eval yolo version $CMD_NULL | grep -v "EGL")
-echo "          YOLO version: $YOLO_VERSION"
+echo "           YOLO version: $YOLO_VERSION"
 
 # pyCUDA version
 PYCUDA_VERSION=$(eval "python -c \"import pycuda; print(pycuda.VERSION)\" | sed -E 's/^\(([^,]+), ([^,]+), ([^)]+)\)$/\1.\2.\3/'")
-echo "        PYCUDA version: $PYCUDA_VERSION"
+echo "         PYCUDA version: $PYCUDA_VERSION"
 
 # PyTorch version
-eval "python3 -c \"import torch; print('         Torch version:', torch.__version__)\" $CMD_NULL" | grep -v "EGL"
+eval "python3 -c \"import torch; print('          Torch version:', torch.__version__)\" $CMD_NULL" | grep -v "EGL"
 
 # Torchvision version
-eval "python3 -c \"import torchvision; print('   Torchvision version:', torchvision.__version__)\" $CMD_NULL" | grep -v "EGL"
+eval "python3 -c \"import torchvision; print('    Torchvision version:', torchvision.__version__)\" $CMD_NULL" | grep -v "EGL"
 
 # Deepstream SDK version
-eval "python3 -c \"import pyds; print('DeepStream SDK version:', pyds.__version__)\" $CMD_NULL" | grep -v "EGL"
+eval "python3 -c \"import pyds; print(' DeepStream SDK version:', pyds.__version__)\" $CMD_NULL" | grep -v "EGL"
+
+# ONNXRUNTIME version
+pip list | grep onnxruntime | awk '{printf "%-15s version: %s\n", $1, $2}'
