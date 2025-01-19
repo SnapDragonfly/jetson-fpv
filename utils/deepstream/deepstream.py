@@ -43,6 +43,8 @@ OSD_PROCESS_MODE= 0
 OSD_DISPLAY_TEXT= 1
 pgie_classes_str= ["Vehicle", "TwoWheeler", "Person","RoadSign"]
 
+DEEPSTREAM_TEST_PGIE_CONFIG = "dstest_pgie_config.txt"
+
 # pgie_src_pad_buffer_probe  will extract metadata received on tiler sink pad
 # and update params for drawing rectangle, object information etc.
 def pgie_src_pad_buffer_probe(pad, info, u_data):
@@ -441,14 +443,18 @@ def main(args, requested_pgie=None, config=None, disable_probe=False):
     streammux.set_property('height', 1080)
     streammux.set_property('batch-size', number_sources)
     streammux.set_property('batched-push-timeout', 4000000)
+
     if requested_pgie == "nvinferserver" and config != None:
         pgie.set_property('config-file-path', config)
     elif requested_pgie == "nvinferserver-grpc" and config != None:
         pgie.set_property('config-file-path', config)
     elif requested_pgie == "nvinfer" and config != None:
         pgie.set_property('config-file-path', config)
+    elif requested_pgie == None and config != None:
+        pgie.set_property('config-file-path', config)
     else:
-        pgie.set_property('config-file-path', "dstest_pgie_config.txt")
+        pgie.set_property('config-file-path', DEEPSTREAM_TEST_PGIE_CONFIG)
+    
     pgie_batch_size=pgie.get_property("batch-size")
     if(pgie_batch_size != number_sources):
         print("WARNING: Overriding infer-config batch-size",pgie_batch_size," with number of sources ", number_sources," \n")

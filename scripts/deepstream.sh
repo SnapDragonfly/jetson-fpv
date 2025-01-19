@@ -235,6 +235,9 @@ status() {
 help() {
     CMD_DEEPSTREAM_HELP="python3 ./utils/deepstream/deepstream.py --help"
     ${CMD_DEEPSTREAM_HELP}
+    echo "Test Options:"
+    echo "  1-> dstest_pgie_config.txt (default)"
+    echo "  2-> dsnvdcf_pgie_config.txt (-g nvinfer)"
 }
 
 # Test the module
