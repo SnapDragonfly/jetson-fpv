@@ -1,0 +1,16 @@
+NvDCF:
+  useColorNames: 1
+  useHog: 1
+  useGray: 1
+  enableGaussianSigma: 1
+  enableCenterSurroundFeature: 0
+  searchRegionPaddingScale: 1.2
+  featureImgSize: 16
+  enableMotionCompensation: 1
+  enableKLT: 0
+  maxTargetsPerStream: 30
+  targetResetConfidenceThreshold: 0.3
+  targetResetCovariance: 0.5
+  maxShadowTrackingAge: 10
+  shadowTrackingConfidenceThreshold: 0.5
+  enablePastFrameOutput: 0
