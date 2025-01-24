@@ -43,4 +43,4 @@ eval "python3 -c \"import torchvision; print('    Torchvision version:', torchvi
 eval "python3 -c \"import pyds; print(' DeepStream SDK version:', pyds.__version__)\" $CMD_NULL" | grep -v "EGL"
 
 # ONNXRUNTIME version
-pip list | grep onnxruntime | awk '{printf "%-15s version: %s\n", $1, $2}'
+eval "pip list $CMD_NULL" | grep onnxruntime | awk '{printf "%-15s version: %s\n", $1, $2}'
