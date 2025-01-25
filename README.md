@@ -17,7 +17,7 @@ Main features as follows:
 - [ ] Real time video stabilizer
 - [x] DeepStream analysis
     - [x] ByteTrack
-    - [ ] NvDCF tracker
+    - [x] NvDCF tracker
 
 # Happy Flying!
 
@@ -31,7 +31,9 @@ All these fun points serve as potential starting points for deepening the projec
 - [How to use the software?](doc/MANUAL.md)
 - [How to optimize YOLO performance?](doc/YOLO.md)
 - [How to work with OpenIPC camera?](doc/OPENIPC.md)
+- [What L4T/Jetpack versions are tested?](doc/TESTENV.md)
 - [Is there any todo list?](doc/TODO.md)
+- [Is there any reference for reading?](doc/REFERENCE.md)
 
 # Thanks to:
 

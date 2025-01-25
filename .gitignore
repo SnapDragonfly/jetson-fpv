@@ -1,7 +1,9 @@
 *.mp4
 
+.vscode/
+
 utils/deepstream/common/__pycache__/
-utils/deepstream/samples/models/Primary_Detector/resnet10.caffemodel_b1_gpu0_int8.engine
+utils/deepstream/samples
 
 utils/dsyolo/model_b1_gpu0_fp16.engine
 utils/dsyolo/model_b1_gpu0_fp32.engine

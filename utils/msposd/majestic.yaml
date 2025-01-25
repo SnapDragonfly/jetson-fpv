@@ -24,11 +24,7 @@ video0:
   bitrate: 4096
   rcMode: cbr
   gopSize: 1.0
-#  size: 1024x768
-#  size: 1920x1080
-#  size: 1280x720
-  size: 1366x768
-#  size: 640x480
+  size: 1920x1080
 video1:
   enabled: false
   codec: h264

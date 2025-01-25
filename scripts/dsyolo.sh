@@ -2,6 +2,7 @@
 
 # Cast all printf info to NULL
 CMD_NULL=""
+IFNAME=$(wfb-nics)
 
 # PID files for tracking processes
 MSPOSD_PIDFILE="/var/run/msposd.pid"
@@ -10,11 +11,11 @@ WFB_PIDFILE="/var/run/wfb.pid"
 
 # commands for wrapper
 # wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key wlan1
-CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key wlan1"
+CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key $IFNAME"
 # ./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 1 --matrix 11
 CMD_MSPOSD="./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 1 --matrix 11"
-# ./jetson-yolo -c source_config_yolov8n.txt
-CMD_DSYOLO="./jetson-yolo"
+# deepstream-app -c source_config_yolov8n.txt
+CMD_DSYOLO="deepstream-app"
 
 # Define the module's lock file directory (ensure the directory exists)
 LOCK_DIR="/tmp/module_locks"

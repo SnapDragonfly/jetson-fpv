@@ -2,6 +2,7 @@
 
 # Cast all printf info to NULL
 CMD_NULL=""
+IFNAME=$(wfb-nics)
 
 # PID files for tracking processes
 MSPOSD_PIDFILE="/var/run/msposd.pid"
@@ -10,7 +11,7 @@ DETECTNET_PIDFILE="/var/run/video.pid"
 
 # commands for wrapper
 # wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key wlan1
-CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key wlan1"
+CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key $IFNAME"
 # ./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 1 --matrix 11
 CMD_MSPOSD="./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 1 --matrix 11"
 # video-viewer --input-codec=h265 rtp://@:5600
