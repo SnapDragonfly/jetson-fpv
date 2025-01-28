@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sudo apt install libyaml-cpp-dev
+
 cd ../module/DeepStream-Yolo
 git submodule update --init --recursive
 
