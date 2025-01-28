@@ -222,7 +222,14 @@ execute_module_command() {
     echo "Executing command on module $module: $*"
     "./scripts/$module.sh" "$@"
 
-    CMD_KEYMONITOR="$CMD_KEYMONITOR $module"
+    if is_special_module "$module"; then
+        echo "Module $module is a special module."
+        CMD_KEYMONITOR="$CMD_KEYMONITOR $module no"
+    else
+        echo "Module $module is not a special module."
+        CMD_KEYMONITOR="$CMD_KEYMONITOR $module yes"
+    fi
+
     echo $CMD_KEYMONITOR
     $CMD_KEYMONITOR
 }
