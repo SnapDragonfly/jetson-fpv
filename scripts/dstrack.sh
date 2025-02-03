@@ -6,7 +6,7 @@ IFNAME=$(wfb-nics)
 
 # PID files for tracking processes
 MSPOSD_PIDFILE="/var/run/msposd.pid"
-DEEPSTREAM_PIDFILE="/var/run/deepstream.pid"
+DEEPSTREAM_NVDCF_PIDFILE="/var/run/deepstream_nvdcf.pid"
 WFB_PIDFILE="/var/run/wfb.pid"
 
 # commands for wrapper
@@ -14,8 +14,8 @@ WFB_PIDFILE="/var/run/wfb.pid"
 CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key $IFNAME"
 # ./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 1 --matrix 11
 CMD_MSPOSD="./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 0 --matrix 11"
-# python3 ./utils/deepstream/deepstream.py -s -i rtp://@:5600
-CMD_DEEPSTREAM="python3 ./utils/deepstream/deepstream.py -s -i rtp://@:5600"
+# python3 ./utils/deepstream/deepstream_NvDCF.py -s -i rtp://@:5600
+CMD_DEEPSTREAM_NVDCF="python3 ./utils/deepstream/deepstream_NvDCF.py -s -i rtp://@:5600"
 
 # Define the module's lock file directory (ensure the directory exists)
 LOCK_DIR="/tmp/module_locks"
@@ -37,11 +37,11 @@ look() {
     fi
 
     echo ""
-    echo ${CMD_DEEPSTREAM}
+    echo ${CMD_DEEPSTREAM_NVDCF}
     # Check if deepstream is running and print PID
-    if ps aux | grep "${CMD_DEEPSTREAM}" | grep -v grep; then
+    if ps aux | grep "${CMD_DEEPSTREAM_NVDCF}" | grep -v grep; then
         export DISPLAY=:0
-        DEEPSTREAM_PID=$(ps aux | grep "${CMD_DEEPSTREAM}" | grep -v grep | awk '{print $2}')
+        DEEPSTREAM_PID=$(ps aux | grep "${CMD_DEEPSTREAM_NVDCF}" | grep -v grep | awk '{print $2}')
         echo "deepstream is running with PID: $DEEPSTREAM_PID"
     else
         echo "deepstream is not running."
@@ -90,10 +90,10 @@ start() {
     sudo jetson_clocks
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    #CMD_DEEPSTREAM="${CMD_DEEPSTREAM} ${OUTPUT_FILE} $@"
-    echo ${CMD_DEEPSTREAM}
-    ${CMD_DEEPSTREAM} $@ ${CMD_NULL} &
-    echo $! > $DEEPSTREAM_PIDFILE
+    #CMD_DEEPSTREAM_NVDCF="${CMD_DEEPSTREAM_NVDCF} ${OUTPUT_FILE} $@"
+    echo ${CMD_DEEPSTREAM_NVDCF}
+    ${CMD_DEEPSTREAM_NVDCF} $@ ${CMD_NULL} &
+    echo $! > $DEEPSTREAM_NVDCF_PIDFILE
     sleep 2 # initialization
 
     # Step 4: Start msposd (OSD drawing)
@@ -132,10 +132,10 @@ ostart() {
     sudo jetson_clocks
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    #CMD_DEEPSTREAM="${CMD_DEEPSTREAM} ${OUTPUT_FILE} $@"
-    echo ${CMD_DEEPSTREAM}
-    ${CMD_DEEPSTREAM} $@ ${CMD_NULL} &
-    echo $! > $DEEPSTREAM_PIDFILE
+    #CMD_DEEPSTREAM_NVDCF="${CMD_DEEPSTREAM_NVDCF} ${OUTPUT_FILE} $@"
+    echo ${CMD_DEEPSTREAM_NVDCF}
+    ${CMD_DEEPSTREAM_NVDCF} $@ ${CMD_NULL} &
+    echo $! > $DEEPSTREAM_NVDCF_PIDFILE
     sleep 2 # initialization
 
     echo "${MODULE_NAME} started."
@@ -159,16 +159,16 @@ stop() {
             echo "msposd stopped."
         fi
 
-        if [ -f "$DEEPSTREAM_PIDFILE" ]; then
-            kill -s SIGINT $(cat $DEEPSTREAM_PIDFILE)
+        if [ -f "$DEEPSTREAM_NVDCF_PIDFILE" ]; then
+            kill -s SIGINT $(cat $DEEPSTREAM_NVDCF_PIDFILE)
             sleep 5
-            if ps aux | grep "${CMD_DEEPSTREAM}" | grep -v grep; then
-                DEEPSTREAM_PID=$(ps aux | grep "${CMD_DEEPSTREAM}" | grep -v grep | awk '{print $2}')
+            if ps aux | grep "${CMD_DEEPSTREAM_NVDCF}" | grep -v grep; then
+                DEEPSTREAM_PID=$(ps aux | grep "${CMD_DEEPSTREAM_NVDCF}" | grep -v grep | awk '{print $2}')
                 echo "deepstream is still running with PID: $DEEPSTREAM_PID"
                 kill -s SIGTERM $DEEPSTREAM_PID
             fi
             sleep 1
-            rm -f $DEEPSTREAM_PIDFILE
+            rm -f $DEEPSTREAM_NVDCF_PIDFILE
             echo "deepstream stopped."
         fi
 
@@ -211,8 +211,8 @@ status() {
         fi
 
         echo ""
-        if [ -f "$DEEPSTREAM_PIDFILE" ] && ps -p $(cat $DEEPSTREAM_PIDFILE) > /dev/null; then
-            echo "deepstream is running with PID: $(cat $DEEPSTREAM_PIDFILE)"
+        if [ -f "$DEEPSTREAM_NVDCF_PIDFILE" ] && ps -p $(cat $DEEPSTREAM_NVDCF_PIDFILE) > /dev/null; then
+            echo "deepstream is running with PID: $(cat $DEEPSTREAM_NVDCF_PIDFILE)"
         else
             echo "deepstream is not running."
         fi
@@ -234,8 +234,8 @@ status() {
 
 # Display help
 help() {
-    CMD_DEEPSTREAM_HELP="python3 ./utils/deepstream/deepstream.py --help"
-    ${CMD_DEEPSTREAM_HELP}
+    CMD_DEEPSTREAM_NVDCF_HELP="python3 ./utils/deepstream/deepstream_NvDCF.py --help"
+    ${CMD_DEEPSTREAM_NVDCF_HELP}
 }
 
 # Test the module

@@ -1,5 +1,5 @@
 ################################################################################
-# SPDX-FileCopyrightText: Copyright (c) 2019-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2019-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,35 +54,22 @@
 
 [property]
 gpu-id=0
-net-scale-factor=0.0039215697906911373
-model-file=samples/models/Primary_Detector/resnet10.caffemodel
-proto-file=samples/models/Primary_Detector/resnet10.prototxt
-model-engine-file=samples/models/Primary_Detector/resnet10.caffemodel_b1_gpu0_int8.engine
+net-scale-factor=0.00392156862745098
+onnx-file=samples/models/Primary_Detector/resnet18_trafficcamnet_pruned.onnx
+model-engine-file=samples/models/Primary_Detector/resnet18_trafficcamnet_pruned.onnx_b1_gpu0_int8.engine
 labelfile-path=samples/models/Primary_Detector/labels.txt
 int8-calib-file=samples/models/Primary_Detector/cal_trt.bin
-force-implicit-batch-dim=1
 batch-size=1
 process-mode=1
 model-color-format=0
+## 0=FP32, 1=INT8, 2=FP16 mode
 network-mode=1
 num-detected-classes=4
-interval=5
+interval=0
 gie-unique-id=1
-output-blob-names=conv2d_bbox;conv2d_cov/Sigmoid
 cluster-mode=2
 
 [class-attrs-all]
 pre-cluster-threshold=0.2
 topk=20
 nms-iou-threshold=0.5
-
-[tracker]
-enable=1
-tracker-width=640
-tracker-height=384
-gpu-id=0
-ll-lib-file=/opt/nvidia/deepstream/deepstream/lib/libnvds_nvmultiobjecttracker.so
-ll-config-file=tracker_config_nvdcf.yml
-enable-batch-process=1
-enable-past-frame=0
-display-tracking-id=1
