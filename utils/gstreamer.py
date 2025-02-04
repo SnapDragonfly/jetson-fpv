@@ -42,19 +42,32 @@ class VideoStreamer:
         """
         Builds the GStreamer pipeline based on the input codec and port.
         """
+        # Get current timestamp for the filename
+        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+        output_file = f"{timestamp}.mkv"  # Dynamic filename based on current timestamp
+
         if self.input_codec == "h264":
             pipeline_str = (
                 f"udpsrc port={self.port} ! "
                 "application/x-rtp,encoding-name=H264,payload=96 ! "
                 "rtph264depay ! h264parse ! nvv4l2decoder ! "
-                "nv3dsink name=sink sync=0"
+                "nvvidconv ! video/x-raw,format=I420 ! "
+                "tee name=t "
+                "t. ! queue ! nv3dsink name=sink sync=0 "
+                "t. ! queue ! x264enc speed-preset=ultrafast tune=zerolatency ! "
+                f"matroskamux ! filesink location={output_file}"
             )
         else:
             pipeline_str = (
                 f"udpsrc port={self.port} ! "
                 "application/x-rtp,encoding-name=H265,payload=96 ! "
                 "rtph265depay ! h265parse ! nvv4l2decoder ! "
-                "nv3dsink name=sink sync=0"
+                "nvvidconv ! video/x-raw,format=I420 ! "
+                "tee name=t "
+                "t. ! queue ! nv3dsink name=sink sync=0 "
+                "t. ! queue ! x264enc speed-preset=ultrafast tune=zerolatency ! "
+                "t. ! queue ! x264enc speed-preset=ultrafast tune=zerolatency ! "
+                f"matroskamux ! filesink location={output_file}"
             )
 
         print("Selected Pipeline:", pipeline_str)
@@ -113,26 +126,54 @@ class VideoStreamer:
         # Clean up
         self.pipeline.set_state(Gst.State.NULL)
 
+def print_help():
+    """Print help message for MKV to MP4 conversion using ffmpeg."""
+    help_message = """
+    You can use the `ffmpeg` tool to convert `.mkv` files to `.mp4` format with the following command:
 
-def main():
-    # Parse command line arguments
+    ffmpeg -i input.mkv -c:v copy -c:a copy output.mp4
+
+    Explanation:
+    - -i input.mkv: The input `.mkv` file.
+    - -c:v copy: Copy the video stream as is (i.e., without re-encoding).
+    - -c:a copy: Copy the audio stream as is (i.e., without re-encoding).
+    - output.mp4: The output `.mp4` file.
+
+    If you need to re-encode the video or audio streams, you can use the following command:
+
+    ffmpeg -i input.mkv -c:v libx264 -c:a aac -strict experimental output.mp4
+
+    Explanation:
+    - -c:v libx264: Use the `x264` encoder to re-encode the video stream.
+    - -c:a aac: Use the `AAC` encoder to re-encode the audio stream.
+    - -strict experimental: Allows the use of certain experimental encoding settings (such as AAC).
+
+    This method can help you adjust format and encoding settings during the conversion.
+    """
+    print(help_message)
+
+def parse_args():
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="NVIDIA deepstream analytics of video streams")
     parser.add_argument("port", type=int, help="UDP port of RTP video stream")
     parser.add_argument(
-        "--input-codec", type=str, choices=["h264", "h265"], default="h264", help="Input codec: h264 or h265 (default: h265)"
+        "--input-codec", type=str, choices=["h264", "h265"], default="h264", help="Input codec: h264 or h265 (default: h264)"
     )
     parser.add_argument(
         "--fullscreen", type=bool, default=True, help="Enable fullscreen display (default: True)"
     )
-    args = parser.parse_args()
+    return parser.parse_args()
+
+def main():
+    # Parse command line arguments
+    args = parse_args()
 
     # Create and run video streamer
     streamer = VideoStreamer(args.port, args.input_codec, args.fullscreen)
     streamer.run()
 
-
 if __name__ == "__main__":
     main()
     print("deepstream done!")
+    print_help()
     sys.exit(0)
-
