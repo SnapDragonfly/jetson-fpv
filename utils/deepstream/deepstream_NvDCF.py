@@ -165,6 +165,7 @@ def main(args, h264=True):
     perf_data = PERF_DATA(len(args))
 
     number_sources=len(args)
+
     platform_info = PlatformInfo()
     # Standard GStreamer initialization
 
@@ -185,6 +186,7 @@ def main(args, h264=True):
     streammux = Gst.ElementFactory.make("nvstreammux", "Stream-muxer")
     if not streammux:
         sys.stderr.write(" Unable to create NvStreamMux \n")
+
     pipeline.add(streammux)
 
     # Use nvinfer to run inferencing on decoder's output,
@@ -258,8 +260,6 @@ def main(args, h264=True):
         if key == 'll-config-file' :
             tracker_ll_config_file = config.get('tracker', key)
             tracker.set_property('ll-config-file', tracker_ll_config_file)
-
-    print("Adding elements to Pipeline \n")
 
     for i in range(number_sources):
         print("Creating source_bin ",i," \n ")
