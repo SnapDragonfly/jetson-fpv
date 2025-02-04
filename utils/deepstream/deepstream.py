@@ -376,7 +376,7 @@ def parse_args():
         "--input-codec", 
         type=str, choices=["h264", "h265"], 
         default="h264", 
-        help="Input codec: h264 or h265 (default: h265)"
+        help="Input codec: h264 or h265 (default: h264)"
     )
     parser.add_argument(
         "-c",
