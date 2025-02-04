@@ -4,6 +4,14 @@
 
 # Watch the Rover Video
 
+## viewer
+
+```
+$ sudo ./wrapper.sh viewer start
+```
+
+[![YouTube Video](https://img.youtube.com/vi/l_vG496n1TE/0.jpg)](https://www.youtube.com/watch?v=l_vG496n1TE)
+
 ## yolo 11n
 
 ```
@@ -30,4 +38,13 @@ $ sudo ./wrapper.sh detectnet start
 
 # Watch the Copter Video
 
-Coming soon!
+```
+$ sudo ./wrapper.sh viewer start
+```
+
+[![YouTube Video](https://img.youtube.com/vi/657jy81b8Es/0.jpg)](https://www.youtube.com/watch?v=657jy81b8Es)
+
+[![YouTube Video](https://img.youtube.com/vi/V2TltkMQo0k/0.jpg)](https://www.youtube.com/watch?v=V2TltkMQo0k)
+
+
+
