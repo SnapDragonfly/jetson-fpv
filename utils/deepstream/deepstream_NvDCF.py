@@ -164,6 +164,7 @@ def main(args, h264=True):
     global perf_data
     perf_data = PERF_DATA(len(args))
 
+    number_sources=len(args)
     platform_info = PlatformInfo()
     # Standard GStreamer initialization
 
@@ -231,11 +232,6 @@ def main(args, h264=True):
         if not sink:
             sys.stderr.write(" Unable to create egl sink \n")
 
-    streammux.set_property('width', 1920)
-    streammux.set_property('height', 1080)
-    streammux.set_property('batch-size', 1)
-    streammux.set_property('batched-push-timeout', MUXER_BATCH_TIMEOUT_USEC)
-
     #Set properties of pgie and sgie
     pgie.set_property('config-file-path', "dstest2_pgie_config.txt")
     sgie1.set_property('config-file-path', "dstest2_sgie1_config.txt")
@@ -265,7 +261,6 @@ def main(args, h264=True):
 
     print("Adding elements to Pipeline \n")
 
-    number_sources=len(args)
     for i in range(number_sources):
         print("Creating source_bin ",i," \n ")
         uri_name=args[i]
@@ -293,6 +288,15 @@ def main(args, h264=True):
         if not srcpad:
             sys.stderr.write("Unable to create src pad bin \n")
         srcpad.link(sinkpad)
+
+    streammux.set_property('width', 1920)
+    streammux.set_property('height', 1080)
+    streammux.set_property('batch-size', number_sources)
+    streammux.set_property('batched-push-timeout', MUXER_BATCH_TIMEOUT_USEC)
+
+    if is_live:
+        print("At least one of the sources is live")
+        streammux.set_property('live-source', 1)
 
     pipeline.add(pgie)
     pipeline.add(tracker)
@@ -363,6 +367,11 @@ def main(args, h264=True):
     # perf callback function to print fps every 5 sec
     GLib.timeout_add(5000, perf_data.perf_print_callback)
 
+
+    # List the sources
+    print("Now playing...")
+    for i, source in enumerate(args):
+        print(i, ": ", source)
 
     print("Starting pipeline \n")
     
