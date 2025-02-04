@@ -14,3 +14,14 @@ utils/dsyolo/yolov4.weights
 utils/dsyolo/yolov8n.pt.onnx
 utils/dsyolo/yolov8s.pt.onnx
 
+utils/dsyolo/jetson-yolo
+utils/dsyolo/libByteTracker.so
+utils/dsyolo/libnvdsinfer_custom_impl_Yolo.so
+utils/msposd/font_ardu.png
+utils/msposd/font_ardu_hd.png
+utils/msposd/font_btfl.png
+utils/msposd/font_btfl_hd.png
+utils/msposd/font_inav.png
+utils/msposd/font_inav_hd.png
+utils/msposd/msposd
+utils/msposd/vtxmenu.ini
