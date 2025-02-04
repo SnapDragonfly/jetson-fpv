@@ -44,3 +44,8 @@ eval "python3 -c \"import pyds; print(' DeepStream SDK version:', pyds.__version
 
 # ONNXRUNTIME version
 eval "pip list $CMD_NULL" | grep onnxruntime | awk '{printf "%-15s version: %s\n", $1, $2}'
+
+echo
+echo "FPV Environment:"
+
+./utils/msposd/msposd --help | grep "Version" | sed 's/Version: \(.*\), compiled at: \(.*\)/MSPOSD version: \1 \2/'
