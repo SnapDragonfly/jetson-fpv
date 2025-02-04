@@ -1,9 +1,15 @@
-import keyboard
+
 import sys
 import subprocess
 import threading
 import time
 from datetime import datetime
+
+# Fix UserWarning: Failed to create a device file using `uinput` module
+import warnings
+warnings.filterwarnings("ignore", message="Failed to create a device file")
+import keyboard
+keyboard.hook(lambda e: print(e))
 
 # Get module name from command-line arguments
 module_name = sys.argv[1] if len(sys.argv) > 1 else "Default Module"
