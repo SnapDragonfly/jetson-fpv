@@ -18,7 +18,7 @@ Commands:
 Available modules
   Special modules: version wfb
      Base modules: viewer imagenet detectnet segnet posenet gstreamer
- Extended modules: stabilizer yolo deepstream dsyolo
+ Extended modules: stabilizer yolo deepstream dsyolo dstrack
 
     Version Module: Check depended component versions.
         Wfb Module: Wifibroadcast transmission module.
@@ -32,6 +32,7 @@ Available modules
        Yolo Module: Real-time object detection using YOLO.
  Deepstream Module: Framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time.
  Deepstream + YOLO: DeepStream integrates YOLO for real-time object detection and tracking.
+ Deepstream  Track: DeepStream with it's integrated tracking plugin.
 ```
 
 # simple fpv

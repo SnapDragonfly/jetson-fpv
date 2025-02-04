@@ -9,15 +9,18 @@ Main features as follows:
     - [x] video-viewer
     - [ ] Adaptive wireless link
 - [x] Jetson video analysis
-    - [x] detectnet for object detection
     - [x] segnet for segmentation
     - [x] posenet for pose estimation
-    - [x] imagenet for image recognition
-- [x] yolo for object detection
+    - [ ] imagenet for image recognition
+    - [ ] detectnet for object detection
+- [ ] yolo for object detection
 - [ ] Real time video stabilizer
 - [x] DeepStream analysis
-    - [x] ByteTrack
-    - [x] NvDCF tracker
+    - [x] DeepStream
+    - [ ] ByteTrack
+    - [ ] NvDCF tracker
+
+*Note: Currently, it's focused on Jetpack 6.2 l4t36.4.3*
 
 # Happy Flying!
 
@@ -34,6 +37,7 @@ All these fun points serve as potential starting points for deepening the projec
 - [What L4T/Jetpack versions are tested?](doc/TESTENV.md)
 - [Is there any todo list?](doc/TODO.md)
 - [Is there any reference for reading?](doc/REFERENCE.md)
+- [History for jetson FPV](doc/HISTORY.md)
 
 # Thanks to:
 
