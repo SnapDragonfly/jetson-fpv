@@ -13,11 +13,13 @@ from gi.repository import GLib, Gst
 
 from common.platform_info import PlatformInfo
 from common.bus_call import bus_call
+from common.FPS import PERF_DATA
 from common.source_bin import create_rtp_h265_source_bin
 from common.source_bin import create_rtp_h264_source_bin
 from common.source_bin import create_source_bin
 import pyds
 
+perf_data = None
 PGIE_CLASS_ID_VEHICLE = 0
 PGIE_CLASS_ID_BICYCLE = 1
 PGIE_CLASS_ID_PERSON = 2
@@ -69,6 +71,11 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
                 l_obj=l_obj.next
             except StopIteration:
                 break
+
+        # Update frame rate through this probe
+        stream_index = "stream{0}".format(frame_meta.pad_index)
+        global perf_data
+        perf_data.update_fps(stream_index)
 
         if not silent:
             # Acquiring a display meta object. The memory ownership remains in
@@ -154,6 +161,8 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
     return Gst.PadProbeReturn.OK
 
 def main(args, h264=True):
+    global perf_data
+    perf_data = PERF_DATA(len(args))
 
     platform_info = PlatformInfo()
     # Standard GStreamer initialization
@@ -351,6 +360,8 @@ def main(args, h264=True):
     if not osdsinkpad:
         sys.stderr.write(" Unable to get sink pad of nvosd \n")
     osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, osd_sink_pad_buffer_probe, 0)
+    # perf callback function to print fps every 5 sec
+    GLib.timeout_add(5000, perf_data.perf_print_callback)
 
 
     print("Starting pipeline \n")
