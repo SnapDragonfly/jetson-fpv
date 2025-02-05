@@ -19,6 +19,7 @@ from common.source_bin import create_rtp_h264_source_bin
 from common.source_bin import create_source_bin
 import pyds
 
+no_display = False
 perf_data = None
 PGIE_CLASS_ID_VEHICLE = 0
 PGIE_CLASS_ID_BICYCLE = 1
@@ -219,20 +220,38 @@ def main(args, h264=True):
         sys.stderr.write(" Unable to create nvosd \n")
 
     # Finally render the osd output
-    if platform_info.is_integrated_gpu():
-        print("Creating nv3dsink \n")
-        sink = Gst.ElementFactory.make("nv3dsink", "nv3d-sink")
-        if not sink:
-            sys.stderr.write(" Unable to create nv3dsink \n")
+    if no_display:
+        print("Creating Fakesink \n")
+        sink = Gst.ElementFactory.make("fakesink", "fakesink")
+        sink.set_property('enable-last-sample', 0)
+        sink.set_property('sync', 0)
     else:
-        if platform_info.is_platform_aarch64():
+        if platform_info.is_integrated_gpu():
             print("Creating nv3dsink \n")
             sink = Gst.ElementFactory.make("nv3dsink", "nv3d-sink")
+            if not sink:
+                sys.stderr.write(" Unable to create nv3dsink \n")
         else:
-            print("Creating EGLSink \n")
-            sink = Gst.ElementFactory.make("nveglglessink", "nvvideo-renderer")
-        if not sink:
-            sys.stderr.write(" Unable to create egl sink \n")
+            if platform_info.is_platform_aarch64():
+                print("Creating nv3dsink \n")
+                sink = Gst.ElementFactory.make("nv3dsink", "nv3d-sink")
+            else:
+                print("Creating EGLSink \n")
+                sink = Gst.ElementFactory.make("nveglglessink", "nvvideo-renderer")
+            if not sink:
+                sys.stderr.write(" Unable to create egl sink \n")
+
+        # Use window resizing for fullscreen effect (for nv3dsink)
+        if sink:
+        #    sink.set_property('fullscreen', True)  # Enable fullscreen
+            sink.set_property('window-x', 0)
+            sink.set_property('window-y', 0)
+            sink.set_property('window-width', 1920)  # Assuming 1920x1080 resolution
+            sink.set_property('window-height', 1080)
+
+
+    if not sink:
+        sys.stderr.write(" Unable to create sink element \n")
 
     #Set properties of pgie and sgie
     pgie.set_property('config-file-path', "dstest2_pgie_config.txt")
@@ -318,6 +337,15 @@ def main(args, h264=True):
     pipeline.add(queue3)
     pipeline.add(queue4)
     pipeline.add(queue5)
+
+    if file_loop:
+        if platform_info.is_integrated_gpu():
+            # Set nvbuf-memory-type=4 for integrated gpu for file-loop (nvurisrcbin case)
+            streammux.set_property('nvbuf-memory-type', 4)
+        else:
+            # Set nvbuf-memory-type=2 for x86 for file-loop (nvurisrcbin case)
+            streammux.set_property('nvbuf-memory-type', 2)
+
     pipeline.add(queue6)
     pipeline.add(queue7)
 
@@ -406,6 +434,20 @@ def parse_args():
         help="Input codec: h264 or h265 (default: h264)"
     )
     parser.add_argument(
+        "--no-display",
+        action="store_true",
+        default=False,
+        dest='no_display',
+        help="Disable display of video output",
+    )
+    parser.add_argument(
+        "--file-loop",
+        action="store_true",
+        default=False,
+        dest='file_loop',
+        help="Loop the input file sources after EOS",
+    )
+    parser.add_argument(
         "-s",
         "--silent",
         action="store_true",
@@ -421,9 +463,12 @@ def parse_args():
 
     stream_paths = args.input
     global silent
+    global file_loop
     codec_h264 = True
 
+    no_display = args.no_display
     silent = args.silent
+    file_loop = args.file_loop
     if args.input_codec == "h264":
         codec_h264 = True
     else:
