@@ -11,6 +11,7 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GLib, Gst
 
+import math
 from common.platform_info import PlatformInfo
 from common.bus_call import bus_call
 from common.FPS import PERF_DATA
@@ -26,6 +27,10 @@ PGIE_CLASS_ID_BICYCLE = 1
 PGIE_CLASS_ID_PERSON = 2
 PGIE_CLASS_ID_ROADSIGN = 3
 MUXER_BATCH_TIMEOUT_USEC = 33000
+TILED_OUTPUT_WIDTH=1920
+TILED_OUTPUT_HEIGHT=1080
+OSD_PROCESS_MODE= 0
+OSD_DISPLAY_TEXT= 1
 
 def osd_sink_pad_buffer_probe(pad,info,u_data):
     frame_number=0
@@ -220,6 +225,7 @@ def main(args, h264=True):
 
     # Use nvinfer to run inferencing on decoder's output,
     # behaviour of inferencing is set through config file
+    print("Creating Pgie \n ")
     pgie = Gst.ElementFactory.make("nvinfer", "primary-inference")
     if not pgie:
         sys.stderr.write(" Unable to create pgie \n")
@@ -232,20 +238,27 @@ def main(args, h264=True):
     if not sgie1:
         sys.stderr.write(" Unable to make sgie1 \n")
 
-
     sgie2 = Gst.ElementFactory.make("nvinfer", "secondary2-nvinference-engine")
     if not sgie2:
         sys.stderr.write(" Unable to make sgie2 \n")
 
+    print("Creating tiler \n ")
+    tiler=Gst.ElementFactory.make("nvmultistreamtiler", "nvtiler")
+    if not tiler:
+        sys.stderr.write(" Unable to create tiler \n")
+
+    print("Creating nvvidconv \n ")
     nvvidconv = Gst.ElementFactory.make("nvvideoconvert", "convertor")
     if not nvvidconv:
         sys.stderr.write(" Unable to create nvvidconv \n")
 
-    # Create OSD to draw on the converted RGBA buffer
+    print("Creating nvosd \n ")
     nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
 
     if not nvosd:
         sys.stderr.write(" Unable to create nvosd \n")
+    nvosd.set_property('process-mode',OSD_PROCESS_MODE)
+    nvosd.set_property('display-text',OSD_DISPLAY_TEXT)
 
     if file_loop:
         if platform_info.is_integrated_gpu():
@@ -324,11 +337,25 @@ def main(args, h264=True):
     streammux.set_property('batch-size', number_sources)
     streammux.set_property('batched-push-timeout', MUXER_BATCH_TIMEOUT_USEC)
 
+    tiler_rows=int(math.sqrt(number_sources))
+    tiler_columns=int(math.ceil((1.0*number_sources)/tiler_rows))
+    tiler.set_property("rows",tiler_rows)
+    tiler.set_property("columns",tiler_columns)
+    tiler.set_property("width", TILED_OUTPUT_WIDTH)
+    tiler.set_property("height", TILED_OUTPUT_HEIGHT)
+
+    if platform_info.is_integrated_gpu():
+        tiler.set_property("compute-hw", 2)
+    else:
+        tiler.set_property("compute-hw", 1)
+    sink.set_property("qos",0)
+
     print("Adding elements to Pipeline \n")
     pipeline.add(pgie)
     pipeline.add(tracker)
     pipeline.add(sgie1)
     pipeline.add(sgie2)
+    pipeline.add(tiler)
     pipeline.add(nvvidconv)
     pipeline.add(nvosd)
     pipeline.add(sink)
@@ -340,6 +367,7 @@ def main(args, h264=True):
     queue5=Gst.ElementFactory.make("queue","queue5")
     queue6=Gst.ElementFactory.make("queue","queue6")
     queue7=Gst.ElementFactory.make("queue","queue7")
+    queue8=Gst.ElementFactory.make("queue","queue8")
     pipeline.add(queue1)
     pipeline.add(queue2)
     pipeline.add(queue3)
@@ -347,6 +375,7 @@ def main(args, h264=True):
     pipeline.add(queue5)
     pipeline.add(queue6)
     pipeline.add(queue7)
+    pipeline.add(queue8)
 
     streammux.link(queue1)
     queue1.link(pgie)
@@ -361,13 +390,16 @@ def main(args, h264=True):
     queue4.link(sgie2)
 
     sgie2.link(queue5)
-    queue5.link(nvvidconv)
+    queue5.link(tiler)
 
-    nvvidconv.link(queue6)
-    queue6.link(nvosd)
+    tiler.link(queue6)
+    queue6.link(nvvidconv)
 
-    nvosd.link(queue7)
-    queue7.link(sink)
+    nvvidconv.link(queue7)
+    queue7.link(nvosd)
+
+    nvosd.link(queue8)
+    queue8.link(sink)
 
     #streammux.link(pgie)
     #pgie.link(tracker)
