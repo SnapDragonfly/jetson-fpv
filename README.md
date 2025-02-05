@@ -53,3 +53,4 @@ All these fun points serve as potential starting points for deepening the projec
 - [Ultralytics YOLO11](https://docs.ultralytics.com/)
 - [OpenIPC for IP camera](https://openipc.org/)
 - [ByteTrack, simple, fast and strong multi-object tracker](https://github.com/ifzhang/ByteTrack)
+- [Adaptive-Link for OpenIPC FPV](https://github.com/sickgreg/OpenIPC-Adaptive-Link)
