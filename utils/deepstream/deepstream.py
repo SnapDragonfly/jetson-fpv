@@ -150,6 +150,7 @@ def main(args, requested_pgie=None, config=None, disable_probe=False):
         sys.stderr.write(" Unable to create NvStreamMux \n")
 
     pipeline.add(streammux)
+
     for i in range(number_sources):
         print("Creating source_bin ",i," \n ")
         uri_name=args[i]
@@ -257,7 +258,6 @@ def main(args, requested_pgie=None, config=None, disable_probe=False):
             sink.set_property('window-width', 1920)  # Assuming 1920x1080 resolution
             sink.set_property('window-height', 1080)
 
-
     if not sink:
         sys.stderr.write(" Unable to create sink element \n")
 
@@ -288,6 +288,7 @@ def main(args, requested_pgie=None, config=None, disable_probe=False):
     tiler.set_property("columns",tiler_columns)
     tiler.set_property("width", TILED_OUTPUT_WIDTH)
     tiler.set_property("height", TILED_OUTPUT_HEIGHT)
+
     if platform_info.is_integrated_gpu():
         tiler.set_property("compute-hw", 2)
     else:

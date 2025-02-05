@@ -190,6 +190,34 @@ def main(args, h264=True):
 
     pipeline.add(streammux)
 
+    for i in range(number_sources):
+        print("Creating source_bin ",i," \n ")
+        uri_name=args[i]
+        #uri_name="rtp://@:5600"
+        #uri_name="file:///home/daniel/Work/jetson-fpv/utils/deepstream/samples/streams/sample_1080p_h264.mp4"
+        if uri_name.find("rtsp://") == 0 or uri_name.find("rtp://") == 0:
+            is_live = True
+
+        if uri_name.find("rtp://") == 0:
+            if h264:
+                source_bin = create_rtp_h264_source_bin(i, uri_name)
+            else:
+                source_bin = create_rtp_h265_source_bin(i, uri_name)
+        else:
+            source_bin = create_source_bin(i, uri_name)
+
+        if not source_bin:
+            sys.stderr.write("Unable to create source bin \n")
+        pipeline.add(source_bin)
+        padname="sink_%u" %i
+        sinkpad= streammux.request_pad_simple(padname) 
+        if not sinkpad:
+            sys.stderr.write("Unable to create sink pad bin \n")
+        srcpad=source_bin.get_static_pad("src")
+        if not srcpad:
+            sys.stderr.write("Unable to create src pad bin \n")
+        srcpad.link(sinkpad)
+
     # Use nvinfer to run inferencing on decoder's output,
     # behaviour of inferencing is set through config file
     pgie = Gst.ElementFactory.make("nvinfer", "primary-inference")
@@ -218,6 +246,14 @@ def main(args, h264=True):
 
     if not nvosd:
         sys.stderr.write(" Unable to create nvosd \n")
+
+    if file_loop:
+        if platform_info.is_integrated_gpu():
+            # Set nvbuf-memory-type=4 for integrated gpu for file-loop (nvurisrcbin case)
+            streammux.set_property('nvbuf-memory-type', 4)
+        else:
+            # Set nvbuf-memory-type=2 for x86 for file-loop (nvurisrcbin case)
+            streammux.set_property('nvbuf-memory-type', 2)
 
     # Finally render the osd output
     if no_display:
@@ -249,7 +285,6 @@ def main(args, h264=True):
             sink.set_property('window-width', 1920)  # Assuming 1920x1080 resolution
             sink.set_property('window-height', 1080)
 
-
     if not sink:
         sys.stderr.write(" Unable to create sink element \n")
 
@@ -262,6 +297,10 @@ def main(args, h264=True):
     config = configparser.ConfigParser()
     config.read('dstest2_tracker_config.txt')
     config.sections()
+
+    if is_live:
+        print("At least one of the sources is live")
+        streammux.set_property('live-source', 1)
 
     for key in config['tracker']:
         if key == 'tracker-width' :
@@ -280,43 +319,12 @@ def main(args, h264=True):
             tracker_ll_config_file = config.get('tracker', key)
             tracker.set_property('ll-config-file', tracker_ll_config_file)
 
-    for i in range(number_sources):
-        print("Creating source_bin ",i," \n ")
-        uri_name=args[i]
-        #uri_name="rtp://@:5600"
-        #uri_name="file:///home/daniel/Work/jetson-fpv/utils/deepstream/samples/streams/sample_1080p_h264.mp4"
-        if uri_name.find("rtsp://") == 0 or uri_name.find("rtp://") == 0:
-            is_live = True
-
-        if uri_name.find("rtp://") == 0:
-            if h264:
-                source_bin = create_rtp_h264_source_bin(i, uri_name)
-            else:
-                source_bin = create_rtp_h265_source_bin(i, uri_name)
-        else:
-            source_bin = create_source_bin(i, uri_name)
-
-        if not source_bin:
-            sys.stderr.write("Unable to create source bin \n")
-        pipeline.add(source_bin)
-        padname="sink_%u" %i
-        sinkpad= streammux.request_pad_simple(padname) 
-        if not sinkpad:
-            sys.stderr.write("Unable to create sink pad bin \n")
-        srcpad=source_bin.get_static_pad("src")
-        if not srcpad:
-            sys.stderr.write("Unable to create src pad bin \n")
-        srcpad.link(sinkpad)
-
     streammux.set_property('width', 1920)
     streammux.set_property('height', 1080)
     streammux.set_property('batch-size', number_sources)
     streammux.set_property('batched-push-timeout', MUXER_BATCH_TIMEOUT_USEC)
 
-    if is_live:
-        print("At least one of the sources is live")
-        streammux.set_property('live-source', 1)
-
+    print("Adding elements to Pipeline \n")
     pipeline.add(pgie)
     pipeline.add(tracker)
     pipeline.add(sgie1)
@@ -337,15 +345,6 @@ def main(args, h264=True):
     pipeline.add(queue3)
     pipeline.add(queue4)
     pipeline.add(queue5)
-
-    if file_loop:
-        if platform_info.is_integrated_gpu():
-            # Set nvbuf-memory-type=4 for integrated gpu for file-loop (nvurisrcbin case)
-            streammux.set_property('nvbuf-memory-type', 4)
-        else:
-            # Set nvbuf-memory-type=2 for x86 for file-loop (nvurisrcbin case)
-            streammux.set_property('nvbuf-memory-type', 2)
-
     pipeline.add(queue6)
     pipeline.add(queue7)
 
@@ -394,7 +393,6 @@ def main(args, h264=True):
     osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, osd_sink_pad_buffer_probe, 0)
     # perf callback function to print fps every 5 sec
     GLib.timeout_add(5000, perf_data.perf_print_callback)
-
 
     # List the sources
     print("Now playing...")
