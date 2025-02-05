@@ -1,8 +1,13 @@
 
+
+- [Ardupilot开源无人机之Geek SDK进展2024-2025](https://blog.csdn.net/lida2003/article/details/144977640)
+- [Ardupilot开源无人机之Geek SDK讨论](https://blog.csdn.net/lida2003/article/details/144115659)
+
+
+
 # 1. install Jetpack/L4T version from nvidia
 > Reference: 
 >   - [NVIDIA - Jetson Archives](https://docs.nvidia.com/jetson/archives/)
->   - [Ardupilot开源无人机之Geek SDK进展2024-2025](https://blog.csdn.net/lida2003/article/details/144977640)
 >   - [Linux 36.3@Jetson Orin Nano之系统安装](https://blog.csdn.net/lida2003/article/details/139236880)
 
 # 2. install OpenCV with cuda support

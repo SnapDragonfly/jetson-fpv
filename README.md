@@ -18,7 +18,7 @@ Main features as follows:
 - [x] DeepStream analysis
     - [x] DeepStream
     - [ ] ByteTrack
-    - [ ] NvDCF tracker
+    - [x] NvDCF tracker
 
 *Note: Currently, it's focused on Jetpack 6.2 l4t36.4.3*
 
