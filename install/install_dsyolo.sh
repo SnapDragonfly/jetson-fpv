@@ -9,6 +9,7 @@ function show_help() {
   echo "Usage: $0 [command]"
   echo "Commands:"
   echo "  yolov8n   Export YOLOv8n weights if not already present."
+  echo "  yolov8s   Export YOLOv8s weights if not already present."
   echo "  yolov4    Download YOLOv4 configuration and weights if not already present."
   echo "  help      Show this help message."
 }
@@ -62,6 +63,21 @@ function export_yolov8n() {
   fi
 }
 
+# Function to export YOLOv8S weights
+YOLOV8S_WEIGHTS="../model/yolov8s.pt"
+YOLOV8S_ONNX="../model/yolov8s.pt.onnx"
+function export_yolov8s() {
+  # Check if the ONNX file exists and is non-zero
+  if [ ! -s "$YOLOV8S_ONNX" ]; then
+    echo "ONNX file does not exist or is empty. Exporting YOLOv8S weights..."
+    python3 ../module/DeepStream-Yolo/utils/export_yoloV8.py -w $YOLOV8S_WEIGHTS --dynamic
+    mv $YOLOV8S_ONNX $DST_DIR
+    echo "Export completed and ONNX file moved to $DST_DIR."
+  else
+    echo "ONNX file already exists and is non-zero. Skipping export."
+  fi
+}
+
 # Main logic
 case "$1" in
   yolov4)
@@ -69,6 +85,9 @@ case "$1" in
     ;;
   yolov8n)
     export_yolov8n
+    ;;
+  yolov8s)
+    export_yolov8s
     ;;
   help|"")
     show_help
