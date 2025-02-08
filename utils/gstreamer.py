@@ -66,7 +66,6 @@ class VideoStreamer:
                 "tee name=t "
                 "t. ! queue ! nv3dsink name=sink sync=0 "
                 "t. ! queue ! x264enc speed-preset=ultrafast tune=zerolatency ! "
-                "t. ! queue ! x264enc speed-preset=ultrafast tune=zerolatency ! "
                 f"matroskamux ! filesink location={output_file}"
             )
 
