@@ -39,6 +39,7 @@ for mkv_file in *.mkv; do
             ((success_count++))
         else
             echo "Error converting: $mkv_file"
+            rm -f $mp4_file
         fi
     fi
 done
