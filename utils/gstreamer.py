@@ -50,24 +50,21 @@ class VideoStreamer:
             pipeline_str = (
                 f"udpsrc port={self.port} ! "
                 "application/x-rtp,encoding-name=H264,payload=96 ! "
-                "rtph264depay ! h264parse ! nvv4l2decoder ! "
-                "nvvidconv ! video/x-raw,format=I420 ! "
+                "rtph264depay ! h264parse ! "
                 "tee name=t "
-                "t. ! queue ! nv3dsink name=sink sync=0 "
-                "t. ! queue ! x264enc speed-preset=ultrafast tune=zerolatency ! "
-                f"matroskamux ! filesink location={output_file}"
+                "t. ! queue ! nvv4l2decoder ! nvvidconv ! video/x-raw,format=I420 ! nv3dsink name=sink sync=0 "
+                f"t. ! queue ! h264parse ! matroskamux ! filesink location={output_file}"
             )
         else:
             pipeline_str = (
                 f"udpsrc port={self.port} ! "
                 "application/x-rtp,encoding-name=H265,payload=96 ! "
-                "rtph265depay ! h265parse ! nvv4l2decoder ! "
-                "nvvidconv ! video/x-raw,format=I420 ! "
+                "rtph265depay ! h265parse ! "
                 "tee name=t "
-                "t. ! queue ! nv3dsink name=sink sync=0 "
-                "t. ! queue ! x264enc speed-preset=ultrafast tune=zerolatency ! "
-                f"matroskamux ! filesink location={output_file}"
+                "t. ! queue ! nvv4l2decoder ! nvvidconv ! video/x-raw,format=I420 ! nv3dsink name=sink sync=0 "
+                f"t. ! queue ! h265parse ! matroskamux ! filesink location={output_file}"
             )
+
 
         print("Selected Pipeline:", pipeline_str)
         return Gst.parse_launch(pipeline_str)
