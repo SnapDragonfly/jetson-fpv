@@ -7,6 +7,10 @@ gi.require_version('GstBase', '1.0')
 gi.require_version('GstVideo', '1.0')
 from gi.repository import Gst, GLib
 
+# Global variables for pipeline configuration
+UDP_BUFFER_SIZE = 1048576  # 1MB buffer size for udpsrc
+QUEUE_MAX_BUFFERS = 20 # Maximum number of buffers in the queue
+QUEUE_MAX_BYTES = 10485760 # Maximum queue size in bytes (10MB)
 
 class VideoStreamer:
     def __init__(self, port, input_codec, fullscreen):
@@ -48,21 +52,19 @@ class VideoStreamer:
 
         if self.input_codec == "h264":
             pipeline_str = (
-                f"udpsrc port={self.port} ! "
+                f"udpsrc port={self.port} buffer-size={UDP_BUFFER_SIZE} do-timestamp=true ! "
                 "application/x-rtp,encoding-name=H264,payload=96 ! "
-                "rtph264depay ! h264parse ! "
-                "tee name=t "
-                "t. ! queue ! nvv4l2decoder ! nvvidconv ! video/x-raw,format=I420 ! nv3dsink name=sink sync=0 "
-                f"t. ! queue ! h264parse ! matroskamux ! filesink location={output_file}"
+                "rtph264depay ! tee name=t "
+                f"t. ! queue max-size-buffers={QUEUE_MAX_BUFFERS} max-size-bytes={QUEUE_MAX_BYTES} leaky=2 ! nvv4l2decoder ! nvvidconv ! video/x-raw,format=I420 ! nv3dsink name=sink sync=0 "
+                f"t. ! queue max-size-buffers={QUEUE_MAX_BUFFERS} max-size-bytes={QUEUE_MAX_BYTES} leaky=2 ! h264parse ! matroskamux ! filesink location={output_file} async=true"
             )
         else:
             pipeline_str = (
-                f"udpsrc port={self.port} ! "
+                f"udpsrc port={self.port} buffer-size={UDP_BUFFER_SIZE} do-timestamp=true ! "
                 "application/x-rtp,encoding-name=H265,payload=96 ! "
-                "rtph265depay ! h265parse ! "
-                "tee name=t "
-                "t. ! queue ! nvv4l2decoder ! nvvidconv ! video/x-raw,format=I420 ! nv3dsink name=sink sync=0 "
-                f"t. ! queue ! h265parse ! matroskamux ! filesink location={output_file}"
+                "rtph265depay ! tee name=t "
+                f"t. ! queue max-size-buffers={QUEUE_MAX_BUFFERS} max-size-bytes={QUEUE_MAX_BYTES} leaky=2 ! nvv4l2decoder ! nvvidconv ! video/x-raw,format=I420 ! nv3dsink name=sink sync=0 "
+                f"t. ! queue max-size-buffers={QUEUE_MAX_BUFFERS} max-size-bytes={QUEUE_MAX_BYTES} leaky=2 ! h265parse ! matroskamux ! filesink location={output_file} async=true"
             )
 
 
