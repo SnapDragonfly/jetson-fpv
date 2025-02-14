@@ -14,8 +14,8 @@ VIDEO_PIDFILE="/var/run/video.pid"
 CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key $IFNAME"
 # ./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 1 --matrix 11
 CMD_MSPOSD="./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 0 --matrix 11"
-# video-viewer --input-codec=h265 rtp://@:5600
-CMD_VIDEO="video-viewer rtp://@:5600"
+# python3 ./utils/video-viewer.py --input-codec=h265 rtp://@:5600
+CMD_VIDEO="python3 ./utils/video-viewer.py rtp://@:5600"
 
 # Define the module's lock file directory (ensure the directory exists)
 LOCK_DIR="/tmp/module_locks"
