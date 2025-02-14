@@ -14,14 +14,15 @@ MODULE_SPECIAL_DESCRIPTIONS=(
 )
 
 # Base Modules
-MODULES_BASE=("viewer" "imagenet" "detectnet" "segnet" "posenet" "gstreamer")
+MODULES_BASE=("viewer" "pyviewer" "gstreamer" "imagenet" "detectnet" "segnet" "posenet")
 MODULE_BASE_DESCRIPTIONS=(
-    "     Viewer Module: Displays the video stream."
+    "     Viewer Module: Use video-viewer to handle video stream."
+    "   pyViewer Module: Use python jetson_utils to handle video stream."
+    "  GStreamer Module: GST pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation."
     "   Imagenet Module: Image classification using Imagenet model."
     "  Detectnet Module: Object detection using DetectNet."
     "     Segnet Module: Image segmentation using SegNet."
     "    Posenet Module: Pose estimation using PoseNet."
-    "  GStreamer Module: GST pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation."
 )
 
 # Ext Modules
