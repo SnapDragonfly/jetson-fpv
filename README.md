@@ -4,18 +4,26 @@ Use Jetson as a ground station for FPV enthusiasts.
 
 Main features as follows:
 
+- [x] Infrastructure
+    - [x] wfb-ng
+    - [ ] Adaptive wireless link
 - [x] FPV features
     - [x] MSPOSD for ground station
     - [x] video-viewer
-    - [ ] Adaptive wireless link
+    - [x] pyvideo-viewer
+    - [x] pygstreamer
 - [x] Jetson video analysis
-    - [x] segnet for segmentation
-    - [x] posenet for pose estimation
-    - [ ] imagenet for image recognition
-    - [ ] detectnet for object detection
+    - [x] pysegnet for segmentation
+    - [x] pyposenet for pose estimation
+    - [ ] pyimagenet for image recognition
+    - [ ] pydetectnet for object detection
 - [ ] yolo for object detection
 - [ ] Real time video stabilizer
-- [x] DeepStream analysis
+- [x] DeepStream-app (DS6.3 H264 supported)
+    - [x] DeepStream
+    - [x] ByteTrack
+    - [x] NvDCF tracker
+- [x] DeepStream-app (DS7.1 H264/H265 supported)
     - [x] DeepStream
     - [ ] ByteTrack
     - [x] NvDCF tracker
