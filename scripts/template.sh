@@ -89,7 +89,7 @@ case "$1" in
         test  "$@"
         ;;
     *)
-        echo "Usage: $0 {start|stop|status|restart|test}"
+        echo "Usage: $0 {start|ostart|stop|status|help|test}"
         exit 1
         ;;
 esac

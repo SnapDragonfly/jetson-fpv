@@ -14,20 +14,20 @@ MODULE_SPECIAL_DESCRIPTIONS=(
 )
 
 # Base Modules
-MODULES_BASE=("viewer" "pyviewer" "gstreamer" "imagenet" "detectnet" "segnet" "posenet")
+MODULES_BASE=("viewer" "pyviewer" "gstreamer")
 MODULE_BASE_DESCRIPTIONS=(
     "     Viewer Module: Use video-viewer to handle video stream."
     "   pyViewer Module: Use python jetson_utils to handle video stream."
     "  GStreamer Module: GST pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation."
+)
+
+# Ext Modules
+MODULES_EXT=("imagenet" "detectnet" "segnet" "posenet" "stabilizer" "yolo" "deepstream" "dsyolo" "dstrack")
+MODULE_EXT_DESCRIPTIONS=(
     "   Imagenet Module: Image classification using Imagenet model."
     "  Detectnet Module: Object detection using DetectNet."
     "     Segnet Module: Image segmentation using SegNet."
     "    Posenet Module: Pose estimation using PoseNet."
-)
-
-# Ext Modules
-MODULES_EXT=("stabilizer" "yolo" "deepstream" "dsyolo" "dstrack")
-MODULE_EXT_DESCRIPTIONS=(
     " Stabilizer Module: Stabilizes the camera or system."
     "       Yolo Module: Real-time object detection using YOLO."
     " Deepstream Module: Framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time."

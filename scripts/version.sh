@@ -1,15 +1,14 @@
 #!/bin/bash
 
+cd scripts
+source common/versions.sh
+
 echo
 jetson_release
+
 # Deepstream C/C++ SDK version
-DEEPSTREAM_VERSION_FILE="/opt/nvidia/deepstream/deepstream/version"
-if [[ -f "$DEEPSTREAM_VERSION_FILE" ]]; then
-    DEEPSTREAM_VERSION=$(cat "$DEEPSTREAM_VERSION_FILE" | grep -oP '(?<=Version: ).*')
-    echo "DeepStream C/C++ SDK version: $DEEPSTREAM_VERSION"
-else
-    echo "DeepStream C/C++ SDK version file not found"
-fi
+DEEPSTREAM_VERSION=$(get_deepstream_version)
+echo "DeepStream C/C++ SDK version: $DEEPSTREAM_VERSION"
 echo
 
 CMD_NULL=" 2>/dev/null"
