@@ -248,7 +248,7 @@ status() {
 
 # Display help
 help() {
-    CMD_YOLO_HELP="./utils/dsyolo/jetson-yolo --help-all"
+    CMD_YOLO_HELP="deepstream-app --help-all"
     ${CMD_YOLO_HELP}
     echo "Test Options:"
     echo "  1-> source_config_yolov8n.txt (default)"
@@ -268,8 +268,10 @@ test() {
 
 # if module supported
 support() {
-    #exit 0 #not support
-    exit 1 #support
+    echo "Not support!"
+    echo "https://blog.csdn.net/lida2003/article/details/144977640"
+    exit 0 #not support
+    #exit 1 #support
 }
 
 # Dispatcher to handle commands
