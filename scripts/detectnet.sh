@@ -21,6 +21,10 @@ CMD_DETECTNET="detectnet rtp://@:5600"
 LOCK_DIR="/tmp/module_locks"
 MODULE_NAME=$(basename "$0" .sh)
 
+cd scripts
+source common/versions.sh
+cd ..
+
 look() {
     # Look at the status of each relevant process and display their PIDs
     echo "Looking at the status of processes..."
@@ -219,6 +223,7 @@ status() {
 
 # Display help
 help() {
+    echo "DS Version 6.3 supported"
     CMD_DETECTNET_HELP="detectnet --help"
     ${CMD_DETECTNET_HELP}
 }
@@ -231,8 +236,33 @@ test() {
     start ${@:2}
 }
 
+# Support function to check DeepStream version
+support() {
+    # Get the DeepStream version using the function from the utility file
+    DEEPSTREAM_VERSION=$(get_deepstream_version)
+    
+    # Print the DeepStream version
+    echo "DeepStream C/C++ SDK version: $DEEPSTREAM_VERSION"
+    
+    # Extract the major and minor version numbers
+    MAJOR_VERSION=$(echo "$DEEPSTREAM_VERSION" | awk -F'.' '{print $1}')
+    MINOR_VERSION=$(echo "$DEEPSTREAM_VERSION" | awk -F'.' '{print $2}' | sed 's/[^0-9]*//g')
+
+    # Compare major and minor versions
+    if [ "$MAJOR_VERSION" -gt 7 ] || { [ "$MAJOR_VERSION" -eq 7 ] && [ "$MINOR_VERSION" -ge 1 ]; }; then
+        echo "Version >= 7.1 not supported"
+        exit 0
+    else
+        echo "Version < 7.1 supported"
+        exit 1
+    fi
+}
+
 # Dispatcher to handle commands
 case "$1" in
+    support)
+        support
+        ;;
     start)
         start
         ;;
@@ -252,7 +282,7 @@ case "$1" in
         test  "$@"
         ;;
     *)
-        echo "Usage: $0 {start|stop|status|restart|test}"
+        echo "Usage: $0 {support|start|ostart|stop|status|help|test}"
         exit 1
         ;;
 esac

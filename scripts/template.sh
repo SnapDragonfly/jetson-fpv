@@ -68,8 +68,17 @@ test() {
     start ${@:2}
 }
 
+# if module supported
+support() {
+    exit 0 #not support
+    #exit 1 #support
+}
+
 # Dispatcher to handle commands
 case "$1" in
+    support)
+        support
+        ;;
     start)
         start
         ;;
@@ -89,7 +98,7 @@ case "$1" in
         test  "$@"
         ;;
     *)
-        echo "Usage: $0 {start|ostart|stop|status|help|test}"
+        echo "Usage: $0 {support|start|ostart|stop|status|help|test}"
         exit 1
         ;;
 esac

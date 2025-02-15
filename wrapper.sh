@@ -88,12 +88,22 @@ help() {
 is_valid_module() {
     for module in "${MODULES[@]}"; do
         if [ "$module" == "$1" ]; then
-            return 0
+            # Call the support function from the corresponding script
+            "./scripts/$1.sh" support
+            SUPPORT_RESULT=$?  # Capture the return value of the support function
+
+            # Check if the module is supported
+            if [ "$SUPPORT_RESULT" -eq 0 ]; then
+                return 1  # Not supported
+            else
+                return 0  # Supported
+            fi
         fi
     done
+
     echo "Invalid module: $1"
     help
-    return 1
+    return 1  # Invalid module
 }
 
 # Check if any module is running
