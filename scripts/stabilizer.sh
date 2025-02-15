@@ -233,8 +233,10 @@ test() {
 
 # if module supported
 support() {
-    #exit 0 #not support
-    exit 1 #support
+    echo "Not support!"
+    echo "TODO: Codes need to be debugged!"
+    exit 0 #not support
+    #exit 1 #support
 }
 
 # Dispatcher to handle commands
