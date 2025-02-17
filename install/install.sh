@@ -124,6 +124,7 @@ install_step_8() {
     SUBOPTIONS=$(whiptail --title "Step 8: install fpv-related modules" --checklist \
     "Select the sub-steps to execute:" 20 78 15 \
     "8.1" "Step 8.1: install msposd" OFF \
+    "8.2" "Step 8.2: install desktop plugin" OFF \
     3>&1 1>&2 2>&3)
 
     # Execute selected sub-steps
@@ -132,6 +133,10 @@ install_step_8() {
             8.1)
                 echo "# Step 8.1: install msposd ..."
                 ./install_msposd.sh
+                ;;
+            8.2)
+                echo "# Step 8.2: install desktop plugin ..."
+                ./install_desktop_plugin.sh
                 ;;
             *)
                 echo "Unknown option in step 8: $SUBCHOICE"

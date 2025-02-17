@@ -9,3 +9,6 @@ GIT_PROTOCOL="https"
 
 REPO_URL=https://github.com/ultralytics/assets/releases/download/v0.0.0/
 #REPO_URL=http://192.168.1.19/download/
+
+#You will need to read https://blog.csdn.net/lida2003/article/details/144977640
+PLUGIN_URL=http://192.168.1.19/download/
