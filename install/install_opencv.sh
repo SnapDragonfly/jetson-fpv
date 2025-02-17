@@ -1,5 +1,8 @@
 #!/bin/bash
 
+source ../scripts/common/dir.sh
+source ../scripts/common/url.sh
+
 set -e
 
 # change default constants here:
@@ -16,32 +19,6 @@ else
     # otherwise a Nano will choke towards the end of the build
 fi
 
-cleanup () {
-# https://stackoverflow.com/questions/226703/how-do-i-prompt-for-yes-no-cancel-input-in-a-linux-shell-script
-    while true ; do
-        echo "Do you wish to remove temporary build files in /tmp/build_opencv ? "
-        if ! [[ "$1" -eq "--test-warning" ]] ; then
-            echo "(Doing so may make running tests on the build later impossible)"
-        fi
-        read -p "Y/N " yn
-        case ${yn} in
-            [Yy]* ) rm -rf /tmp/build_opencv ; break;;
-            [Nn]* ) exit ;;
-            * ) echo "Please answer yes or no." ;;
-        esac
-    done
-}
-
-setup () {
-    cd /tmp
-    if [[ -d "build_opencv" ]] ; then
-        echo "It appears an existing build exists in /tmp/build_opencv"
-        cleanup
-    fi
-    mkdir build_opencv
-    cd build_opencv
-}
-
 git_source () {
     local version="$1"    # First parameter: OpenCV version
     local ssh_key="/home/$2/.ssh/id_rsa"  # Second parameter: Path to the SSH private key
@@ -51,12 +28,30 @@ git_source () {
 
     if [ "$protocol" = "ssh" ]; then
         # Use SSH protocol and specify the private key
-        GIT_SSH_COMMAND="ssh -i $ssh_key" git clone --depth 1 --branch "$version" git@github.com:opencv/opencv.git
-        GIT_SSH_COMMAND="ssh -i $ssh_key" git clone --depth 1 --branch "$version" git@github.com:opencv/opencv_contrib.git
+        if [ ! -d "opencv" ]; then
+            GIT_SSH_COMMAND="ssh -i $ssh_key" git clone --depth 1 --branch "$version" git@github.com:opencv/opencv.git
+        else
+            echo "Directory 'opencv' already exists, skipping clone."
+        fi
+
+        if [ ! -d "opencv_contrib" ]; then
+            GIT_SSH_COMMAND="ssh -i $ssh_key" git clone --depth 1 --branch "$version" git@github.com:opencv/opencv_contrib.git
+        else
+            echo "Directory 'opencv_contrib' already exists, skipping clone."
+        fi
     else
         # Use HTTPS protocol (default)
-        git clone --depth 1 --branch "$version" https://github.com/opencv/opencv.git
-        git clone --depth 1 --branch "$version" https://github.com/opencv/opencv_contrib.git
+        if [ ! -d "opencv" ]; then
+            git clone --depth 1 --branch "$version" https://github.com/opencv/opencv.git
+        else
+            echo "Directory 'opencv' already exists, skipping clone."
+        fi
+
+        if [ ! -d "opencv_contrib" ]; then
+            git clone --depth 1 --branch "$version" https://github.com/opencv/opencv_contrib.git
+        else
+            echo "Directory 'opencv_contrib' already exists, skipping clone."
+        fi
     fi
 }
 
@@ -116,11 +111,6 @@ install_dependencies () {
 }
 
 configure () {
-    ENABLE_PROXY="NO"
-
-    HTTP_PROXY="-D http_proxy=http://192.168.1.10:8080"
-    HTTPS_PROXY="-D https_proxy=http://192.168.1.10:8080"
-
     if [ "$ENABLE_PROXY" = "YES" ]; then
         PROXY_FLAGS="$HTTP_PROXY $HTTPS_PROXY"
     else
@@ -129,7 +119,7 @@ configure () {
 
     local CMAKEFLAGS="
         -D CMAKE_BUILD_TYPE=RELEASE
-        -D OPENCV_EXTRA_MODULES_PATH=/tmp/build_opencv/opencv_contrib/modules
+        -D OPENCV_EXTRA_MODULES_PATH=/tmp/build_jetson/opencv_contrib/modules
         -D BUILD_EXAMPLES=OFF
         -D BUILD_opencv_python3=ON
         -D PYTHON_EXECUTABLE=$(which python3)
@@ -168,7 +158,7 @@ configure () {
     echo "cmake flags: ${CMAKEFLAGS}"
 
     cd opencv
-    mkdir build
+    mkdir -p build
     cd build
     cmake ${CMAKEFLAGS} .. 2>&1 | tee -a configure.log
 }
@@ -193,7 +183,7 @@ main () {
     # prepare for the build:
     setup
     install_dependencies
-    git_source ${VER} ${original_user} "ssh"
+    git_source ${VER} ${original_user} ${GIT_PROTOCOL}
 
     if [[ ${DO_TEST} ]] ; then
         configure test
@@ -214,9 +204,6 @@ main () {
     else
         sudo make install 2>&1 | tee -a install.log
     fi
-
-    cleanup --test-warning
-
 }
 
 main "$@"

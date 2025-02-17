@@ -1,30 +1,7 @@
 #!/bin/bash
 
-cleanup () {
-# https://stackoverflow.com/questions/226703/how-do-i-prompt-for-yes-no-cancel-input-in-a-linux-shell-script
-    while true ; do
-        echo "Do you wish to remove temporary build files in /tmp/build_rtl8812au ? "
-        if ! [[ "$1" -eq "--test-warning" ]] ; then
-            echo "(Doing so may make running tests on the build later impossible)"
-        fi
-        read -p "Y/N " yn
-        case ${yn} in
-            [Yy]* ) rm -rf /tmp/build_rtl8812au ; break;;
-            [Nn]* ) exit ;;
-            * ) echo "Please answer yes or no." ;;
-        esac
-    done
-}
-
-setup () {
-    cd /tmp
-    if [[ -d "build_rtl8812au" ]] ; then
-        echo "It appears an existing build exists in /tmp/build_rtl8812au"
-        cleanup
-    fi
-    mkdir -p build_rtl8812au
-    cd build_rtl8812au
-}
+source ../scripts/common/dir.sh
+source ../scripts/common/url.sh
 
 install_dependencies () {
     sudo apt-get install -y dkms
@@ -59,10 +36,9 @@ main () {
 
     setup
     install_dependencies
-    git_source  ${original_user} "ssh"   
+    git_source  ${original_user} ${GIT_PROTOCOL} 
 
     build
-    cleanup --test-warning
 }
 
 main "$@"
