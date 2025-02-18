@@ -5,7 +5,9 @@
 
 echo "System update, upgrade dependencies."
 sudo apt-get update
-sudo apt-get upgrade -y --autoremove   
+
+# https://forums.developer.nvidia.com/t/different-behavior-not-good-of-yolov11n-on-jetson-orin-nano-super/323968
+#sudo apt-get upgrade -y --autoremove   
 
 # install jtop for performance monitor
 sudo apt install python3-pip -y

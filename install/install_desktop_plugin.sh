@@ -35,7 +35,6 @@ main () {
 
     echo "Downloading $PIXEL_SAVER_INSTALL ..."
     mkdir -p pixel-saverdeadalnix.me
-    mv pixel-saverdeadalnix.me.v29.shell-extension.zip pixel-saverdeadalnix.me
     cd pixel-saverdeadalnix.me/
     wget --tries=10 --retry-connrefused --waitretry=5 --timeout=30 -O $PIXEL_SAVER_INSTALL $PIXEL_SAVER_URL
     unzip pixel-saverdeadalnix.me.v29.shell-extension.zip

@@ -145,6 +145,33 @@ install_step_8() {
     done
 }
 
+# Function to execute Step 9: install dev-related modules
+install_step_9() {
+    # Submenu for step 9
+    SUBOPTIONS=$(whiptail --title "Step 9: install dev-related modules" --checklist \
+    "Select the sub-steps to execute:" 20 78 15 \
+    "9.1" "Step 9.1: install apache" OFF \
+    "9.2" "Step 9.2: install samba" OFF \
+    3>&1 1>&2 2>&3)
+
+    # Execute selected sub-steps
+    for SUBCHOICE in $(echo $SUBOPTIONS | tr -d '"'); do
+        case $SUBCHOICE in
+            9.1)
+                echo "# Step 8.1: install apache ..."
+                ./install_dev_apache.sh
+                ;;
+            9.2)
+                echo "# Step 8.2: install samba ..."
+                ./install_dev_samba.sh
+                ;;
+            *)
+                echo "Unknown option in step 9: $SUBCHOICE"
+                ;;
+        esac
+    done
+}
+
 # Check if whiptail is installed
 if ! command -v whiptail &> /dev/null; then
     echo "whiptail is not installed. Please install it first: sudo apt install whiptail"
@@ -166,6 +193,7 @@ OPTIONS=$(whiptail --title "Jetson FPV Installation Menu" --checklist \
 "6" "Step 6: install yolo-related modules" OFF \
 "7" "Step 7: install deepstream-related modules" OFF \
 "8" "Step 8: install fpv-related modules" OFF \
+"9" "Step 9: install dev-related modules" OFF \
 3>&1 1>&2 2>&3)
 
 # Exit if the user cancels
@@ -207,6 +235,9 @@ for CHOICE in $CHOICES; do
             ;;
         8)
             install_step_8
+            ;;
+        9)
+            install_step_9
             ;;
         *)
             echo "Unknown option: $CHOICE"

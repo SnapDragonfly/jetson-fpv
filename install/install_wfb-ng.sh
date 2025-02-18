@@ -11,6 +11,7 @@ sudo rm -rf /usr/lib/python3/dist-packages/wfb_ng
 cd ../module/wfb-ng
 git submodule update --init --recursive
 
+git apply ../../patch/wfb-ng.*.patch
 sudo ./scripts/install_gs.sh
 
 # It should work with auto-detected wfb wifi card

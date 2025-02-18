@@ -1,0 +1,37 @@
+From 4f149ac7e9741bbe6ee20d800e9a1a88cbe6fb34 Mon Sep 17 00:00:00 2001
+From: Stefan Dobrev <stefan.dobrev@gmail.com>
+Date: Sat, 11 Jan 2025 12:46:49 +0200
+Subject: [PATCH] More fixes for TensorRT 10
+
+---
+ c/tensorNet.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/c/tensorNet.cpp b/c/tensorNet.cpp
+index 8cfd49ef3..dfb0de217 100644
+--- a/c/tensorNet.cpp
++++ b/c/tensorNet.cpp
+@@ -1637,11 +1637,13 @@ bool tensorNet::LoadEngine( nvinfer1::ICudaEngine* engine,
+ 
+ 		LogVerbose(LOG_TRT "binding to output %i %s  binding index:  %i\n", n, output_blobs[n].c_str(), outputIndex);
+ 
++	#if NV_TENSORRT_MAJOR > 1
+     #if NV_TENSORRT_MAJOR >= 10
+         nvinfer1::Dims outputDims = engine->getTensorShape(output_blobs[n].c_str());
+-	#elif NV_TENSORRT_MAJOR > 1
++	#else
+ 		nvinfer1::Dims outputDims = validateDims(engine->getBindingDimensions(outputIndex));
+ 
++	#endif
+ 	#if NV_TENSORRT_MAJOR >= 7
+ 		if( mModelType == MODEL_ONNX )
+ 			outputDims = shiftDims(outputDims);  // change NCHW to CHW if EXPLICIT_BATCH set
+@@ -1664,7 +1666,7 @@ bool tensorNet::LoadEngine( nvinfer1::ICudaEngine* engine,
+ 			return false;
+ 		}
+ 	
+-    #if NV_TENSORRT_MAJOR >= 10
++    #if 0 && NV_TENSORRT_MAJOR >= 10
+         if( !mContext->setTensorAddress(output_blobs[n].c_str(), outputCUDA) )
+         {
+             LogError(LOG_TRT "failed to set input tensor address for %s (%zu bytes)\n", outputSize, output_blobs[n].c_str());

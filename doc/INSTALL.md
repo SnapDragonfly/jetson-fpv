@@ -1,6 +1,7 @@
 # Prerequisites
 
-[Pre-condition ...](REFERENCE.md)
+- [Pre-condition ...](REFERENCE.md)
+- [patch Note ...](../patch/NOTE.md)
 
 # Scripts
 

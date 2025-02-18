@@ -4,7 +4,7 @@ source ../scripts/common/dir.sh
 source ../scripts/common/url.sh
 
 install_dependencies () {
-    sudo apt-get install universal-ctags
+    sudo apt-get install universal-ctags libboost-python-dev -y
     pip install pytools==2023.1
 }
 

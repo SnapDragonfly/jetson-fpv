@@ -1,0 +1,13 @@
+diff --git a/scripts/install_gs.sh b/scripts/install_gs.sh
+index c85faca..d4521a2 100755
+--- a/scripts/install_gs.sh
++++ b/scripts/install_gs.sh
+@@ -20,7 +20,7 @@ fi
+ 
+ # Install required packages
+ apt update
+-apt upgrade
++#apt upgrade
+ 
+ apt install python3-all python3-all-dev libpcap-dev libsodium-dev libevent-dev python3-pip python3-pyroute2 python3-msgpack \
+   python3-future python3-twisted python3-serial python3-jinja2 iw virtualenv debhelper dh-python fakeroot build-essential -y
