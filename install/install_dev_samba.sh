@@ -18,16 +18,31 @@ sudo apt-get install -y samba
 echo "Adding user to Samba..."
 echo -e "$password\n$password" | sudo smbpasswd -a "$username"
 
-# Step 3: Modify the smb.conf file (using sed instead of nano)
+# Backup file name
+backup_file="/etc/samba/smb.conf"
+backup_dir="/etc/samba"
+bak_prefix="smb.conf.bak"
+bak_suffix=0
+
+# Check if the backup file already exists
+while [ -f "$backup_dir/$bak_prefix$bak_suffix" ]; do
+    bak_suffix=$((bak_suffix + 1))
+done
+
+# Step 3: Create the backup with the incremented name
+sudo cp "$backup_file" "$backup_dir/$bak_prefix$bak_suffix"
+echo "Backup created as: $backup_dir/$bak_prefix$bak_suffix"
+
+# Step 4: Modify the smb.conf file (using sed instead of nano)
 echo "Modifying /etc/samba/smb.conf..."
 
-# 3.1: Add lines under the [global] section
+# 4.1: Add lines under the [global] section
 sudo sed -i '/^\[global\]/a \
    follow symlinks = yes\n\
    wide links = yes\n\
    unix extensions = no\n' /etc/samba/smb.conf
 
-# 3.2: Uncomment and modify lines in the [homes] section (if they exist)
+# 4.2: Uncomment and modify lines in the [homes] section (if they exist)
 
 # Uncomment the [homes] section if it's commented
 sudo sed -i '/^\;\[homes\]/c\[homes\]' /etc/samba/smb.conf
@@ -40,7 +55,7 @@ sudo sed -i '/^\[homes\]/,/^\;\[.*\]\|\[.*\]/s/^\;\s*create mask\s*=\s*0700/crea
 sudo sed -i '/^\[homes\]/,/^\;\[.*\]\|\[.*\]/s/^\;\s*directory mask\s*=\s*0700/directory mask = 0700/' /etc/samba/smb.conf
 sudo sed -i '/^\[homes\]/,/^\;\[.*\]\|\[.*\]/s/^\;\s*valid users\s*=\s*%S/valid users = %S/' /etc/samba/smb.conf
 
-# Step 4: Restart the Samba service to apply changes
+# Step 5: Restart the Samba service to apply changes
 echo "Restarting Samba service..."
 sudo service smbd restart
 
