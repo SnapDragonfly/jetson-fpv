@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./scripts/common/speedup.sh
+
 # Cast all printf info to NULL
 CMD_NULL=""
 IFNAME=$(wfb-nics)
@@ -86,8 +88,7 @@ start() {
     
     # Step 3: Start dsyolo script
     echo "Starting dsyolo..."
-    sudo nvpmodel -m 0
-    sudo jetson_clocks
+    speedup
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DSYOLO="${CMD_DSYOLO} ${OUTPUT_FILE} --input-codec=h265 $@"
@@ -135,8 +136,7 @@ ostart() {
     
     # Step 3: Start dsyolo script
     echo "Starting dsyolo..."
-    sudo nvpmodel -m 0
-    sudo jetson_clocks
+    speedup
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DSYOLO="${CMD_DSYOLO} ${OUTPUT_FILE} --input-codec=h265 $@"

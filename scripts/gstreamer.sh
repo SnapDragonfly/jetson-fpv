@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./scripts/common/speedup.sh
+
 # Cast all printf info to NULL
 CMD_NULL=""
 IFNAME=$(wfb-nics)
@@ -86,6 +88,7 @@ start() {
     
     # Step 3: Start gstreamer script
     echo "Starting gstreamer..."
+    speedup
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_GSTREAMER="${CMD_GSTREAMER} ${OUTPUT_FILE} $@"
@@ -126,6 +129,7 @@ ostart() {
     
     # Step 3: Start gstreamer script
     echo "Starting gstreamer..."
+    speedup
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_GSTREAMER="${CMD_GSTREAMER} ${OUTPUT_FILE} $@"

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./scripts/common/speedup.sh
+
 # Cast all printf info to NULL
 CMD_NULL=""
 IFNAME=$(wfb-nics)
@@ -83,6 +85,7 @@ start() {
 
     # Step 3: Start segnet script
     echo "Starting segnet..."
+    speedup
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     CMD_SEGNET="${CMD_SEGNET} ${OUTPUT_FILE}"
@@ -120,6 +123,7 @@ ostart() {
 
     # Step 3: Start segnet script
     echo "Starting segnet..."
+    speedup
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     CMD_SEGNET="${CMD_SEGNET} ${OUTPUT_FILE}"

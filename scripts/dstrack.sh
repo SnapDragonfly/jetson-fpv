@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./scripts/common/speedup.sh
+
 # Cast all printf info to NULL
 CMD_NULL=""
 IFNAME=$(wfb-nics)
@@ -86,8 +88,7 @@ start() {
     
     # Step 3: Start deepstream script
     echo "Starting deepstream..."
-    sudo nvpmodel -m 0
-    sudo jetson_clocks
+    speedup
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DEEPSTREAM_NVDCF="${CMD_DEEPSTREAM_NVDCF} ${OUTPUT_FILE} $@"
@@ -128,8 +129,7 @@ ostart() {
     
     # Step 3: Start deepstream script
     echo "Starting deepstream..."
-    sudo nvpmodel -m 0
-    sudo jetson_clocks
+    speedup
     export DISPLAY=:0
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DEEPSTREAM_NVDCF="${CMD_DEEPSTREAM_NVDCF} ${OUTPUT_FILE} $@"

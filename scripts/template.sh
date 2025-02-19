@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./scripts/common/speedup.sh
+
 # Cast all printf info to NULL
 CMD_NULL=""
 
