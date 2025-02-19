@@ -15,7 +15,7 @@ SEGNET_PIDFILE="/var/run/segnet.pid"
 # wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key wlan1
 CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key $IFNAME"
 # ./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 1 --matrix 11
-CMD_MSPOSD="./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 0 --matrix 11"
+CMD_MSPOSD="./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 0 --matrix 11 --subtitle ../../"
 # segnet --input-codec=h265 rtp://@:5600
 CMD_SEGNET="segnet rtp://@:5600"
 

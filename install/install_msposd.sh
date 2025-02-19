@@ -5,6 +5,8 @@ sudo apt install libcsfml-dev
 cd ../module/msposd
 git submodule update --init --recursive
 
+git apply ../../patch/msposd.*.patch
+
 ./build.sh native
 
 cp -vf msposd ../../utils/msposd/
