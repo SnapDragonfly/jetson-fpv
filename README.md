@@ -8,22 +8,24 @@ Main features as follows:
     - [x] wfb-ng
     - [ ] Adaptive wireless link
 - [x] FPV features
-    - [x] MSPOSD for ground station
+    - [x] MSPOSD for airunit/gs communication
+    - [ ] pyosd for MAVLink
+    - [ ] wfb-ng-osd for MAVLink
     - [x] video-viewer
     - [x] pyvideo-viewer
     - [x] pygstreamer
 - [x] Jetson video analysis
     - [x] pysegnet for segmentation
     - [x] pyposenet for pose estimation
-    - [ ] pyimagenet for image recognition
-    - [ ] pydetectnet for object detection
+    - [ ] pyimagenet for image recognition (DS6.3 supported)
+    - [ ] pydetectnet for object detection (DS6.3 supported)
 - [ ] yolo for object detection
 - [ ] Real time video stabilizer
 - [x] DeepStream-app (DS6.3 H264 supported)
     - [x] DeepStream
     - [x] ByteTrack
     - [x] NvDCF tracker
-- [x] DeepStream-app (DS7.1 H264/H265 supported)
+- [x] DeepStream-python (DS7.1 H264/H265 supported)
     - [x] DeepStream
     - [ ] ByteTrack
     - [x] NvDCF tracker

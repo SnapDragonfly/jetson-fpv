@@ -2,6 +2,7 @@
 
 ```
 $ sudo ./wrapper.sh help
+[sudo] password for daniel:
 Invalid module: help
 Usage: ./wrapper.sh <module_name> {start|restart|ostart|orestart|stop|status|help|<other_command>} [additional_arguments]
 
@@ -17,17 +18,18 @@ Commands:
 
 Available modules
   Special modules: version wfb
-     Base modules: viewer imagenet detectnet segnet posenet gstreamer
- Extended modules: stabilizer yolo deepstream dsyolo dstrack
+     Base modules: viewer pyviewer gstreamer
+ Extended modules: imagenet detectnet segnet posenet stabilizer yolo deepstream dsyolo dstrack
 
     Version Module: Check depended component versions.
         Wfb Module: Wifibroadcast transmission module.
-     Viewer Module: Displays the video stream.
+     Viewer Module: Use video-viewer to handle video stream.
+   pyViewer Module: Use python jetson_utils to handle video stream.
+  GStreamer Module: GST pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation.
    Imagenet Module: Image classification using Imagenet model.
   Detectnet Module: Object detection using DetectNet.
      Segnet Module: Image segmentation using SegNet.
     Posenet Module: Pose estimation using PoseNet.
-  GStreamer Module: GST pipelines to process audio and video, offering flexible, plugin-based support for playback, streaming, and media transformation.
  Stabilizer Module: Stabilizes the camera or system.
        Yolo Module: Real-time object detection using YOLO.
  Deepstream Module: Framework from NVIDIA that enables video analytics and AI processing, using hardware-accelerated inference for deep learning models in real-time.
