@@ -49,24 +49,28 @@ output = videoOutput(args.output, argv=sys.argv)  # default:  options={'width': 
 numFrames = 0
 
 while True:
-    # capture the next image
-    img = input.Capture()
+    try:
+        # capture the next image
+        img = input.Capture()
 
-    if img is None: # timeout
-        continue  
+        if img is None: # timeout
+            continue  
+            
+        if numFrames % 25 == 0 or numFrames < 15:
+            Log.Verbose(f"video-viewer:  captured {numFrames} frames ({img.width} x {img.height})")
         
-    if numFrames % 25 == 0 or numFrames < 15:
-        Log.Verbose(f"video-viewer:  captured {numFrames} frames ({img.width} x {img.height})")
-	
-    numFrames += 1
-	
-    # render the image
-    output.Render(img)
-    
-    # update the title bar
-    output.SetStatus("Video Viewer | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
-	
-    # exit on input/output EOS
-    if not input.IsStreaming() or not output.IsStreaming():
-        break
+        numFrames += 1
+        
+        # render the image
+        output.Render(img)
+        
+        # update the title bar
+        output.SetStatus("Video Viewer | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
+        
+        # exit on input/output EOS
+        if not input.IsStreaming() or not output.IsStreaming():
+            break
 
+    except Exception as e:
+        Log.Error(f"Error capturing image: {e}")
+        continue  # Continue the loop if an error occurs while FPV in action
