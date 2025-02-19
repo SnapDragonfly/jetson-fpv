@@ -85,11 +85,22 @@ start() {
     # Well, default SDL2 is 2.0.0
     # But I have installed SDL2 2.30.9, then the mess is here
     export LD_PRELOAD=/lib/aarch64-linux-gnu/libGLdispatch.so.0
-    
-    # Step 3: Start dsyolo script
-    echo "Starting dsyolo..."
+
+    # Step 3: Pre-FPV settings
     speedup
     export DISPLAY=:0
+
+    # Step 4: Start msposd (OSD drawing)
+    echo "Starting msposd..."
+    cd ./utils/msposd
+    echo ${CMD_MSPOSD}
+    ${CMD_MSPOSD} ${CMD_NULL} &
+    echo $! > $MSPOSD_PIDFILE
+    cd ../../
+    sleep 2 # initialization
+
+    # Step 5: Start dsyolo script
+    echo "Starting dsyolo..."
     #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
     #CMD_DSYOLO="${CMD_DSYOLO} ${OUTPUT_FILE} --input-codec=h265 $@"
     if [ $# -eq 0 ]; then
@@ -102,16 +113,6 @@ start() {
     ${CMD_DSYOLO} ${CMD_NULL} &
     echo $! > $DSYOLO_PIDFILE
     cd ../..
-    sleep 2 # initialization
-
-    # Step 4: Start msposd (OSD drawing)
-    echo "Starting msposd..."
-    export DISPLAY=:0
-    cd ./utils/msposd
-    echo ${CMD_MSPOSD}
-    ${CMD_MSPOSD} ${CMD_NULL} &
-    echo $! > $MSPOSD_PIDFILE
-    cd ../../
     sleep 2 # initialization
 
     echo "${MODULE_NAME} started."

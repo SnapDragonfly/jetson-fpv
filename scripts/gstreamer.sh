@@ -85,26 +85,27 @@ start() {
     # Well, default SDL2 is 2.0.0
     # But I have installed SDL2 2.30.9, then the mess is here
     export LD_PRELOAD=/lib/aarch64-linux-gnu/libGLdispatch.so.0
-    
-    # Step 3: Start gstreamer script
-    echo "Starting gstreamer..."
+
+    # Step 3: Pre-FPV settings
     speedup
     export DISPLAY=:0
-    #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    #CMD_GSTREAMER="${CMD_GSTREAMER} ${OUTPUT_FILE} $@"
-    echo ${CMD_GSTREAMER}
-    ${CMD_GSTREAMER} $@ ${CMD_NULL} &
-    echo $! > $GSTREAMER_PIDFILE
-    sleep 2 # initialization
 
     # Step 4: Start msposd (OSD drawing)
     echo "Starting msposd..."
-    export DISPLAY=:0
     cd ./utils/msposd
     echo ${CMD_MSPOSD}
     ${CMD_MSPOSD} ${CMD_NULL} &
     echo $! > $MSPOSD_PIDFILE
     cd ../../
+    sleep 2 # initialization
+
+    # Step 5: Start gstreamer script
+    echo "Starting gstreamer..."
+    #OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    #CMD_GSTREAMER="${CMD_GSTREAMER} ${OUTPUT_FILE} $@"
+    echo ${CMD_GSTREAMER}
+    ${CMD_GSTREAMER} $@ ${CMD_NULL} &
+    echo $! > $GSTREAMER_PIDFILE
     sleep 2 # initialization
 
     echo "${MODULE_NAME} started."

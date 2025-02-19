@@ -86,25 +86,26 @@ start() {
     echo $! > $WFB_PIDFILE
     sleep 2 # initialization
 
-    # Step 3: Start imagenet script
-    echo "Starting imagenet..."
+    # Step 3: Pre-FPV settings
     speedup
     export DISPLAY=:0
-    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_IMAGENET="${CMD_IMAGENET} $@ --output-encoder=v4l2 ${OUTPUT_FILE}"
-    echo ${CMD_IMAGENET}
-    ${CMD_IMAGENET} $@ ${CMD_NULL} &
-    echo $! > $IMAGENET_PIDFILE
-    sleep 2 # initialization
 
     # Step 4: Start msposd (OSD drawing)
     echo "Starting msposd..."
-    export DISPLAY=:0
     cd ./utils/msposd
     echo ${CMD_MSPOSD}
     ${CMD_MSPOSD} ${CMD_NULL} &
     echo $! > $MSPOSD_PIDFILE
     cd ../../
+    sleep 2 # initialization
+
+    # Step 5: Start imagenet script
+    echo "Starting imagenet..."
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    CMD_IMAGENET="${CMD_IMAGENET} $@ --output-encoder=v4l2 ${OUTPUT_FILE}"
+    echo ${CMD_IMAGENET}
+    ${CMD_IMAGENET} $@ ${CMD_NULL} &
+    echo $! > $IMAGENET_PIDFILE
     sleep 2 # initialization
 
     echo "${MODULE_NAME} started."

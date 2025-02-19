@@ -83,25 +83,26 @@ start() {
     echo $! > $WFB_PIDFILE
     sleep 2 # initialization
 
-    # Step 3: Start segnet script
-    echo "Starting segnet..."
+    # Step 3: Pre-FPV settings
     speedup
     export DISPLAY=:0
-    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_SEGNET="${CMD_SEGNET} ${OUTPUT_FILE}"
-    echo ${CMD_SEGNET}
-    ${CMD_SEGNET} $@ ${CMD_NULL} &
-    echo $! > $SEGNET_PIDFILE
-    sleep 2 # initialization
 
     # Step 4: Start msposd (OSD drawing)
     echo "Starting msposd..."
-    export DISPLAY=:0
     cd ./utils/msposd
     echo ${CMD_MSPOSD}
     ${CMD_MSPOSD} ${CMD_NULL} &
     echo $! > $MSPOSD_PIDFILE
     cd ../../
+    sleep 2 # initialization
+
+    # Step 5: Start segnet script
+    echo "Starting segnet..."
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    CMD_SEGNET="${CMD_SEGNET} ${OUTPUT_FILE}"
+    echo ${CMD_SEGNET}
+    ${CMD_SEGNET} $@ ${CMD_NULL} &
+    echo $! > $SEGNET_PIDFILE
     sleep 2 # initialization
 
     echo "${MODULE_NAME} started."

@@ -86,25 +86,26 @@ start() {
     echo $! > $WFB_PIDFILE
     sleep 2 # initialization
 
-    # Step 3: Start detectnet script
-    echo "Starting detectnet..."
+    # Step 3: Pre-FPV settings
     speedup
     export DISPLAY=:0
-    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_DETECTNET="${CMD_DETECTNET} ${OUTPUT_FILE}"
-    echo ${CMD_DETECTNET}
-    ${CMD_DETECTNET} $@ ${CMD_NULL} &
-    echo $! > $DETECTNET_PIDFILE
-    sleep 2 # initialization
 
     # Step 4: Start msposd (OSD drawing)
     echo "Starting msposd..."
-    export DISPLAY=:0
     cd ./utils/msposd
     echo ${CMD_MSPOSD}
     ${CMD_MSPOSD} ${CMD_NULL} &
     echo $! > $MSPOSD_PIDFILE
     cd ../../
+    sleep 2 # initialization
+
+    # Step 5: Start detectnet script
+    echo "Starting detectnet..."
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    CMD_DETECTNET="${CMD_DETECTNET} ${OUTPUT_FILE}"
+    echo ${CMD_DETECTNET}
+    ${CMD_DETECTNET} $@ ${CMD_NULL} &
+    echo $! > $DETECTNET_PIDFILE
     sleep 2 # initialization
 
     echo "${MODULE_NAME} started."
