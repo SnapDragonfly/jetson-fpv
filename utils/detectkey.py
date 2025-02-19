@@ -1,4 +1,4 @@
-
+import os
 import sys
 import subprocess
 import threading
@@ -25,7 +25,9 @@ print("Press 'ESC' to exit the program.")
 # Generate timestamped file name
 def generate_filename():
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    return f"screen_recording_{timestamp}.mp4"
+    videos_dir = os.path.expanduser('~/Videos')
+    filename = f"screen_recording_{timestamp}.mp4"
+    return os.path.join(videos_dir, filename)
 
 # Screen recording function
 def start_screen_recording(output_file, fps=30, screen_region="1920x1080", offset="0,0"):
