@@ -71,10 +71,12 @@ start() {
     # Add the logic to start the module here, e.g., running a specific command or script
     # Example: ./start_module_command.sh
 
-    # Step 1: Start wfb (wifibroadcast)
+    # Step 1: Start wfb (wifibroadcast)/adaptive link
     echo "Starting wifibroadcast..."
     sudo systemctl start wifibroadcast@gs
-    sleep 3 # initialization
+    sleep 2 # initialization
+    sudo systemctl start alink_gs
+    sleep 1 # initialization
 
     # Step 2: Start extra-msposd wfb
     echo ${CMD_WFBRX}
@@ -115,10 +117,12 @@ ostart() {
     # Add the logic to start the module here, e.g., running a specific command or script
     # Example: ./start_module_command.sh
 
-    # Step 1: Start wfb (wifibroadcast)
+    # Step 1: Start wfb (wifibroadcast)/adaptive link
     echo "Starting wifibroadcast..."
     sudo systemctl start wifibroadcast@gs
-    sleep 3 # initialization
+    sleep 2 # initialization
+    sudo systemctl start alink_gs
+    sleep 1 # initialization
 
     # Step 3: Start posenet script
     echo "Starting posenet..."
@@ -177,8 +181,9 @@ stop() {
             sleep 1
             rm -f $WFB_PIDFILE
 
-            systemctl stop wifibroadcast@gs
-            echo "wifibroadcast stopped."
+            sudo systemctl stop alink_gs
+            sudo systemctl stop wifibroadcast@gs
+            echo "wifibroadcast/adaptiveLink stopped."
         fi
 
         echo "${MODULE_NAME} stopped."
@@ -215,6 +220,7 @@ status() {
         fi
 
         echo ""
+        systemctl status alink_gs
         systemctl status wifibroadcast@gs
     else
         echo "Module ${MODULE_NAME} is not running."

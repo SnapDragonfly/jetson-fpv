@@ -71,10 +71,12 @@ start() {
     # Add the logic to start the module here, e.g., running a specific command or script
     # Example: ./start_module_command.sh
 
-    # Step 1: Start wfb (wifibroadcast)
+    # Step 1: Start wfb (wifibroadcast)/adaptive link
     echo "Starting wifibroadcast..."
     sudo systemctl start wifibroadcast@gs
-    sleep 3 # initialization
+    sleep 2 # initialization
+    sudo systemctl start alink_gs
+    sleep 1 # initialization
 
     # Step 2: Start extra-msposd wfb
     echo ${CMD_WFBRX}
@@ -126,10 +128,12 @@ ostart() {
     # Add the logic to start the module here, e.g., running a specific command or script
     # Example: ./start_module_command.sh
 
-    # Step 1: Start wfb (wifibroadcast)
+    # Step 1: Start wfb (wifibroadcast)/adaptive link
     echo "Starting wifibroadcast..."
     sudo systemctl start wifibroadcast@gs
-    sleep 3 # initialization
+    sleep 2 # initialization
+    sudo systemctl start alink_gs
+    sleep 1 # initialization
 
     # Well, default SDL2 is 2.0.0
     # But I have installed SDL2 2.30.9, then the mess is here
@@ -199,8 +203,9 @@ stop() {
             sleep 1
             rm -f $WFB_PIDFILE
 
+            sudo systemctl stop alink_gs
             sudo systemctl stop wifibroadcast@gs
-            echo "wifibroadcast stopped."
+            echo "wifibroadcast/adaptiveLink stopped."
         fi
         sleep 1
 
@@ -240,7 +245,8 @@ status() {
         fi
 
         echo ""
-        sudo systemctl status wifibroadcast@gs
+        systemctl status alink_gs
+        systemctl status wifibroadcast@gs
     else
         echo "Module ${MODULE_NAME} is not running."
         look

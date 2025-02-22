@@ -1,0 +1,21 @@
+diff --git a/alink_gs b/alink_gs
+old mode 100644
+new mode 100755
+diff --git a/alink_install.sh b/alink_install.sh
+old mode 100644
+new mode 100755
+index a0c09d2..e8e6cb5
+--- a/alink_install.sh
++++ b/alink_install.sh
+@@ -91,8 +91,9 @@ fi
+ 				echo_red "$FILE_NAME already installed. Use 'remove' first."
+ 				exit 1
+ 			fi
+-			URL_ALINK_GS=$(github_asset_url "alink_gs")
+-			wget -O $FILE "$URL_ALINK_GS" && chmod +x $FILE
++			#URL_ALINK_GS=$(github_asset_url "alink_gs")
++			#wget -O $FILE "$URL_ALINK_GS" && chmod +x $FILE
++			cp alink_gs $FILE
+ 			
+ 			# Create service file
+ 			cat <<EOF | tee $PATH_SERVICE
