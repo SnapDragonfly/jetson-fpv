@@ -6,7 +6,7 @@ Main features as follows:
 
 - [x] Infrastructure
     - [x] wfb-ng
-    - [ ] Adaptive wireless link
+    - [x] Adaptive wireless link
 - [x] FPV features
     - [x] MSPOSD for airunit/gs communication
     - [ ] pyosd for MAVLink
@@ -19,7 +19,7 @@ Main features as follows:
     - [x] pyposenet for pose estimation
     - [ ] pyimagenet for image recognition (DS6.3 supported)
     - [ ] pydetectnet for object detection (DS6.3 supported)
-- [ ] yolo for object detection
+- [ ] yolo for object detection (DS6.3 supported/[DS7.1 not accurate](https://github.com/ultralytics/ultralytics/issues/19134))
 - [ ] Real time video stabilizer
 - [x] DeepStream-app (DS6.3 H264 supported)
     - [x] DeepStream
