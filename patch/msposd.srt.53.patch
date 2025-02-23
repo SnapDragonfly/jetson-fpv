@@ -1,21 +1,3 @@
-From ca67c7d617334d2952dc4a1bb4847b6bcdc671b5 Mon Sep 17 00:00:00 2001
-From: Henk Wiedig <henk@wiedig.de>
-Date: Sun, 16 Feb 2025 19:55:33 +0100
-Subject: [PATCH] add osd/srt support
-
----
- Makefile            |   2 +-
- README.md           |  12 +++
- msposd.c            |  58 ++++++++--
- osd.c               |  14 ++-
- osd.h               |   4 +
- osd/util/subtitle.c | 258 ++++++++++++++++++++++++++++++++++++++++++++
- osd/util/subtitle.h |  13 +++
- 7 files changed, 352 insertions(+), 9 deletions(-)
- create mode 100644 osd.h
- create mode 100644 osd/util/subtitle.c
- create mode 100644 osd/util/subtitle.h
-
 diff --git a/Makefile b/Makefile
 index d641000..57f8b7c 100644
 --- a/Makefile
@@ -30,7 +12,7 @@ index d641000..57f8b7c 100644
  BUILD = $(CC) $(SRCS) -I $(SDK)/include -I$(TOOLCHAIN)/usr/include -I$(PWD) -L$(DRV) $(CFLAGS) $(LIB) -levent_core -Os -s $(CFLAGS) -o $(OUTPUT)
  
 diff --git a/README.md b/README.md
-index 4403f1b..a0ef340 100644
+index 4403f1b..38706d5 100644
 --- a/README.md
 +++ b/README.md
 @@ -20,6 +20,7 @@ Usage: msposd [OPTIONS]
@@ -41,7 +23,7 @@ index 4403f1b..a0ef340 100644
   -v --verbose     Show debug info
   --help           Display this help
  ```
-@@ -88,6 +89,17 @@ Use `Exit Camera menu` stick command (one or more times) to exit all flightcontr
+@@ -88,6 +89,23 @@ Use `Exit Camera menu` stick command (one or more times) to exit all flightcontr
  
  msposd has **alpha** support for mspVTX to Betaflight. use the `--mspvtx` switch to activate this. This will configure Betaflight vtx tables with the supported channles by the vtx. You can switch channels from within Betaflight menu, Betaflight Configurator, SpeedyBee App, ELRS VTXAdmin.
  
@@ -50,11 +32,17 @@ index 4403f1b..a0ef340 100644
 +
 +msposd supports recording MSP DisplayPort messages to an OSD file. This can later be used to overlay the OSD if the video was recorded without it.
 +The OSD file is compatible with the [walksnail-osd-tool](https://github.com/avsaase/walksnail-osd-tool).
-+The SRT file is currently not very useful and is only generated for compatibility with walksnail-osd-tool.
++The SRT file records the additional MSPOSD.msg. This is not supported by walksnail-osd-tool but can be used in later video editing pipeline tools.
 +
 +This feature monitors the recording directory for newly started .mp4 files.
 +Once detected, the SRT and OSD files will be created with the same name.
 +As soon as the MP4 file is closed, the recording of SRT and OSD files stops as well.
++
++Air side needs special config to detect recordings. No recursive file watching is implmented.
++Therefor majestic needs to record to a flat directory layout.
++
++`cli -i /etc/majestic.yaml -s .records.path /mnt/mmcblk0p1/%F/..`
++
 +
  ##  Options.
  Forwarding of MSP packets via UDP.  
@@ -171,7 +159,7 @@ index 813f4e8..2b41df1 100644
  			verbose = true;
  			printf("Verbose mode!\n");
 diff --git a/osd.c b/osd.c
-index dd9e531..e37b91f 100644
+index dd9e531..b0f8ebb 100644
 --- a/osd.c
 +++ b/osd.c
 @@ -54,6 +54,9 @@
@@ -203,7 +191,25 @@ index dd9e531..e37b91f 100644
  static void send_display_size(int serial_fd) {
  	uint8_t buffer[8];
  	uint8_t payload[2] = {MAX_DISPLAY_X, MAX_DISPLAY_Y};
-@@ -1922,6 +1928,12 @@ static void draw_complete() {
+@@ -1372,6 +1378,7 @@ void remove_carriage_returns(char *out) {
+ }
+ 
+ char osdmsg[180];
++char ready_osdmsg[80];
+ 
+ bool DrawTextOnOSDBitmap(char *msg) {
+ 	char *font;
+@@ -1441,6 +1448,9 @@ bool DrawTextOnOSDBitmap(char *msg) {
+ 				msg_buffer, MSP_CMD_DISPLAYPORT, &payload_buffer[0], 80, MSP_INBOUND);
+ 			sendto(out_sock, msg_buffer, 100, 0, (struct sockaddr *)&sin_out, sizeof(sin_out));
+ 
++			// store ready osdmsg to be used in subtitle srt writeing
++			memcpy(&ready_osdmsg[0], &out[0], msglen + 1);
++
+ 			// printf("Sent text msg : %s\n",out);
+ 			return false;
+ 		}
+@@ -1922,6 +1932,12 @@ static void draw_complete() {
  		SetOSDMsg(msg);
  	}
  
@@ -229,10 +235,10 @@ index 0000000..1b51d43
 \ No newline at end of file
 diff --git a/osd/util/subtitle.c b/osd/util/subtitle.c
 new file mode 100644
-index 0000000..1c5f86f
+index 0000000..17bf76c
 --- /dev/null
 +++ b/osd/util/subtitle.c
-@@ -0,0 +1,258 @@
+@@ -0,0 +1,306 @@
 +#include <stdio.h>
 +#include <stdint.h>
 +#include <stddef.h>
@@ -251,11 +257,15 @@ index 0000000..1c5f86f
 +#define EVENT_SIZE  (sizeof(struct inotify_event))
 +#define BUF_LEN     (1024 * (EVENT_SIZE + NAME_MAX + 1))
 +
++extern char air_unit_info_msg[255];
++extern int msg_colour;
++extern char ready_osdmsg[80];
 +extern uint16_t character_map[MAX_OSD_WIDTH][MAX_OSD_HEIGHT];
 +extern bool verbose;
 +uint32_t subtitle_start_time = 0; // Start time in milliseconds
 +uint32_t subtitle_current_time = 0; // Current FlightTime in seconds
 +uint32_t sequence_number = 1; // Subtitle sequence number
++uint32_t last_flight_time_seconds = 0; // Store the last FlightTime in seconds
 +char* recording_dir = NULL;
 +FILE* srt_file = NULL;
 +FILE* osd_file = NULL;
@@ -273,8 +283,25 @@ index 0000000..1c5f86f
 +    fwrite(header, 1, HEADER_BYTES, file);
 +}
 +
++void remove_control_codes(char *str) {
++    int i, j;
++    for (i = 0, j = 0; str[i] != '\0'; i++) {
++        // Check for &L or &F followed by two digits
++        if (str[i] == '&' && (str[i+1] == 'L' || str[i+1] == 'F') && 
++            str[i+2] >= '0' && str[i+2] <= '9' && 
++            str[i+3] >= '0' && str[i+3] <= '9') {
++            // Skip the &LXX or &FXX substring
++            i += 3;
++        } else {
++            // Copy the character to the new position
++            str[j++] = str[i];
++        }
++    }
++    // Null-terminate the modified string
++    str[j] = '\0';
++}
++
 +void write_srt_file() {
-+    static uint32_t last_flight_time = 0; // Store the last FlightTime written
 +
 +    // Open the file if it hasn't been opened yet
 +    if (!srt_file) {
@@ -285,14 +312,19 @@ index 0000000..1c5f86f
 +        }
 +    }
 +
-+    // Only write if the FlightTime has changed (by at least 1 second)
++    // Convert current time to seconds
 +    uint32_t current_flight_time_seconds = subtitle_current_time / 1000;
-+    if (current_flight_time_seconds == last_flight_time) {
++
++    // Only write if the FlightTime has changed by at least 1 second
++    if (current_flight_time_seconds == last_flight_time_seconds) {
++        printf("No change, do nothing %d - %d\n", current_flight_time_seconds, last_flight_time_seconds);
 +        return; // No change, do nothing
 +    }
 +
++    printf("SRT write: %d - %d\n", current_flight_time_seconds, last_flight_time_seconds);
++
 +    // Calculate start and end times in SRT format (HH:MM:SS,ms)
-+    uint32_t start_time_ms = subtitle_current_time; // Start time in milliseconds
++    uint32_t start_time_ms = current_flight_time_seconds * 1000; // Start time in milliseconds (aligned to the second)
 +    uint32_t end_time_ms = start_time_ms + 1000; // Each subtitle lasts 1 second
 +
 +    uint32_t start_hours = start_time_ms / 3600000;
@@ -310,11 +342,17 @@ index 0000000..1c5f86f
 +    fprintf(srt_file, "%02u:%02u:%02u,%03u --> %02u:%02u:%02u,%03u\n",
 +            start_hours, start_minutes, start_seconds, start_milliseconds,
 +            end_hours, end_minutes, end_seconds, end_milliseconds);
-+    fprintf(srt_file, "FlightTime: %u seconds\n\n", current_flight_time_seconds);
++    if (msg_colour) { // ground mode
++        fprintf(srt_file, "%s\n\n", air_unit_info_msg);
++    } else { // air mode
++        remove_control_codes(ready_osdmsg);
++        fprintf(srt_file, "%s\n\n", ready_osdmsg);
++    }
++    fflush(srt_file);
 +
 +    // Increment the sequence number and update the last FlightTime written
 +    sequence_number++;
-+    last_flight_time = current_flight_time_seconds;
++    last_flight_time_seconds = current_flight_time_seconds;
 +}
 +
 +void handle_osd_out() {
@@ -337,6 +375,7 @@ index 0000000..1c5f86f
 +                fwrite(&character_map[x][y], sizeof(uint16_t), 1, osd_file);
 +            }
 +        }
++        fflush(osd_file);
 +	}
 +}
 +
@@ -373,6 +412,11 @@ index 0000000..1c5f86f
 +
 +}
 +
++
++// Static variable to store the last event timestamp
++static time_t last_event_time = 0;
++#define DEBOUNCE_DELAY 5  // Debouncing delay in seconds
++
 +void check_recoding_file() {
 +    char buffer[BUF_LEN];
 +    ssize_t len = read(inotify_fd, buffer, BUF_LEN);
@@ -386,30 +430,39 @@ index 0000000..1c5f86f
 +        }
 +    }
 +
++    time_t current_time = time(NULL);  // Get the current time
++
 +    for (char *ptr = buffer; ptr < buffer + len; ) {
 +        struct inotify_event *event = (struct inotify_event *) ptr;
 +
++        // Check for IN_CLOSE_WRITE or IN_CLOSE_NOWRITE event
 +        if (event->mask & IN_CLOSE_WRITE || event->mask & IN_CLOSE_NOWRITE) {
-+            printf("Stopping OSD/STR writeing\n", event->name);
-+            if (srt_file) {
-+                fclose(srt_file);
-+                srt_file = NULL;
++            // Update the last event timestamp
++            last_event_time = current_time;
++
++            // If the debounce delay has passed (i.e., 5 seconds with no event)
++            if (difftime(current_time, last_event_time) >= DEBOUNCE_DELAY) {
++                // Only execute the following block if debouncing condition is met
++                printf("Stopping OSD/STR writing\n");
++                if (srt_file) {
++                    fclose(srt_file);
++                    srt_file = NULL;
++                }
++                if (osd_file) {
++                    fclose(osd_file);
++                    osd_file = NULL;
++                }
++                recording_running = false;
++                inotify_rm_watch(inotify_fd, watch_desc);
++                close(inotify_fd);
 +            }
-+            if (osd_file) {
-+                fclose(osd_file);
-+                osd_file = NULL;
-+            }
-+            recording_running = false;
 +        }
 +        ptr += EVENT_SIZE + event->len;
 +    }
-+
-+    inotify_rm_watch(inotify_fd, watch_desc);
-+    close(inotify_fd);
 +}
 +
 +// Function to handle new file creation
-+void handle_new_file(const char* filename) {
++void handle_new_file(char* filename) {
 +    printf("New recording detected: %s\r\n", filename);
 +
 +    // detected a new recodring, closeing current files
@@ -426,6 +479,7 @@ index 0000000..1c5f86f
 +    subtitle_start_time = 0;
 +    subtitle_current_time = 0;
 +    sequence_number = 1;
++    last_flight_time_seconds = 0;
 +
 +    setup_recording_watch(filename);
 +
