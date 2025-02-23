@@ -235,10 +235,10 @@ index 0000000..1b51d43
 \ No newline at end of file
 diff --git a/osd/util/subtitle.c b/osd/util/subtitle.c
 new file mode 100644
-index 0000000..17bf76c
+index 0000000..ec1396e
 --- /dev/null
 +++ b/osd/util/subtitle.c
-@@ -0,0 +1,306 @@
+@@ -0,0 +1,326 @@
 +#include <stdio.h>
 +#include <stdint.h>
 +#include <stddef.h>
@@ -273,7 +273,6 @@ index 0000000..17bf76c
 +char* osd_file_name = NULL;
 +bool recording_running = false;
 +
-+
 +// Function to write Walksnail OSD header
 +void write_osd_header(FILE *file) {
 +    uint8_t header[HEADER_BYTES] = {0};
@@ -301,7 +300,59 @@ index 0000000..17bf76c
 +    str[j] = '\0';
 +}
 +
++int inotify_fd;
++int watch_desc;
++void setup_recording_watch(char *file_to_watch) {
++    inotify_fd = inotify_init();
++    if (inotify_fd == -1) {
++        perror("inotify_init");
++        exit(EXIT_FAILURE);
++    }
++
++    // Set the inotify file descriptor to non-blocking mode
++    int flags = fcntl(inotify_fd, F_GETFL, 0);
++    if (flags == -1) {
++        perror("fcntl F_GETFL");
++        close(inotify_fd);
++        exit(EXIT_FAILURE);
++    }
++    if (fcntl(inotify_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
++        perror("fcntl F_SETFL O_NONBLOCK");
++        close(inotify_fd);
++        exit(EXIT_FAILURE);
++    }
++
++    watch_desc = inotify_add_watch(inotify_fd, file_to_watch, IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
++    if (watch_desc == -1) {
++        perror("inotify_add_watch");
++        close(inotify_fd);
++        exit(EXIT_FAILURE);
++    }
++
++    printf("Watching %s for close events (non-blocking mode)...\n", file_to_watch);    
++}
++
++void stop_srt_osd_file(){
++    printf("Stopping OSD/STR writing\n");
++    if (srt_file) {
++        fclose(srt_file);
++        srt_file = NULL;
++    }
++    if (osd_file) {
++        fclose(osd_file);
++        osd_file = NULL;
++    }
++    recording_running = false;
++    inotify_rm_watch(inotify_fd, watch_desc);
++    close(inotify_fd);
++}
++
++#define SRT_NO_CHANGE_MAX_TIMES  30
++#define SRT_NO_CHANGE_10_TIMES   10
++
 +void write_srt_file() {
++    // Static variable to track the counter
++    static int no_change_counter = 0;
 +
 +    // Open the file if it hasn't been opened yet
 +    if (!srt_file) {
@@ -317,8 +368,21 @@ index 0000000..17bf76c
 +
 +    // Only write if the FlightTime has changed by at least 1 second
 +    if (current_flight_time_seconds == last_flight_time_seconds) {
-+        printf("No change, do nothing %d - %d\n", current_flight_time_seconds, last_flight_time_seconds);
++        // Increment the counter when there's no change
++        no_change_counter++;
++        if (0 == no_change_counter%SRT_NO_CHANGE_10_TIMES)
++            printf("No change, do nothing %d - %d, counter: %d\n", 
++                    current_flight_time_seconds, 
++                    last_flight_time_seconds, 
++                    no_change_counter);
++
++        if (no_change_counter > SRT_NO_CHANGE_MAX_TIMES) {
++            stop_srt_osd_file();
++        }
 +        return; // No change, do nothing
++    } else {
++        // Reset the counter if there's a change
++        no_change_counter = 0;
 +    }
 +
 +    printf("SRT write: %d - %d\n", current_flight_time_seconds, last_flight_time_seconds);
@@ -379,44 +443,11 @@ index 0000000..17bf76c
 +	}
 +}
 +
-+int inotify_fd;
-+int watch_desc;
-+void setup_recording_watch(char *file_to_watch) {
-+    inotify_fd = inotify_init();
-+    if (inotify_fd == -1) {
-+        perror("inotify_init");
-+        exit(EXIT_FAILURE);
-+    }
-+
-+    // Set the inotify file descriptor to non-blocking mode
-+    int flags = fcntl(inotify_fd, F_GETFL, 0);
-+    if (flags == -1) {
-+        perror("fcntl F_GETFL");
-+        close(inotify_fd);
-+        exit(EXIT_FAILURE);
-+    }
-+    if (fcntl(inotify_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-+        perror("fcntl F_SETFL O_NONBLOCK");
-+        close(inotify_fd);
-+        exit(EXIT_FAILURE);
-+    }
-+
-+    watch_desc = inotify_add_watch(inotify_fd, file_to_watch, IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
-+    if (watch_desc == -1) {
-+        perror("inotify_add_watch");
-+        close(inotify_fd);
-+        exit(EXIT_FAILURE);
-+    }
-+
-+    printf("Watching %s for close events (non-blocking mode)...\n", file_to_watch);    
-+
-+}
-+
-+
 +// Static variable to store the last event timestamp
 +static time_t last_event_time = 0;
 +#define DEBOUNCE_DELAY 5  // Debouncing delay in seconds
 +
++/* I don't think it's needed, as video streaming will open/close frequently */
 +void check_recoding_file() {
 +    char buffer[BUF_LEN];
 +    ssize_t len = read(inotify_fd, buffer, BUF_LEN);
@@ -443,18 +474,7 @@ index 0000000..17bf76c
 +            // If the debounce delay has passed (i.e., 5 seconds with no event)
 +            if (difftime(current_time, last_event_time) >= DEBOUNCE_DELAY) {
 +                // Only execute the following block if debouncing condition is met
-+                printf("Stopping OSD/STR writing\n");
-+                if (srt_file) {
-+                    fclose(srt_file);
-+                    srt_file = NULL;
-+                }
-+                if (osd_file) {
-+                    fclose(osd_file);
-+                    osd_file = NULL;
-+                }
-+                recording_running = false;
-+                inotify_rm_watch(inotify_fd, watch_desc);
-+                close(inotify_fd);
++                stop_srt_osd_file();
 +            }
 +        }
 +        ptr += EVENT_SIZE + event->len;
@@ -534,11 +554,11 @@ index 0000000..17bf76c
 +            snprintf(filename, PATH_MAX, "%s/%s", (const char*) arg, event->name);
 +
 +            // Filter file names
-+            if (strstr(event->name, ".mp4") != NULL) {
++            if (strstr(event->name, ".mkv") != NULL) {
 +                // Handle the new file
 +                handle_new_file(filename);
 +            } else {
-+                printf("Ignoring non-.mp4 file: %s\n", event->name);
++                printf("Ignoring non-.mkv file: %s\n", event->name);
 +            }
 +        }
 +

@@ -99,7 +99,7 @@ start() {
 
     # Step 5: Start video-viewer script
     echo "Starting video-viewer..."
-    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mkv"
     CMD_VIDEO="${CMD_VIDEO} ${OUTPUT_FILE}"
     echo ${CMD_VIDEO}
     ${CMD_VIDEO} $@ ${CMD_NULL} &
@@ -128,7 +128,7 @@ ostart() {
     echo "Starting video-viewer..."
     speedup
     export DISPLAY=:0
-    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mkv"
     CMD_VIDEO="${CMD_VIDEO} ${OUTPUT_FILE}"
     echo ${CMD_VIDEO}
     ${CMD_VIDEO} $@ ${CMD_NULL} &
