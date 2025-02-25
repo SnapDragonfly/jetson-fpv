@@ -12,7 +12,7 @@ index d641000..57f8b7c 100644
  BUILD = $(CC) $(SRCS) -I $(SDK)/include -I$(TOOLCHAIN)/usr/include -I$(PWD) -L$(DRV) $(CFLAGS) $(LIB) -levent_core -Os -s $(CFLAGS) -o $(OUTPUT)
  
 diff --git a/README.md b/README.md
-index 4403f1b..38706d5 100644
+index 62d714f..8169500 100644
 --- a/README.md
 +++ b/README.md
 @@ -20,6 +20,7 @@ Usage: msposd [OPTIONS]
@@ -48,7 +48,7 @@ index 4403f1b..38706d5 100644
  Forwarding of MSP packets via UDP.  
  Can monitor RC Channels values in FC and call the script `channels.sh` (located at /usr/bin or /usr/sbin).Will passing the channel number and its value to it as $1 and $2 parameters. This allows for controlling the camera via the Remote Control Transmitter.  
 diff --git a/msposd.c b/msposd.c
-index 813f4e8..2b41df1 100644
+index 813f4e8..ca55d2a 100644
 --- a/msposd.c
 +++ b/msposd.c
 @@ -16,6 +16,7 @@
@@ -124,30 +124,7 @@ index 813f4e8..2b41df1 100644
  		{"verbose", no_argument, NULL, 'v'},
  		{"help", no_argument, NULL, 'h'},
  		{NULL, 0, NULL, 0}
-@@ -1386,13 +1424,15 @@ int main(int argc, char **argv) {
- 			matrix_size = atoi(optarg);
- 			break;
- 
--		case 'z':
--			char buffer[16];
--			strncpy(buffer, optarg, sizeof(buffer));
--			char *limit = strchr(buffer, 'x');
--			if (limit) {
--				buffer[limit - buffer] = '\0';
--				set_resolution(atoi(buffer), atoi(limit + 1));
-+		case 'z': 
-+			{
-+				char buffer[16];
-+				strncpy(buffer, optarg, sizeof(buffer));
-+				char *limit = strchr(buffer, 'x');
-+				if (limit) {
-+					buffer[limit - buffer] = '\0';
-+					set_resolution(atoi(buffer), atoi(limit + 1));
-+				}
- 			}
- 			break;
- 
-@@ -1400,6 +1440,10 @@ int main(int argc, char **argv) {
+@@ -1400,6 +1438,10 @@ int main(int argc, char **argv) {
  			mspVTXenabled = true;
  			break;
  
@@ -159,7 +136,7 @@ index 813f4e8..2b41df1 100644
  			verbose = true;
  			printf("Verbose mode!\n");
 diff --git a/osd.c b/osd.c
-index dd9e531..b0f8ebb 100644
+index bfb7252..02cfd95 100644
 --- a/osd.c
 +++ b/osd.c
 @@ -54,6 +54,9 @@
@@ -191,15 +168,15 @@ index dd9e531..b0f8ebb 100644
  static void send_display_size(int serial_fd) {
  	uint8_t buffer[8];
  	uint8_t payload[2] = {MAX_DISPLAY_X, MAX_DISPLAY_Y};
-@@ -1372,6 +1378,7 @@ void remove_carriage_returns(char *out) {
+@@ -1416,6 +1422,7 @@ void split_lines(char *str, char *lines[MAX_LINES], int *line_count) {
  }
  
- char osdmsg[180];
-+char ready_osdmsg[80];
+ char osdmsg[MAX_STATUS_MSG_LEN];
++char ready_osdmsg[MAX_STATUS_MSG_LEN+1];
  
  bool DrawTextOnOSDBitmap(char *msg) {
- 	char *font;
-@@ -1441,6 +1448,9 @@ bool DrawTextOnOSDBitmap(char *msg) {
+ 	char *font;	    
+@@ -1485,6 +1492,9 @@ bool DrawTextOnOSDBitmap(char *msg) {
  				msg_buffer, MSP_CMD_DISPLAYPORT, &payload_buffer[0], 80, MSP_INBOUND);
  			sendto(out_sock, msg_buffer, 100, 0, (struct sockaddr *)&sin_out, sizeof(sin_out));
  
@@ -209,7 +186,7 @@ index dd9e531..b0f8ebb 100644
  			// printf("Sent text msg : %s\n",out);
  			return false;
  		}
-@@ -1922,6 +1932,12 @@ static void draw_complete() {
+@@ -1987,6 +1997,12 @@ static void draw_complete() {
  		SetOSDMsg(msg);
  	}
  
@@ -223,22 +200,23 @@ index dd9e531..b0f8ebb 100644
  	// sfRenderWindow_display(window);
  #endif
 diff --git a/osd.h b/osd.h
-new file mode 100644
-index 0000000..1b51d43
+new file mode 100755
+index 0000000..4064775
 --- /dev/null
 +++ b/osd.h
-@@ -0,0 +1,4 @@
+@@ -0,0 +1,5 @@
++#define MAX_STATUS_MSG_LEN 500
 +
 +extern char current_fc_identifier[4];
 +
 +uint64_t get_time_ms();
 \ No newline at end of file
 diff --git a/osd/util/subtitle.c b/osd/util/subtitle.c
-new file mode 100644
-index 0000000..ec1396e
+new file mode 100755
+index 0000000..26bf553
 --- /dev/null
 +++ b/osd/util/subtitle.c
-@@ -0,0 +1,326 @@
+@@ -0,0 +1,311 @@
 +#include <stdio.h>
 +#include <stdint.h>
 +#include <stddef.h>
@@ -257,21 +235,35 @@ index 0000000..ec1396e
 +#define EVENT_SIZE  (sizeof(struct inotify_event))
 +#define BUF_LEN     (1024 * (EVENT_SIZE + NAME_MAX + 1))
 +
-+extern char air_unit_info_msg[255];
++extern char air_unit_info_msg[MAX_STATUS_MSG_LEN];
 +extern int msg_colour;
-+extern char ready_osdmsg[80];
++extern char ready_osdmsg[MAX_STATUS_MSG_LEN+1];
 +extern uint16_t character_map[MAX_OSD_WIDTH][MAX_OSD_HEIGHT];
 +extern bool verbose;
 +uint32_t subtitle_start_time = 0; // Start time in milliseconds
 +uint32_t subtitle_current_time = 0; // Current FlightTime in seconds
 +uint32_t sequence_number = 1; // Subtitle sequence number
-+uint32_t last_flight_time_seconds = 0; // Store the last FlightTime in seconds
++uint32_t last_flight_time_ms = 0; // Store the last FlightTime in milli-seconds
++static unsigned int last_hash = 0; // Store the last OSD message HASH
 +char* recording_dir = NULL;
 +FILE* srt_file = NULL;
 +FILE* osd_file = NULL;
 +char* srt_file_name = NULL;
 +char* osd_file_name = NULL;
 +bool recording_running = false;
++
++#define FNV_32_INIT  0x811c9dc5
++#define FNV_32_PRIME 0x01000193
++
++// FNV-1a HASH
++unsigned int fnv1a_hash(const char *str) {
++    unsigned int hash = FNV_32_INIT;
++    while (*str) {
++        hash ^= (unsigned char)(*str++);
++        hash *= FNV_32_PRIME;
++    }
++    return hash;
++}
 +
 +// Function to write Walksnail OSD header
 +void write_osd_header(FILE *file) {
@@ -298,6 +290,90 @@ index 0000000..ec1396e
 +    }
 +    // Null-terminate the modified string
 +    str[j] = '\0';
++}
++
++void write_srt_file() {
++
++    // Open the file if it hasn't been opened yet
++    if (!srt_file) {
++        srt_file = fopen(srt_file_name, "w");
++        if (srt_file == NULL) {
++            perror("Failed to open file");
++            return;
++        }
++    }
++
++    unsigned int current_hash = 0;
++    if (msg_colour) { // ground mode
++        current_hash = fnv1a_hash(air_unit_info_msg);
++    } else { // air mode
++        current_hash = fnv1a_hash(ready_osdmsg);
++    }
++
++    if ( current_hash == last_hash 
++        && (subtitle_current_time - last_flight_time_ms < 1000)) {
++        //printf("!SRT Write: %u vs %u @ delta %d \n", current_hash, last_hash, subtitle_current_time - last_flight_time_ms);
++        return;
++    }
++
++    //printf("SRT Write: %u vs %u @ delta %d \n", current_hash, last_hash, subtitle_current_time - last_flight_time_ms);
++
++    // Calculate start and end times in SRT format (HH:MM:SS,ms)
++    uint32_t start_time_ms = last_flight_time_ms;
++    uint32_t end_time_ms = subtitle_current_time;
++
++    uint32_t start_hours = start_time_ms / 3600000;
++    uint32_t start_minutes = (start_time_ms % 3600000) / 60000;
++    uint32_t start_seconds = (start_time_ms % 60000) / 1000;
++    uint32_t start_milliseconds = start_time_ms % 1000;
++
++    uint32_t end_hours = end_time_ms / 3600000;
++    uint32_t end_minutes = (end_time_ms % 3600000) / 60000;
++    uint32_t end_seconds = (end_time_ms % 60000) / 1000;
++    uint32_t end_milliseconds = end_time_ms % 1000;
++
++    // Write the subtitle to the file
++    fprintf(srt_file, "%u\n", sequence_number);
++    fprintf(srt_file, "%02u:%02u:%02u,%03u --> %02u:%02u:%02u,%03u\n",
++            start_hours, start_minutes, start_seconds, start_milliseconds,
++            end_hours, end_minutes, end_seconds, end_milliseconds);
++
++    if (msg_colour) { // ground mode
++        fprintf(srt_file, "%s\n\n", air_unit_info_msg);
++    } else { // air mode
++        remove_control_codes(ready_osdmsg);
++        fprintf(srt_file, "%s\n\n", ready_osdmsg);
++    }
++    fflush(srt_file);
++
++    // Increment the sequence number and update the last FlightTime written
++    sequence_number++;
++    last_flight_time_ms = subtitle_current_time;
++    last_hash = current_hash;
++}
++
++void handle_osd_out() {
++    if (! osd_file) 
++		osd_file = fopen(osd_file_name, "wb");
++    if (osd_file) {
++        if (subtitle_start_time == 0) {
++            write_osd_header(osd_file);
++            subtitle_start_time = (uint32_t)get_time_ms();
++        }
++
++        // Calculate elapsed time since subtitle_start_time
++        subtitle_current_time = (uint32_t)get_time_ms() - subtitle_start_time;
++
++        fwrite(&subtitle_current_time, sizeof(uint32_t), 1, osd_file);
++        // Write OSD data
++        for (int y = 0; y < MAX_OSD_HEIGHT; y++) {
++            for (int x = 0; x < MAX_OSD_WIDTH -1; x++) { // -1 ??? no clue why
++                // Write glyph (2 bytes)
++                fwrite(&character_map[x][y], sizeof(uint16_t), 1, osd_file);
++            }
++        }
++        fflush(osd_file);
++	}
 +}
 +
 +int inotify_fd;
@@ -330,124 +406,9 @@ index 0000000..ec1396e
 +    }
 +
 +    printf("Watching %s for close events (non-blocking mode)...\n", file_to_watch);    
++
 +}
 +
-+void stop_srt_osd_file(){
-+    printf("Stopping OSD/STR writing\n");
-+    if (srt_file) {
-+        fclose(srt_file);
-+        srt_file = NULL;
-+    }
-+    if (osd_file) {
-+        fclose(osd_file);
-+        osd_file = NULL;
-+    }
-+    recording_running = false;
-+    inotify_rm_watch(inotify_fd, watch_desc);
-+    close(inotify_fd);
-+}
-+
-+#define SRT_NO_CHANGE_MAX_TIMES  30
-+#define SRT_NO_CHANGE_10_TIMES   10
-+
-+void write_srt_file() {
-+    // Static variable to track the counter
-+    static int no_change_counter = 0;
-+
-+    // Open the file if it hasn't been opened yet
-+    if (!srt_file) {
-+        srt_file = fopen(srt_file_name, "w");
-+        if (srt_file == NULL) {
-+            perror("Failed to open file");
-+            return;
-+        }
-+    }
-+
-+    // Convert current time to seconds
-+    uint32_t current_flight_time_seconds = subtitle_current_time / 1000;
-+
-+    // Only write if the FlightTime has changed by at least 1 second
-+    if (current_flight_time_seconds == last_flight_time_seconds) {
-+        // Increment the counter when there's no change
-+        no_change_counter++;
-+        if (0 == no_change_counter%SRT_NO_CHANGE_10_TIMES)
-+            printf("No change, do nothing %d - %d, counter: %d\n", 
-+                    current_flight_time_seconds, 
-+                    last_flight_time_seconds, 
-+                    no_change_counter);
-+
-+        if (no_change_counter > SRT_NO_CHANGE_MAX_TIMES) {
-+            stop_srt_osd_file();
-+        }
-+        return; // No change, do nothing
-+    } else {
-+        // Reset the counter if there's a change
-+        no_change_counter = 0;
-+    }
-+
-+    printf("SRT write: %d - %d\n", current_flight_time_seconds, last_flight_time_seconds);
-+
-+    // Calculate start and end times in SRT format (HH:MM:SS,ms)
-+    uint32_t start_time_ms = current_flight_time_seconds * 1000; // Start time in milliseconds (aligned to the second)
-+    uint32_t end_time_ms = start_time_ms + 1000; // Each subtitle lasts 1 second
-+
-+    uint32_t start_hours = start_time_ms / 3600000;
-+    uint32_t start_minutes = (start_time_ms % 3600000) / 60000;
-+    uint32_t start_seconds = (start_time_ms % 60000) / 1000;
-+    uint32_t start_milliseconds = start_time_ms % 1000;
-+
-+    uint32_t end_hours = end_time_ms / 3600000;
-+    uint32_t end_minutes = (end_time_ms % 3600000) / 60000;
-+    uint32_t end_seconds = (end_time_ms % 60000) / 1000;
-+    uint32_t end_milliseconds = end_time_ms % 1000;
-+
-+    // Write the subtitle to the file
-+    fprintf(srt_file, "%u\n", sequence_number);
-+    fprintf(srt_file, "%02u:%02u:%02u,%03u --> %02u:%02u:%02u,%03u\n",
-+            start_hours, start_minutes, start_seconds, start_milliseconds,
-+            end_hours, end_minutes, end_seconds, end_milliseconds);
-+    if (msg_colour) { // ground mode
-+        fprintf(srt_file, "%s\n\n", air_unit_info_msg);
-+    } else { // air mode
-+        remove_control_codes(ready_osdmsg);
-+        fprintf(srt_file, "%s\n\n", ready_osdmsg);
-+    }
-+    fflush(srt_file);
-+
-+    // Increment the sequence number and update the last FlightTime written
-+    sequence_number++;
-+    last_flight_time_seconds = current_flight_time_seconds;
-+}
-+
-+void handle_osd_out() {
-+    if (! osd_file) 
-+		osd_file = fopen(osd_file_name, "wb");
-+    if (osd_file) {
-+        if (subtitle_start_time == 0) {
-+            write_osd_header(osd_file);
-+            subtitle_start_time = (uint32_t)get_time_ms();
-+        }
-+
-+        // Calculate elapsed time since subtitle_start_time
-+        subtitle_current_time = (uint32_t)get_time_ms() - subtitle_start_time;
-+
-+        fwrite(&subtitle_current_time, sizeof(uint32_t), 1, osd_file);
-+        // Write OSD data
-+        for (int y = 0; y < MAX_OSD_HEIGHT; y++) {
-+            for (int x = 0; x < MAX_OSD_WIDTH -1; x++) { // -1 ??? no clue why
-+                // Write glyph (2 bytes)
-+                fwrite(&character_map[x][y], sizeof(uint16_t), 1, osd_file);
-+            }
-+        }
-+        fflush(osd_file);
-+	}
-+}
-+
-+// Static variable to store the last event timestamp
-+static time_t last_event_time = 0;
-+#define DEBOUNCE_DELAY 5  // Debouncing delay in seconds
-+
-+/* I don't think it's needed, as video streaming will open/close frequently */
 +void check_recoding_file() {
 +    char buffer[BUF_LEN];
 +    ssize_t len = read(inotify_fd, buffer, BUF_LEN);
@@ -461,21 +422,22 @@ index 0000000..ec1396e
 +        }
 +    }
 +
-+    time_t current_time = time(NULL);  // Get the current time
-+
 +    for (char *ptr = buffer; ptr < buffer + len; ) {
 +        struct inotify_event *event = (struct inotify_event *) ptr;
 +
-+        // Check for IN_CLOSE_WRITE or IN_CLOSE_NOWRITE event
-+        if (event->mask & IN_CLOSE_WRITE || event->mask & IN_CLOSE_NOWRITE) {
-+            // Update the last event timestamp
-+            last_event_time = current_time;
-+
-+            // If the debounce delay has passed (i.e., 5 seconds with no event)
-+            if (difftime(current_time, last_event_time) >= DEBOUNCE_DELAY) {
-+                // Only execute the following block if debouncing condition is met
-+                stop_srt_osd_file();
++        if (event->mask & IN_CLOSE_WRITE) {
++            printf("Stopping OSD/SRT writeing\n");
++            if (srt_file) {
++                fclose(srt_file);
++                srt_file = NULL;
 +            }
++            if (osd_file) {
++                fclose(osd_file);
++                osd_file = NULL;
++            }
++            recording_running = false;
++            inotify_rm_watch(inotify_fd, watch_desc);
++            close(inotify_fd);            
 +        }
 +        ptr += EVENT_SIZE + event->len;
 +    }
@@ -499,7 +461,7 @@ index 0000000..ec1396e
 +    subtitle_start_time = 0;
 +    subtitle_current_time = 0;
 +    sequence_number = 1;
-+    last_flight_time_seconds = 0;
++    last_flight_time_ms = 0;
 +
 +    setup_recording_watch(filename);
 +
@@ -554,7 +516,8 @@ index 0000000..ec1396e
 +            snprintf(filename, PATH_MAX, "%s/%s", (const char*) arg, event->name);
 +
 +            // Filter file names
-+            if (strstr(event->name, ".mkv") != NULL) {
++            if (strlen(event->name) >= 4 && 
++                strcmp(event->name + strlen(event->name) - 4, ".mkv") == 0) {
 +                // Handle the new file
 +                handle_new_file(filename);
 +            } else {
@@ -566,7 +529,7 @@ index 0000000..ec1396e
 +    }
 +}
 diff --git a/osd/util/subtitle.h b/osd/util/subtitle.h
-new file mode 100644
+new file mode 100755
 index 0000000..207a9b3
 --- /dev/null
 +++ b/osd/util/subtitle.h
