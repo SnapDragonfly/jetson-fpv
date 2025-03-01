@@ -18,6 +18,7 @@ CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key $IFNAME"
 CMD_MSPOSD="./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 0 --matrix 11 --subtitle ../../"
 # python3 ./utils/video-viewer.py --input-codec=h265 rtp://@:5600
 CMD_VIDEO="python3 ./utils/video-viewer.py rtp://@:5600"
+CMD_VIDEO_EXT="--bitrate=8000000"
 
 # Define the module's lock file directory (ensure the directory exists)
 LOCK_DIR="/tmp/module_locks"
@@ -100,7 +101,7 @@ start() {
     # Step 5: Start video-viewer script
     echo "Starting video-viewer..."
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mkv"
-    CMD_VIDEO="${CMD_VIDEO} ${OUTPUT_FILE}"
+    CMD_VIDEO="${CMD_VIDEO} ${OUTPUT_FILE} ${CMD_VIDEO_EXT}"
     echo ${CMD_VIDEO}
     ${CMD_VIDEO} $@ ${CMD_NULL} &
     echo $! > $VIDEO_PIDFILE
