@@ -6,10 +6,10 @@
 	url = https://github.com/dusty-nv/jetson-utils.git
 [submodule "module/wfb-ng"]
 	path = module/wfb-ng
-	url = https://github.com/svpcom/wfb-ng.git
+	url = https://github.com/SnapDragonfly/wfb-ng.git
 [submodule "module/msposd"]
 	path = module/msposd
-	url = https://github.com/OpenIPC/msposd.git
+	url = https://github.com/SnapDragonfly/msposd.git
 [submodule "module/ByteTrack"]
 	path = module/ByteTrack
 	url = https://github.com/SnapDragonfly/ByteTrack.git
@@ -19,9 +19,6 @@
 [submodule "module/DeepStream-Yolo"]
 	path = module/DeepStream-Yolo
 	url = https://github.com/marcoslucianops/DeepStream-Yolo.git
-[submodule "module/jetson-yolo"]
-	path = module/jetson-yolo
-	url = https://github.com/SnapDragonfly/jetson-yolo.git
 [submodule "module/OpenIPC-Adaptive-Link"]
 	path = module/OpenIPC-Adaptive-Link
 	url = https://github.com/SnapDragonfly/OpenIPC-Adaptive-Link.git
