@@ -303,7 +303,7 @@ def main():
         cv2_frame = cudaToNumpy(img)
 
         if numFrames % FRAME_SKIP_CNT == 0 or numFrames < 15:
-            Log.Verbose(f"YOLO:  captured {numFrames} frames ({img.width} x {img.height})")
+            Log.Verbose(f"YOLO: captured {numFrames} frames ({img.width} x {img.height}) at {output.GetFrameRate():.1f} FPS")
             
             # Set the window title with the FPS value
             window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {avg_fps:.2f}"
