@@ -30,7 +30,7 @@ def generate_filename():
     return os.path.join(videos_dir, filename)
 
 # Screen recording function
-def start_screen_recording(output_file, fps=30, screen_region="1920x1080", offset="0,0"):
+def start_screen_recording(output_file, fps=60, screen_region="1920x1080", offset="0,0"):
     command = [
         "ffmpeg",
         "-video_size", screen_region,
