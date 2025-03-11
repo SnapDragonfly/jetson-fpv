@@ -22,3 +22,7 @@
 [submodule "module/OpenIPC-Adaptive-Link"]
 	path = module/OpenIPC-Adaptive-Link
 	url = https://github.com/SnapDragonfly/OpenIPC-Adaptive-Link.git
+[submodule "module/ardupilot"]
+	path = module/ardupilot
+	url = https://github.com/SnapDragonfly/ardupilot.git
+	branch = Copter-4.5-lida2003
