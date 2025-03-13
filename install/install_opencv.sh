@@ -10,6 +10,10 @@ readonly PREFIX=/usr/local  # install prefix, (can be ~/.local for a user instal
 readonly DEFAULT_VERSION=4.11.0  # controls the default version (gets reset by the first argument)
 readonly CPUS=$(nproc)  # controls the number of jobs
 
+#readonly GIT_PROTOCOL="ssh"
+readonly GIT_PROTOCOL="https"
+readonly ENABLE_PROXY="NO"
+
 # better board detection. if it has 6 or more cpus, it probably has a ton of ram too
 if [[ $CPUS -gt 5 ]]; then
     # something with a ton of ram
