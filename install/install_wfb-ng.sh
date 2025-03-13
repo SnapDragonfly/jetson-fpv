@@ -1,6 +1,7 @@
 #!/bin/bash
 
 sudo apt-get purge -y wfb-ng
+sudo apt-get install -y curl
 
 # Make sure all configuration is removed.
 sudo rm -f /etc/default/wifibroadcast
@@ -11,7 +12,7 @@ sudo rm -rf /usr/lib/python3/dist-packages/wfb_ng
 cd ../module/wfb-ng
 git submodule update --init --recursive
 
-git apply ../../patch/wfb-ng.*.patch
+#git apply ../../patch/wfb-ng.*.patch
 sudo ./scripts/install_gs.sh
 
 # It should work with auto-detected wfb wifi card
