@@ -3,9 +3,6 @@
 source ../scripts/common/dir.sh
 source ../scripts/common/url.sh
 
-#readonly GIT_PROTOCOL="ssh"
-readonly GIT_PROTOCOL="https"
-
 install_dependencies () {
     sudo apt-get install -y dkms
 }
