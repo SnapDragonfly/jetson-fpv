@@ -119,7 +119,7 @@ def interpolate_frame(frame_id, start_frame, stride, model, frame, class_indices
             results.append(result)
     else:
         # Normal tracking mode
-        tracked_results = model.track(frame, persist=True, verbose=True, classes=class_indices, imgsz=[320, 320])
+        tracked_results = model.track(frame, persist=True, verbose=True, classes=class_indices, imgsz=[640, 640])
         results.extend(tracked_results)  # Add all tracked results
 
     # Update the `paths` list
@@ -133,7 +133,7 @@ def interpolate_frame(frame_id, start_frame, stride, model, frame, class_indices
     return results
 
 def predict_frame(frame_id, model, frame, class_indices):
-    results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[320, 320])
+    results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[640, 640])
     return results
 
 def capture_image(input):
