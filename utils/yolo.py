@@ -169,9 +169,9 @@ def main():
     parser.add_argument(
         "output",
         type=str,
-        default="file://output_video.mp4",
+        default="file://output_video.mkv",
         nargs='?',
-        help="URI of the output stream (default: file://output_video.mp4)"
+        help="URI of the output stream (default: file://output_video.mkv)"
     )
 
     parser.add_argument(

@@ -18,6 +18,7 @@ CMD_WFBRX="wfb_rx -p 16 -i 7669206 -u 14551 -K /etc/gs.key $IFNAME"
 CMD_MSPOSD="./msposd --master 127.0.0.1:14551 --osd -r 50 --ahi 0 --matrix 11 --subtitle ../../"
 # python3 ./utils/yolo.py rtp://@:5600 --input-codec=h265 
 CMD_YOLO="python3 ./utils/yolo.py rtp://@:5600"
+CMD_YOLO_EXT="--bitrate=8000000"
 
 # Define the module's lock file directory (ensure the directory exists)
 LOCK_DIR="/tmp/module_locks"
@@ -103,8 +104,8 @@ start() {
 
     # Step 5: Start yolo script
     echo "Starting yolo..."
-    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} $@"
+    OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mkv"
+    CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} ${CMD_YOLO_EXT}"
     echo ${CMD_YOLO}
     ${CMD_YOLO} $@ ${CMD_NULL} &
     echo $! > $YOLO_PIDFILE
@@ -137,7 +138,7 @@ ostart() {
     speedup
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mp4"
-    CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} $@"
+    CMD_YOLO="${CMD_YOLO} ${OUTPUT_FILE} ${CMD_YOLO_EXT}"
     echo ${CMD_YOLO}
     ${CMD_YOLO} $@ ${CMD_NULL} &
     echo $! > $YOLO_PIDFILE
