@@ -70,7 +70,6 @@ Positional arguments:
 
 Optional arguments:
     --no-headless       Enable the OpenGL GUI window (default: headless mode is enabled)
-    --interpolate       Enable the frame interpolated (default: interpolate is disabled)
     --model <str>       Set the model to use (default: 11n; options: 11n, 5nu, 8n, 8s)
     -h, --help          Show this help message and exit.
 
@@ -83,54 +82,6 @@ Examples:
 def handle_interrupt(signal_num, frame):
     print("yolo set exit_flag ... ...")
     exit_flag.set()
-
-def interpolate(model, frame, paths, class_indices):
-    tracker = model.predictor.trackers[0]
-    tracks = [t for t in tracker.tracked_stracks if t.is_activated]
-    # Apply Kalman filter to get predicted locations
-    tracker.multi_predict(tracks)
-    tracker.frame_id += 1
-    boxes = [np.hstack([t.xyxy, t.track_id, t.score, t.cls]) for t in tracks]
-
-    # Update frame_id in tracks
-    def update_fid(t, fid):
-        t.frame_id = fid
-    [update_fid(t, tracker.frame_id) for t in tracks]
-
-    if not boxes:
-        return None
-
-    # If paths is empty or None, pass None for the current path
-    current_path = None if not paths else paths[-1]
-
-    return Results(frame, current_path, model.names, np.array(boxes))
-
-def interpolate_frame(frame_id, start_frame, stride, model, frame, class_indices):
-    global paths  # Declare `paths` as a global variable
-    results = []  # Initialize a list to store results
-
-    # Log.Verbose(f"YOLO: paths = {paths}, frame_id = ({frame_id})")
-
-    # Check if interpolation is needed
-    if frame_id % stride != 0 and frame_id >= start_frame:
-        # Interpolation mode
-        result = interpolate(model, frame, None if not paths else paths[-1], class_indices)
-        if result is not None:
-            results.append(result)
-    else:
-        # Normal tracking mode
-        tracked_results = model.track(frame, persist=True, verbose=True, classes=class_indices, imgsz=[640, 640])
-        results.extend(tracked_results)  # Add all tracked results
-
-    # Update the `paths` list
-    for result in results:
-        if result.path is not None:
-            if paths is None:
-                paths = []  # Initialize the `paths` list
-            paths.append(result.path)
-            Log.Verbose(f"YOLO: paths updated with result.path = ({result.path})")
-
-    return results
 
 def predict_frame(frame_id, model, frame, class_indices):
     results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[640, 640])
@@ -179,13 +130,6 @@ def main():
         action="store_false",
         dest="headless",
         help="Enable the OpenGL GUI window (default: headless mode is enabled)"
-    )
-
-    parser.add_argument(
-        "--interpolate",
-        action="store_true",
-        dest="interpolate",
-        help="Enable interpolate frame (default: interpolate is disabled)"
     )
 
     parser.add_argument(
@@ -243,10 +187,6 @@ def main():
     # capture frames until EOS or user exits
     numFrames = 0
 
-    # interpolate method tracking objects
-    stride      = 3
-    start_frame = 5
-
     while True:
         # capture the next image
         img = capture_image(input)
@@ -300,18 +240,14 @@ def main():
         cv2_frame = cudaToNumpy(img)
 
         if numFrames % FRAME_SKIP_CNT == 0 or numFrames < 15:
-            Log.Verbose(f"YOLO: captured {numFrames} frames ({img.width} x {img.height}) at {output.GetFrameRate():.1f} FPS")
+            Log.Verbose(f"YOLO: captured {numFrames} frames ({img.width} x {img.height}) at {input.GetFrameRate():.1f} FPS")
             
             # Set the window title with the FPS value
             window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {avg_fps:.2f}"
             #cv2.setWindowTitle("YOLO Prediction", window_title)
 
-        if args.interpolate:
-            # Interpolate if we reach start_frame and the current frame is not divisible by stride
-            results = interpolate_frame(numFrames, start_frame, stride, model, cv2_frame, class_indices)
-        else:
-            # Predict using Yolo algorithm
-            results = predict_frame(numFrames, model, cv2_frame, class_indices)
+        # Predict using Yolo algorithm
+        results = predict_frame(numFrames, model, cv2_frame, class_indices)
 
         if len(results) > 0 and hasattr(results[0], 'plot'):
             annotated_frame = results[0].plot()
