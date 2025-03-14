@@ -130,7 +130,7 @@ ostart() {
     speedup
     export DISPLAY=:0
     OUTPUT_FILE="file://$(date +"%Y-%m-%d_%H-%M-%S").mkv"
-    CMD_VIDEO="${CMD_VIDEO} ${OUTPUT_FILE}"
+    CMD_VIDEO="${CMD_VIDEO} ${OUTPUT_FILE} ${CMD_VIDEO_EXT}"
     echo ${CMD_VIDEO}
     ${CMD_VIDEO} $@ ${CMD_NULL} &
     echo $! > $VIDEO_PIDFILE
