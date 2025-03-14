@@ -223,10 +223,7 @@ def main():
     # Configurable list of target classes to detect
     class_names = model.names  # This is likely a dictionary {index: class_name}
     configurable_classes = [
-        'person', 'bicycle', 'car', 'motorcycle', 'bus', 
-        'truck', 'bench', 'bird', 'cat', 'dog', 
-        'chair', 'couch', 'bed', 'dining table', 'tv', 
-        'laptop', 'bottle', 'cup'
+        'person', 'car', 'motorcycle', 'bus', 'truck', 'airplane', 'boat'
     ]  # User-defined classes to detect
 
     # Convert class_names dict to list of class names and map them to indices
