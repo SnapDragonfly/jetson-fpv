@@ -35,15 +35,19 @@ from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
 
+# Define object detection and tracking interval
+CONFIDENCE_THRESHOLD  = 0.5
+TRACKING_INTERVAL     = 1
+
 # Define font color as a parameter (e.g., white or yellow)
-FONT_SCALE = 0.6
-FONT_COLOR = (255, 255, 255)  # White color
-# FONT_COLOR = (0, 255, 255)  # Uncomment for yellow text
+COLOR_WHITE   = (255, 255, 255)
+COLOR_YELLOW  = (0, 255, 255)
+
+FONT_SCALE     = 0.6
 FONT_THICKNESS = 1
 BOX_THICKNESS  = 1
 
-FRAME_SKIP_CNT = 25
-fps_window = deque(maxlen=FRAME_SKIP_CNT)
+FRAME_RATE_ESTIMATE_CNT = 60
 
 # thread exit control:
 exit_flag = threading.Event()
@@ -133,6 +137,14 @@ def main():
     )
 
     parser.add_argument(
+        "--refresh-rate",
+        type=int,
+        default=60,
+        dest="refresh_rate",
+        help="Set the refresh_rate (default: 30)"
+    )
+
+    parser.add_argument(
         "--model",
         type=str,
         default="11n",
@@ -181,11 +193,16 @@ def main():
     output = videoOutput(args.output, argv=sys.argv)
 
     # Initialize variables for Windows/FPS calculation
-    previous_time = time.time()
-    first_frame_check = True
+    previous_time      = time.time()
+    refresh_rate       = args.refresh_rate
+    first_frame_check  = True
+    chk_inference_time = False
+    max_inference_time    = 0
+    latest_inference_time = 0
 
     # capture frames until EOS or user exits
     numFrames = 0
+    results = []
 
     while True:
         # capture the next image
@@ -197,17 +214,14 @@ def main():
                 break
             continue  
 
-        # Calculate FPS
+        # Calculate max inference time
         current_time = time.time()
         elapsed_time = current_time - previous_time
-        fps = 1.0 / elapsed_time if elapsed_time > 0 else 0
         previous_time = current_time
-
-        fps_window.append(fps)
-        avg_fps = sum(fps_window) / len(fps_window)
 
         if first_frame_check:
             first_frame_check = False
+            TRACKING_INTERVAL = max(1, round(input.GetFrameRate() / refresh_rate))
 
             # Get the current screen resolution
             screen = screeninfo.get_monitors()[0]  # Assuming the first monitor
@@ -222,7 +236,7 @@ def main():
             if screen_width <= img_width and screen_height <= img_height:
                 cv2.namedWindow(window_title, cv2.WND_PROP_FULLSCREEN)
                 cv2.setWindowProperty(window_title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-                Log.Verbose(f"YOLO:  Full screen {screen_width} x {screen_height}")
+                Log.Verbose(f"YOLO:  Full screen {screen_width} x {screen_height}, Interval {TRACKING_INTERVAL}")
             else:
                 #cv2.namedWindow(window_title, cv2.WND_PROP_FULLSCREEN)
                 #cv2.namedWindow(window_title, cv2.WND_PROP_NORMAL)
@@ -232,33 +246,72 @@ def main():
                 window_x = (screen_width - img_width) // 2
                 window_y = (screen_height - img_height) // 2
                 cv2.moveWindow(window_title, window_x, window_y)
-                Log.Verbose(f"YOLO:  Image size ({img.width} x {img.height})")
-            
-        numFrames += 1
+                Log.Verbose(f"YOLO:  Image size ({img.width} x {img.height}, Interval {TRACKING_INTERVAL})")
 
         # Perform inference on the frame using YOLO
         cv2_frame = cudaToNumpy(img)
 
-        if numFrames % FRAME_SKIP_CNT == 0 or numFrames < 15:
-            Log.Verbose(f"YOLO: captured {numFrames} frames ({img.width} x {img.height}) at {input.GetFrameRate():.1f} FPS")
+        if numFrames % FRAME_RATE_ESTIMATE_CNT == 0 or numFrames < 15:
+            Log.Verbose(f"YOLO: captured {numFrames} frames ({img.width} x {img.height}) at {input.GetFrameRate():.1f}/{output.GetFrameRate():.1f} FPS")
             
             # Set the window title with the FPS value
-            window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | FPS: {avg_fps:.2f}"
+            window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}"
             #cv2.setWindowTitle("YOLO Prediction", window_title)
 
         # Predict using Yolo algorithm
-        results = predict_frame(numFrames, model, cv2_frame, class_indices)
-
-        if len(results) > 0 and hasattr(results[0], 'plot'):
-            annotated_frame = results[0].plot()
+        if numFrames % TRACKING_INTERVAL == 0:
+            results = predict_frame(numFrames, model, cv2_frame, class_indices)
+            chk_inference_time = True
+            if(TRACKING_INTERVAL == 1):
+                latest_inference_time = elapsed_time
+                if (latest_inference_time > max_inference_time and numFrames > 5):
+                    max_inference_time = latest_inference_time
+                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
+                #else:
+                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
         else:
-            annotated_frame = cv2_frame.copy()
+            if chk_inference_time:
+                chk_inference_time = False
+                latest_inference_time = elapsed_time
+                if (latest_inference_time > max_inference_time and numFrames > 5): 
+                    max_inference_time = latest_inference_time
+                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
+                #else:
+                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
+
+        annotated_frame = cv2_frame.copy()
+        if len(results) > 0 and hasattr(results[0], 'plot'):
+            # loop over the detections
+            for result in results[0].boxes.data.tolist():
+                # extract the confidence (i.e., probability) associated with the prediction
+                confidence = result[4]
+
+                # filter out weak detections by ensuring the 
+                # confidence is greater than the minimum confidence
+                if float(confidence) < CONFIDENCE_THRESHOLD:
+                    continue
+
+                # if the confidence is greater than the minimum confidence,
+                # get the bounding box and the class id
+                xmin, ymin, xmax, ymax = int(result[0]), int(result[1]), int(result[2]), int(result[3])
+                class_id = int(result[5])
+                class_name = results[0].names[class_id]
+
+                #Log.Verbose(f"YOLO: {class_id} --> {xmin},{ymin},{xmax},{ymax} - {confidence}")
+
+                # add the bounding box (x, y, w, h), confidence and class id to the results list
+                # draw the bounding box and the track id
+                cv2.rectangle(annotated_frame, (xmin, ymin), (xmax, ymax), COLOR_YELLOW, 2)
+
+                if numFrames % TRACKING_INTERVAL == 0:
+                    cv2.putText(annotated_frame, str(class_name), (xmin + 5, ymin - 8),cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
+                    #cv2.putText(annotated_frame, str(class_id), (xmin + 5, ymin - 8),cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)               
         
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
         text_x = img.width - text_size[0] - 10  # right
         text_y = 20  # to the top
-        cv2.putText(annotated_frame, window_title, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_COLOR, FONT_THICKNESS)
+        cv2.putText(annotated_frame, window_title, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
 
         # Update the window title and display the frame with detections
         cv2.imshow("YOLO Prediction", annotated_frame)
@@ -268,6 +321,8 @@ def main():
         
         # update the title bar
         output.SetStatus("Video Viewer | {:d}x{:d} | {:.1f} FPS".format(img.width, img.height, output.GetFrameRate()))
+
+        numFrames += 1
 
         # exit on input/output EOS
         if not input.IsStreaming() or not output.IsStreaming():
