@@ -23,6 +23,7 @@
 
 import sys
 import cv2
+import torch
 import time
 import signal
 import argparse
@@ -33,15 +34,18 @@ import numpy as np
 from collections import deque
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
+from ultralytics.engine.results import Boxes
 from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
 
 # Define object detection and tracking interval
 CONFIDENCE_THRESHOLD  = 0.5
 TRACKING_INTERVAL     = 1
 
-# Define font color as a parameter (e.g., white or yellow)
-COLOR_WHITE   = (255, 255, 255)
-COLOR_YELLOW  = (0, 255, 255)
+# Define font color in BGR format (e.g., white or yellow)
+COLOR_WHITE    = (255, 255, 255)
+COLOR_YELLOW   = (0, 255, 255)
+COLOR_RED      = (0, 0, 255)
+COLOR_BLUE     = (255, 0, 0)
 
 FONT_SCALE     = 0.6
 FONT_THICKNESS = 1
@@ -74,6 +78,7 @@ Positional arguments:
 
 Optional arguments:
     --no-headless        Enable the OpenGL GUI window (default: headless mode is enabled)
+    --no-detect-box      Disable detect area box (default: enable)
     --refresh-rate <int> Set the refresh_rate (default: 30)
     --confidence <float> Set YOLO confidence (default: 0.5)
     --model <str>        Set the model to use (default: 11n; options: 11n, 5nu, 8n, 8s)
@@ -89,9 +94,94 @@ def handle_interrupt(signal_num, frame):
     print("yolo set exit_flag ... ...")
     exit_flag.set()
 
-def predict_frame(frame_id, model, frame, class_indices):
-    results = model.predict(source=frame, show=False, verbose=False, classes=class_indices, imgsz=[640, 640])
+def predict_frame(frame_id, model, frame, crop_height, crop_width, class_indices):
+    original_height, original_width = frame.shape[:2]
+
+    start_x = (original_width - crop_width) // 2
+    start_y = (original_height - crop_height) // 2
+
+    # Crop the central region
+    cropped_frame = frame[start_y:start_y + crop_height, start_x:start_x + crop_width]
+
+    # Perform prediction
+    results = model.predict(
+        source=cropped_frame,
+        show=False,
+        verbose=False,
+        classes=class_indices,
+        imgsz=[640, 640]
+    )
+
+    # Convert coordinates back to the original coordinate system
+    for result in results:
+        if not hasattr(result, "boxes") or result.boxes is None or len(result.boxes) == 0:
+            continue  # Skip if no objects are detected
+
+        new_boxes = []
+        for bbox in result.boxes:
+            bbox_xyxy = bbox.xyxy.clone().detach().cpu().squeeze()  # Bounding box coordinates
+            conf = bbox.conf.item() if bbox.conf is not None else 0.0  # Confidence score
+            cls = bbox.cls.item() if bbox.cls is not None else -1     # Class index
+
+            # Ensure bbox shape is valid
+            if bbox_xyxy.numel() == 4:
+                # Offset the coordinates to map back to the original frame
+                bbox_xyxy[0] += start_x  # x1
+                bbox_xyxy[1] += start_y  # y1
+                bbox_xyxy[2] += start_x  # x2
+                bbox_xyxy[3] += start_y  # y2
+
+                # Concatenate full bbox information: [x1, y1, x2, y2, conf, cls]
+                full_bbox = torch.tensor([*bbox_xyxy, conf, cls]).unsqueeze(0)
+                new_boxes.append(full_bbox)
+
+        if new_boxes:
+            # Concatenate all bounding boxes and provide the original shape
+            result.boxes = Boxes(
+                torch.cat(new_boxes, dim=0).to('cuda'),
+                orig_shape=(original_height, original_width)
+            )
+
     return results
+
+def calculate_aspect_size(max_height, max_width, aspect_ratio=(4, 5), multiple=32):
+    aspect_h, aspect_w = aspect_ratio
+
+    # Calculate scaling factors to ensure dimensions do not exceed max size and are multiples of `multiple`
+    factor_h = max_height // (aspect_h * multiple)
+    factor_w = max_width // (aspect_w * multiple)
+
+    # Choose the smaller scaling factor to fit within the constraints
+    factor = min(factor_h, factor_w)
+
+    if factor <= 0:
+        return 0, 0  # Cannot meet the condition
+
+    # Calculate final dimensions
+    height = aspect_h * factor * multiple
+    width = aspect_w * factor * multiple
+
+    # Double-check that dimensions do not exceed the maximum allowed size
+    if height > max_height or width > max_width and factor > 0:
+        factor -= 1
+        height = aspect_h * factor * multiple
+        width = aspect_w * factor * multiple
+
+    return height, width
+
+def draw_center_crop_box(frame, crop_height, crop_width):
+    original_height, original_width = frame.shape[:2]
+
+    # Calculate coordinates for the center crop area
+    start_x = (original_width - crop_width) // 2
+    start_y = (original_height - crop_height) // 2
+    end_x = start_x + crop_width
+    end_y = start_y + crop_height
+
+    # Draw the rectangle box
+    cv2.rectangle(frame, (start_x, start_y), (end_x, end_y), COLOR_RED, BOX_THICKNESS)
+
+    return frame
 
 def capture_image(input):
     try:
@@ -136,6 +226,13 @@ def main():
         action="store_false",
         dest="headless",
         help="Enable the OpenGL GUI window (default: headless mode is enabled)"
+    )
+
+    parser.add_argument(
+        "--detect-box",
+        action="store_true",
+        dest="detect_box",
+        help="Disable detect area box (default: enable)"
     )
 
     parser.add_argument(
@@ -208,6 +305,7 @@ def main():
 
     refresh_rate       = args.refresh_rate
     yolo_confidence    = args.confidence
+    detect_box         = args.detect_box
     chk_inference_time = False
     max_inference_time    = 0
     latest_inference_time = 0
@@ -272,7 +370,8 @@ def main():
 
         # Predict using Yolo algorithm
         if numFrames % TRACKING_INTERVAL == 0:
-            results = predict_frame(numFrames, model, cv2_frame, class_indices)
+            corp_height, corp_width = calculate_aspect_size(img.height, img.width)
+            results = predict_frame(numFrames, model, cv2_frame, corp_height, corp_width, class_indices)
             chk_inference_time = True
             if(TRACKING_INTERVAL == 1):
                 latest_inference_time = elapsed_time
@@ -292,6 +391,9 @@ def main():
                     #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
 
         annotated_frame = cv2_frame.copy()
+        if detect_box:
+            draw_center_crop_box(annotated_frame, corp_height, corp_width)
+
         if len(results) > 0 and hasattr(results[0], 'plot'):
             # loop over the detections
             for result in results[0].boxes.data.tolist():
