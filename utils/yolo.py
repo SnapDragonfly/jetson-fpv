@@ -69,13 +69,15 @@ Description:
     View various types of video streams.
 
 Positional arguments:
-    input               URI of the input stream
-    output              URI of the output stream (default: file://output_video.mp4)
+    input                URI of the input stream
+    output               URI of the output stream (default: file://output_video.mp4)
 
 Optional arguments:
-    --no-headless       Enable the OpenGL GUI window (default: headless mode is enabled)
-    --model <str>       Set the model to use (default: 11n; options: 11n, 5nu, 8n, 8s)
-    -h, --help          Show this help message and exit.
+    --no-headless        Enable the OpenGL GUI window (default: headless mode is enabled)
+    --refresh-rate <int> Set the refresh_rate (default: 30)
+    --confidence <float> Set YOLO confidence (default: 0.5)
+    --model <str>        Set the model to use (default: 11n; options: 11n, 5nu, 8n, 8s)
+    -h, --help           Show this help message and exit.
 
 Examples:
     python yolo.py "file://input_video.mp4" "file://output_video.mp4"
@@ -145,6 +147,14 @@ def main():
     )
 
     parser.add_argument(
+        "--confidence",
+        type=float,
+        default=0.5,
+        dest="confidence",
+        help="Set YOLO confidence (default: 0.5)"
+    )
+
+    parser.add_argument(
         "--model",
         type=str,
         default="11n",
@@ -194,8 +204,10 @@ def main():
 
     # Initialize variables for Windows/FPS calculation
     previous_time      = time.time()
-    refresh_rate       = args.refresh_rate
     first_frame_check  = True
+
+    refresh_rate       = args.refresh_rate
+    yolo_confidence    = args.confidence
     chk_inference_time = False
     max_inference_time    = 0
     latest_inference_time = 0
@@ -288,7 +300,7 @@ def main():
 
                 # filter out weak detections by ensuring the 
                 # confidence is greater than the minimum confidence
-                if float(confidence) < CONFIDENCE_THRESHOLD:
+                if float(confidence) < yolo_confidence:
                     continue
 
                 # if the confidence is greater than the minimum confidence,
