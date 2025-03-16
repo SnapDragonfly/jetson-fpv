@@ -309,6 +309,7 @@ def main():
     chk_inference_time = False
     max_inference_time    = 0
     latest_inference_time = 0
+    fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
 
     # capture frames until EOS or user exits
     numFrames = 0
@@ -328,6 +329,11 @@ def main():
         current_time = time.time()
         elapsed_time = current_time - previous_time
         previous_time = current_time
+
+        # Update FPS display
+        if elapsed_time > 0:
+            fps_history.append(1.0 / elapsed_time)
+        avg_fps = sum(fps_history) / len(fps_history)
 
         if first_frame_check:
             first_frame_check = False
@@ -365,7 +371,7 @@ def main():
             Log.Verbose(f"YOLO: captured {numFrames} frames ({img.width} x {img.height}) at {input.GetFrameRate():.1f}/{output.GetFrameRate():.1f} FPS")
             
             # Set the window title with the FPS value
-            window_title = f"YOLO Prediction - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}"
+            window_title = f"YOLO Prediction - {avg_fps:.1f} | {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}"
             #cv2.setWindowTitle("YOLO Prediction", window_title)
 
         # Predict using Yolo algorithm
