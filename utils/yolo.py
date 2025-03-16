@@ -51,7 +51,8 @@ FONT_SCALE     = 0.6
 FONT_THICKNESS = 1
 BOX_THICKNESS  = 1
 
-FRAME_RATE_ESTIMATE_CNT = 60
+FRAME_RATE_ESTIMATE_CNT  = 60
+FRAME_DELAY_ESTIMATE_CNT = 5
 
 # thread exit control:
 exit_flag = threading.Event()
@@ -306,9 +307,20 @@ def main():
     refresh_rate       = args.refresh_rate
     yolo_confidence    = args.confidence
     detect_box         = args.detect_box
-    chk_inference_time = False
-    max_inference_time    = 0
-    latest_inference_time = 0
+
+    chk_loop_time      = False
+    max_loop_time      = 0
+    latest_loop_time   = 0
+
+    max_inference_time        = 0
+    latest_inference_time     = 0
+
+    max_cudaToNumpy_time      = 0
+    latest_cudaToNumpy_time   = 0
+
+    max_draw_box_time         = 0
+    latest_draw_box_time      = 0
+
     fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
 
     # capture frames until EOS or user exits
@@ -365,37 +377,53 @@ def main():
                 Log.Verbose(f"YOLO:  Image size ({img.width} x {img.height}, Interval {TRACKING_INTERVAL})")
 
         # Perform inference on the frame using YOLO
+        mark_time = time.time()
         cv2_frame = cudaToNumpy(img)
+        latest_cudaToNumpy_time = time.time() - mark_time
+        if latest_cudaToNumpy_time > max_cudaToNumpy_time and numFrames > FRAME_DELAY_ESTIMATE_CNT:
+            max_cudaToNumpy_time = latest_cudaToNumpy_time
 
         if numFrames % FRAME_RATE_ESTIMATE_CNT == 0 or numFrames < 15:
             Log.Verbose(f"YOLO: captured {numFrames} frames ({img.width} x {img.height}) at {input.GetFrameRate():.1f}/{output.GetFrameRate():.1f} FPS")
             
             # Set the window title with the FPS value
-            window_title = f"YOLO Prediction - {avg_fps:.1f} | {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}"
+            window_title = (
+                "YOLO Prediction - " + f"{avg_fps:.1f} | "
+                + f"{img.width:d}x{img.height:d} | "
+                + f"{latest_loop_time:.3f}/{latest_cudaToNumpy_time:.3f}/{latest_inference_time:.3f}/{latest_draw_box_time:.3f} | "
+                + f"{max_loop_time:.3f}/{max_cudaToNumpy_time:.3f}/{max_inference_time:.3f}/{max_draw_box_time:.3f} "
+            )
             #cv2.setWindowTitle("YOLO Prediction", window_title)
 
         # Predict using Yolo algorithm
         if numFrames % TRACKING_INTERVAL == 0:
             corp_height, corp_width = calculate_aspect_size(img.height, img.width)
-            results = predict_frame(numFrames, model, cv2_frame, corp_height, corp_width, class_indices)
-            chk_inference_time = True
-            if(TRACKING_INTERVAL == 1):
-                latest_inference_time = elapsed_time
-                if (latest_inference_time > max_inference_time and numFrames > 5):
-                    max_inference_time = latest_inference_time
-                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
-                #else:
-                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
-        else:
-            if chk_inference_time:
-                chk_inference_time = False
-                latest_inference_time = elapsed_time
-                if (latest_inference_time > max_inference_time and numFrames > 5): 
-                    max_inference_time = latest_inference_time
-                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
-                #else:
-                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_inference_time:.3f}/{max_inference_time:.3f}")
 
+            mark_time = time.time()
+            results = predict_frame(numFrames, model, cv2_frame, corp_height, corp_width, class_indices)
+            latest_inference_time = time.time() - mark_time
+            if latest_inference_time > max_inference_time and numFrames > FRAME_DELAY_ESTIMATE_CNT:
+                max_inference_time = latest_inference_time
+
+            chk_loop_time = True
+            if(TRACKING_INTERVAL == 1):
+                latest_loop_time = elapsed_time
+                if latest_loop_time > max_loop_time and numFrames > FRAME_DELAY_ESTIMATE_CNT:
+                    max_loop_time = latest_loop_time
+                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_loop_time:.3f}/{max_loop_time:.3f}")
+                #else:
+                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_loop_time:.3f}/{max_loop_time:.3f}")
+        else:
+            if chk_loop_time:
+                chk_loop_time = False
+                latest_loop_time = elapsed_time
+                if latest_loop_time > max_loop_time and numFrames > FRAME_DELAY_ESTIMATE_CNT: 
+                    max_loop_time = latest_loop_time
+                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_loop_time:.3f}/{max_loop_time:.3f}")
+                #else:
+                    #Log.Verbose(f"YOLO {numFrames} - {img.width:d}x{img.height:d} | {latest_loop_time:.3f}/{max_loop_time:.3f}")
+
+        mark_time = time.time()
         annotated_frame = cv2_frame.copy()
         if detect_box:
             draw_center_crop_box(annotated_frame, corp_height, corp_width)
@@ -426,12 +454,16 @@ def main():
                 if numFrames % TRACKING_INTERVAL == 0:
                     cv2.putText(annotated_frame, str(class_name), (xmin + 5, ymin - 8),cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
                     #cv2.putText(annotated_frame, str(class_id), (xmin + 5, ymin - 8),cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)               
-        
+
         # FPS text
         text_size = cv2.getTextSize(window_title, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
         text_x = img.width - text_size[0] - 10  # right
         text_y = 20  # to the top
         cv2.putText(annotated_frame, window_title, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
+
+        latest_draw_box_time = time.time() - mark_time
+        if latest_draw_box_time > max_draw_box_time and numFrames > FRAME_DELAY_ESTIMATE_CNT: 
+            max_draw_box_time = latest_draw_box_time
 
         # Update the window title and display the frame with detections
         cv2.imshow("YOLO Prediction", annotated_frame)
