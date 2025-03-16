@@ -14,6 +14,7 @@ from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from ultralytics.engine.results import Boxes
 from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
+from deep_sort_realtime.deepsort_tracker import DeepSort
 
 # Global configurations
 CONFIDENCE_THRESHOLD     = 0.5
@@ -55,7 +56,7 @@ class ThreadSafeStats:
 
 def handle_interrupt(signal_num, frame):
     exit_flag.set()
-    print("YOLO set exit_flag ... ...\n")
+    print("YOLO set exit_flag ... ...")
 
 def calculate_aspect_size(max_height, max_width, aspect_ratio=(4, 5), multiple=32):
     aspect_h, aspect_w = aspect_ratio
@@ -152,11 +153,15 @@ def video_thread(args, model_info, stats):
         except Exception as e:
             print(f"Video thread exception: {e}")
             break
-    print("Video thread exited normally\n")
+    print("Video thread exited normally")
 
 def inference_thread(args, model_info, stats):
+    # YOLO model initialization
     model = YOLO(model_info['model_path'])
     configurable_classes = model_info['class_names']
+
+    # DeepSort tracking initialization
+    deepsort = DeepSort(max_age=10, n_init=2, max_iou_distance=0.7, nn_budget=50)
 
     # Configurable list of target classes to detect
     class_names = model.names  # This is likely a dictionary {index: class_name}
@@ -169,6 +174,7 @@ def inference_thread(args, model_info, stats):
 
     window_initialized = False
     results = []
+    tracks = []
 
     while not exit_flag.is_set():
         try:
@@ -192,38 +198,52 @@ def inference_thread(args, model_info, stats):
                 window_initialized = True
 
             # Perform inference
-            # Predict using Yolo algorithm
-            if frame_id % tracking_interval == 0:
-                inference_start = time.time()
-                corp_height, corp_width = calculate_aspect_size(height, width)
-                results = predict_frame(model, cv2_frame, corp_height, corp_width, class_indices)
-                inference_time = time.time() - inference_start
-            else:
-                inference_time = 0
-
-            # Draw results
-            draw_start = time.time()
+            detections = []
+            inference_start = time.time()
             annotated_frame = cv2_frame.copy()
+            if frame_id % tracking_interval == 0:
+                corp_height, corp_width = calculate_aspect_size(height, width)
+
+                # Predict using Yolo algorithm
+                results = predict_frame(model, annotated_frame, corp_height, corp_width, class_indices)
+
+                # Prepare detections for DeepSort (xywh format)
+                for result in results[0].boxes.data.tolist():
+                    x1, y1, x2, y2, conf, cls = map(float, result)
+                    if conf < args.confidence:
+                        continue
+                    bbox = [x1, y1, x2 - x1, y2 - y1]  # Convert to [x, y, w, h]
+                    detections.append((bbox, conf, cls))
+                    #print(f"{frame_id} detections - {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]}")
+
+            # DeepSort tracking update
+            tracks = deepsort.update_tracks(detections, frame=annotated_frame)
+            inference_time = time.time() - inference_start
+
+            # Draw detect box
+            draw_start = time.time()
             if args.detect_box:
                 cv2.rectangle(annotated_frame, 
                             ((width - corp_width)//2, (height - corp_height)//2),
                             ((width + corp_width)//2, (height + corp_height)//2),
                             COLOR_RED, BOX_THICKNESS)
 
-            # Draw detection boxes
-            if results:
-                for result in results[0].boxes.data.tolist():
-                    x1, y1, x2, y2, conf, cls = map(float, result)
-                    if conf < args.confidence:
-                        continue
-                    cv2.rectangle(annotated_frame, 
-                                (int(x1), int(y1)), 
-                                (int(x2), int(y2)), 
-                                COLOR_YELLOW, BOX_THICKNESS)
-                    cv2.putText(annotated_frame, 
-                              f"{results[0].names[int(cls)]} {conf:.2f}",
-                              (int(x1)+5, int(y1)-8), 
-                              cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
+            # Draw detection and tracking boxes
+            for track in tracks:
+                ltrb = track.to_ltrb()
+                x, y, w, h = map(int, ltrb)
+
+                if not track.is_confirmed(): # Not confirmed object
+                    cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_BLUE, BOX_THICKNESS)
+                    cv2.putText(annotated_frame, f"{conf:.2f}", (x, y - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_BLUE, FONT_THICKNESS)
+                    continue
+
+                track_id = track.track_id
+                cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_YELLOW, BOX_THICKNESS)
+                cv2.putText(annotated_frame, f"{conf:.2f} ID {track_id}", (x, y - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
+                #print(f"{frame_id} track - {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]}")
 
             # Update performance display
             with stats_lock:
@@ -263,7 +283,7 @@ def inference_thread(args, model_info, stats):
         except Exception as e:
             print(f"Inference thread exception: {e}")
             break
-    print("Inference thread exited normally\n")
+    print("Inference thread exited normally")
 
 def main():
     signal.signal(signal.SIGINT, handle_interrupt)
@@ -276,6 +296,9 @@ def main():
     parser.add_argument("--confidence", type=float, default=0.5)
     parser.add_argument("--model", type=str, default="11n")
     args = parser.parse_args()
+
+    if args.headless:
+        sys.argv.append("--headless")
 
     # Model configurations
     model_paths = {
