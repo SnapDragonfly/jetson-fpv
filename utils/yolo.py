@@ -38,30 +38,28 @@ from ultralytics.engine.results import Boxes
 from jetson_utils import videoSource, videoOutput, Log, cudaToNumpy
 
 # Define object detection and tracking interval
-CONFIDENCE_THRESHOLD  = 0.5
-TRACKING_INTERVAL     = 1
+CONFIDENCE_THRESHOLD     = 0.5
+TRACKING_INTERVAL        = 1
 
-# Define font color in BGR format (e.g., white or yellow)
-COLOR_WHITE    = (255, 255, 255)
-COLOR_YELLOW   = (0, 255, 255)
-COLOR_RED      = (0, 0, 255)
-COLOR_BLUE     = (255, 0, 0)
-
-FONT_SCALE     = 0.6
-FONT_THICKNESS = 1
-BOX_THICKNESS  = 1
-
+# Define performance related pre-settings
 FRAME_RATE_ESTIMATE_CNT  = 60
 FRAME_DELAY_ESTIMATE_CNT = 5
 
+# Define font color in BGR format or constants (e.g., white or yellow)
+COLOR_WHITE              = (255, 255, 255)
+COLOR_YELLOW             = (0, 255, 255)
+COLOR_RED                = (0, 0, 255)
+COLOR_BLUE               = (255, 0, 0)
+COLOR_GREEN              = (0, 255, 0)
+
+FONT_SCALE               = 0.6
+FONT_THICKNESS           = 1
+BOX_THICKNESS            = 1
+
+YOLO_PREDICTION_STR      = "YOLO Prediction"
+
 # thread exit control:
 exit_flag = threading.Event()
-
-# window title
-window_title = "YOLO Prediction"
-
-# path for interpolate tracking method
-paths        = []
 
 def display_help():
     """
@@ -208,57 +206,21 @@ def main():
                                     formatter_class=argparse.RawTextHelpFormatter, 
                                     epilog=videoSource.Usage() + videoOutput.Usage() + Log.Usage())
 
-    parser.add_argument(
-        "input", 
-        type=str, 
-        help="URI of the input stream"
-    )
+    parser.add_argument("input", type=str, 
+                        help="URI of the input stream")
+    parser.add_argument("output", type=str, default="file://output_video.mkv", nargs='?',
+                        help="URI of the output stream (default: file://output_video.mkv)")
 
-    parser.add_argument(
-        "output",
-        type=str,
-        default="file://output_video.mkv",
-        nargs='?',
-        help="URI of the output stream (default: file://output_video.mkv)"
-    )
-
-    parser.add_argument(
-        "--no-headless",
-        action="store_false",
-        dest="headless",
-        help="Enable the OpenGL GUI window (default: headless mode is enabled)"
-    )
-
-    parser.add_argument(
-        "--detect-box",
-        action="store_true",
-        dest="detect_box",
-        help="Disable detect area box (default: enable)"
-    )
-
-    parser.add_argument(
-        "--refresh-rate",
-        type=int,
-        default=60,
-        dest="refresh_rate",
-        help="Set the refresh_rate (default: 30)"
-    )
-
-    parser.add_argument(
-        "--confidence",
-        type=float,
-        default=0.5,
-        dest="confidence",
-        help="Set YOLO confidence (default: 0.5)"
-    )
-
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="11n",
-        dest="model",
-        help="Set the model 11n(default)/5nu/8n"
-    )
+    parser.add_argument("--no-headless", action="store_false", dest="headless",
+                        help="Enable the OpenGL GUI window (default: headless mode is enabled)")
+    parser.add_argument("--no-detect-box", action="store_true", dest="detect_box",
+                        help="Disable detect area box (default: detect area is unboxed)")
+    parser.add_argument("--refresh-rate", type=int, default=60, dest="refresh_rate",
+                        help="Set the refresh_rate (default: 30)")
+    parser.add_argument("--confidence", type=float, default=0.5, dest="confidence",
+                        help="Set YOLO confidence (default: 0.5)")
+    parser.add_argument("--model", type=str, default="11n", dest="model",
+                        help="Set the model 11n(default)/5nu/8n")
 
     try:
         args = parser.parse_known_args()[0]
@@ -301,27 +263,26 @@ def main():
     output = videoOutput(args.output, argv=sys.argv)
 
     # Initialize variables for Windows/FPS calculation
-    previous_time      = time.time()
-    first_frame_check  = True
+    previous_time             = time.time()
+    first_frame_check         = True
 
-    refresh_rate       = args.refresh_rate
-    yolo_confidence    = args.confidence
-    detect_box         = args.detect_box
+    refresh_rate              = args.refresh_rate
+    yolo_confidence           = args.confidence
+    detect_box                = args.detect_box
 
-    chk_loop_time      = False
-    max_loop_time      = 0
-    latest_loop_time   = 0
+    chk_loop_time             = False
+    max_loop_time             = 0
+    latest_loop_time          = 0
 
     max_inference_time        = 0
     latest_inference_time     = 0
-
     max_cudaToNumpy_time      = 0
     latest_cudaToNumpy_time   = 0
-
     max_draw_box_time         = 0
     latest_draw_box_time      = 0
 
     fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
+    window_title = YOLO_PREDICTION_STR
 
     # capture frames until EOS or user exits
     numFrames = 0
@@ -349,7 +310,7 @@ def main():
 
         if first_frame_check:
             first_frame_check = False
-            TRACKING_INTERVAL = max(1, round(input.GetFrameRate() / refresh_rate))
+            tracking_interval = max(TRACKING_INTERVAL, round(input.GetFrameRate() / refresh_rate))
 
             # Get the current screen resolution
             screen = screeninfo.get_monitors()[0]  # Assuming the first monitor
@@ -364,7 +325,7 @@ def main():
             if screen_width <= img_width and screen_height <= img_height:
                 cv2.namedWindow(window_title, cv2.WND_PROP_FULLSCREEN)
                 cv2.setWindowProperty(window_title, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-                Log.Verbose(f"YOLO:  Full screen {screen_width} x {screen_height}, Interval {TRACKING_INTERVAL}")
+                Log.Verbose(f"YOLO:  Full screen {screen_width} x {screen_height}, Interval {tracking_interval}")
             else:
                 #cv2.namedWindow(window_title, cv2.WND_PROP_FULLSCREEN)
                 #cv2.namedWindow(window_title, cv2.WND_PROP_NORMAL)
@@ -374,7 +335,7 @@ def main():
                 window_x = (screen_width - img_width) // 2
                 window_y = (screen_height - img_height) // 2
                 cv2.moveWindow(window_title, window_x, window_y)
-                Log.Verbose(f"YOLO:  Image size ({img.width} x {img.height}, Interval {TRACKING_INTERVAL})")
+                Log.Verbose(f"YOLO:  Image size ({img.width} x {img.height}, Interval {tracking_interval})")
 
         # Perform inference on the frame using YOLO
         mark_time = time.time()
@@ -388,15 +349,14 @@ def main():
             
             # Set the window title with the FPS value
             window_title = (
-                "YOLO Prediction - " + f"{avg_fps:.1f} | "
+                YOLO_PREDICTION_STR + " - " + f"{avg_fps:.1f} | "
                 + f"{img.width:d}x{img.height:d} | "
                 + f"{latest_loop_time:.3f}/{latest_cudaToNumpy_time:.3f}/{latest_inference_time:.3f}/{latest_draw_box_time:.3f} | "
                 + f"{max_loop_time:.3f}/{max_cudaToNumpy_time:.3f}/{max_inference_time:.3f}/{max_draw_box_time:.3f} "
             )
-            #cv2.setWindowTitle("YOLO Prediction", window_title)
 
         # Predict using Yolo algorithm
-        if numFrames % TRACKING_INTERVAL == 0:
+        if numFrames % tracking_interval == 0:
             corp_height, corp_width = calculate_aspect_size(img.height, img.width)
 
             mark_time = time.time()
@@ -406,7 +366,7 @@ def main():
                 max_inference_time = latest_inference_time
 
             chk_loop_time = True
-            if(TRACKING_INTERVAL == 1):
+            if 0 == tracking_interval:
                 latest_loop_time = elapsed_time
                 if latest_loop_time > max_loop_time and numFrames > FRAME_DELAY_ESTIMATE_CNT:
                     max_loop_time = latest_loop_time
@@ -451,7 +411,7 @@ def main():
                 # draw the bounding box and the track id
                 cv2.rectangle(annotated_frame, (xmin, ymin), (xmax, ymax), COLOR_YELLOW, BOX_THICKNESS)
 
-                if numFrames % TRACKING_INTERVAL == 0:
+                if numFrames % tracking_interval == 0:
                     cv2.putText(annotated_frame, str(class_name), (xmin + 5, ymin - 8),cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
                     #cv2.putText(annotated_frame, str(class_id), (xmin + 5, ymin - 8),cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)               
 
