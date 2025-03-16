@@ -415,7 +415,7 @@ def main():
 
                 # add the bounding box (x, y, w, h), confidence and class id to the results list
                 # draw the bounding box and the track id
-                cv2.rectangle(annotated_frame, (xmin, ymin), (xmax, ymax), COLOR_YELLOW, 2)
+                cv2.rectangle(annotated_frame, (xmin, ymin), (xmax, ymax), COLOR_YELLOW, BOX_THICKNESS)
 
                 if numFrames % TRACKING_INTERVAL == 0:
                     cv2.putText(annotated_frame, str(class_name), (xmin + 5, ymin - 8),cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
