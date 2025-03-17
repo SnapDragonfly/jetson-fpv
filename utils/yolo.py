@@ -114,6 +114,7 @@ def video_thread(args, model_info, stats):
     output = videoOutput(args.output, argv=sys.argv)
     tracking_interval = TRACKING_INTERVAL
     num_frames = 0
+    num_frames_dropped = 0
 
     while not exit_flag.is_set():
         try:
@@ -132,7 +133,8 @@ def video_thread(args, model_info, stats):
             if not frame_queue.full():
                 frame_queue.put((num_frames, cv2_frame, img.width, img.height, tracking_fps, tracking_interval))
             else:
-                print(f"Frame queue overflow!!!")
+                num_frames_dropped += 1
+                print(f"Frame queue overflow - {num_frames_dropped}")
 
             # Output original frame
             output.Render(img)
