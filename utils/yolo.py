@@ -44,15 +44,16 @@ stats_lock = threading.Lock()
 class ThreadSafeStats:
     def __init__(self):
         self.raw_fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
+
         self.inference_fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
-        self.max_loop_time = 0
-        self.latest_loop_time = 0
         self.max_inference_time = 0
+        self.min_inference_time = 9999
         self.latest_inference_time = 0
-        self.max_cuda_time = 0
-        self.latest_cuda_time = 0
-        self.max_draw_time = 0
-        self.latest_draw_time = 0
+
+        self.tracking_fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
+        self.max_tracking_time = 0
+        self.min_tracking_time = 9999
+        self.latest_tracking_time = 0
 
 def handle_interrupt(signal_num, frame):
     exit_flag.set()
@@ -122,9 +123,7 @@ def video_thread(args, model_info, stats):
                 continue
 
             # Convert and queue frame
-            cuda_start = time.time()
             cv2_frame = cudaToNumpy(img)
-            cuda_time = time.time() - cuda_start
 
             # Tracking parameters
             tracking_fps      = input.GetFrameRate()
@@ -132,18 +131,17 @@ def video_thread(args, model_info, stats):
 
             if not frame_queue.full():
                 frame_queue.put((num_frames, cv2_frame, img.width, img.height, tracking_fps, tracking_interval))
+            else:
+                print(f"Frame queue overflow!!!")
 
             # Output original frame
             output.Render(img)
 
             # Update statistics
             with stats_lock:
-                stats.latest_cuda_time = cuda_time
                 diff_time = time.time() - start_time
                 if diff_time > 0:
                     stats.raw_fps_history.append(1.0 / diff_time)
-                if cuda_time > stats.max_cuda_time:
-                    stats.max_cuda_time = cuda_time
             
             if not input.IsStreaming() or not output.IsStreaming():
                 exit_flag.set()
@@ -188,19 +186,20 @@ def inference_thread(args, model_info, stats):
             if not window_initialized:
                 screen = screeninfo.get_monitors()[0]
                 if screen.width <= width and screen.height <= height:
-                    cv2.namedWindow("YOLO Prediction", cv2.WND_PROP_FULLSCREEN)
-                    cv2.setWindowProperty("YOLO Prediction", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                    cv2.namedWindow(YOLO_PREDICTION_STR, cv2.WND_PROP_FULLSCREEN)
+                    cv2.setWindowProperty(YOLO_PREDICTION_STR, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                 else:
-                    cv2.namedWindow("YOLO Prediction", cv2.WND_PROP_AUTOSIZE)
+                    cv2.namedWindow(YOLO_PREDICTION_STR, cv2.WND_PROP_AUTOSIZE)
                     window_x = (screen.width - width) // 2
                     window_y = (screen.height - height) // 2
-                    cv2.moveWindow("YOLO Prediction", window_x, window_y)
+                    cv2.moveWindow(YOLO_PREDICTION_STR, window_x, window_y)
                 window_initialized = True
 
             # Perform inference
             detections = []
-            inference_start = time.time()
+            mark_start = time.time()
             annotated_frame = cv2_frame.copy()
+
             if frame_id % tracking_interval == 0:
                 corp_height, corp_width = calculate_aspect_size(height, width)
 
@@ -218,10 +217,8 @@ def inference_thread(args, model_info, stats):
 
             # DeepSort tracking update
             tracks = deepsort.update_tracks(detections, frame=annotated_frame)
-            inference_time = time.time() - inference_start
 
             # Draw detect box
-            draw_start = time.time()
             if args.detect_box:
                 cv2.rectangle(annotated_frame, 
                             ((width - corp_width)//2, (height - corp_height)//2),
@@ -232,49 +229,55 @@ def inference_thread(args, model_info, stats):
             for track in tracks:
                 ltrb = track.to_ltrb()
                 x, y, w, h = map(int, ltrb)
+                cls = int(track.det_class) if hasattr(track, 'det_class') else -1
+                class_name = class_names.get(cls, "Unknown") if cls != -1 else "Unknown"
 
                 if not track.is_confirmed(): # Not confirmed object
                     cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_BLUE, BOX_THICKNESS)
-                    cv2.putText(annotated_frame, f"{conf:.2f}", (x, y - 10),
+                    cv2.putText(annotated_frame, f"{class_name} {conf:.2f}", (x, y - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_BLUE, FONT_THICKNESS)
                     continue
 
                 track_id = track.track_id
                 cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_YELLOW, BOX_THICKNESS)
-                cv2.putText(annotated_frame, f"{conf:.2f} ID {track_id}", (x, y - 10),
+                cv2.putText(annotated_frame, f"{class_name} ID {track_id}", (x, y - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
                 #print(f"{frame_id} track - {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]}")
 
-            # Update performance display
+            # Update performance display 
             with stats_lock:
-                if inference_time != 0:
-                    stats.latest_inference_time = inference_time
+                if frame_id % tracking_interval == 0:
+                    stats.latest_inference_time = time.time() - mark_start
+                    stats.inference_fps_history.append(1.0 / stats.latest_inference_time)
+                    if stats.latest_inference_time > stats.max_inference_time:
+                        stats.max_inference_time = stats.latest_inference_time
+                    elif stats.latest_inference_time < stats.min_inference_time:
+                        stats.min_inference_time = stats.latest_inference_time
+                else:
+                    stats.latest_tracking_time = time.time() - mark_start
+                    stats.tracking_fps_history.append(1.0 / stats.latest_tracking_time)
+                    if stats.latest_tracking_time > stats.max_tracking_time:
+                        stats.max_tracking_time = stats.latest_tracking_time
+                    elif stats.latest_tracking_time < stats.min_tracking_time:
+                        stats.min_tracking_time = stats.latest_tracking_time
 
-                stats.latest_draw_time = time.time() - draw_start
-                if  frame_id > FRAME_DELAY_ESTIMATE_CNT:
-                    if inference_time > stats.max_inference_time:
-                        stats.max_inference_time = inference_time
-                    if stats.latest_draw_time > stats.max_draw_time:
-                        stats.max_draw_time = stats.latest_draw_time
-
-                if inference_time != 0:
-                    diff_time = stats.latest_inference_time + stats.latest_draw_time
-                    if diff_time > 0:
-                        stats.inference_fps_history.append(1.0 / diff_time)
-
+                tracking_fps  = sum(stats.tracking_fps_history)/len(stats.tracking_fps_history) if stats.tracking_fps_history else 0
                 inference_fps = sum(stats.inference_fps_history)/len(stats.inference_fps_history) if stats.inference_fps_history else 0
-                fps = sum(stats.raw_fps_history)/len(stats.raw_fps_history) if stats.raw_fps_history else 0
+                raw_fps       = sum(stats.raw_fps_history)/len(stats.raw_fps_history) if stats.raw_fps_history else 0
                 status_text = (YOLO_PREDICTION_STR + " - "
-                            + f"FPS: {fps:.1f}/{inference_fps:.1f} | "
-                            + f"CUDA: {stats.latest_cuda_time:.3f}/{stats.max_cuda_time:.3f} | "
-                            + f"Inference: {stats.latest_inference_time:.3f}/{stats.max_inference_time:.3f} | "
-                            + f"Draw: {stats.latest_draw_time:.3f}/{stats.max_draw_time:.3f}")
+                            + f"FPS: {raw_fps:.1f}/{tracking_fps:.1f}/{inference_fps:.1f} | "
+                            + f"Tracking: {stats.min_tracking_time:.3f}/{stats.latest_tracking_time:.3f}/{stats.max_tracking_time:.3f} | "
+                            + f"Inference: {stats.min_inference_time:.3f}/{stats.latest_inference_time:.3f}/{stats.max_inference_time:.3f}")
 
             # Display status info
             text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_THICKNESS)[0]
             cv2.putText(annotated_frame, status_text, 
                       (width - text_size[0] - 10, 30), 
                       cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
+
+            # We observed that the frame interruption,
+            # might be due to the queue being full and not processed in time.
+            # print(f"{frame_id} ")
 
             # Display frame
             cv2.imshow(YOLO_PREDICTION_STR, annotated_frame)
