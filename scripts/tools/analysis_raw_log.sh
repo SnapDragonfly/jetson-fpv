@@ -90,6 +90,10 @@ skip_len=0
 skip_max=0
 skip_packets_max=0
 
+perf_inf_min=9999
+perf_inf_max=0
+perf_track_min=9999
+perf_track_max=0
 ################################################################################
 # Stage 1: Initialization                                                      #
 ################################################################################
@@ -150,6 +154,18 @@ while read -r line; do
         if [[ $packets -gt $skip_packets_max ]]; then
             skip_packets_max=$packets
         fi
+    elif [[ $line == *"FRAME: inf_min"* ]]; then
+        #FRAME: inf_min 0.024784088134765625
+        perf_inf_min=$(echo "$line" | awk '{print $3}')
+    elif [[ $line == *"FRAME: inf_max"* ]]; then
+        #FRAME: inf_max 0.4693596363067627
+        perf_inf_max=$(echo "$line" | awk '{print $3}')
+    elif [[ $line == *"FRAME: track_min"* ]]; then
+        #FRAME: track_min 0.0013833045959472656
+        perf_track_min=$(echo "$line" | awk '{print $3}')
+    elif [[ $line == *"FRAME: track_max"* ]]; then
+        #FRAME: track_max 0.015048027038574219
+        perf_track_max=$(echo "$line" | awk '{print $3}')
     fi
 done < "$input_file"
 echo ""
@@ -236,9 +252,15 @@ echo "Inference(totl): $overall_max frames"
 echo "Inference(eval): $deal_len frames - $percentage_inference%"
 echo "Inference(skip): $skip_len frames - $percentage_passthrough%"
 echo "Inference(lost): $inference_frame_lost frames - $percentage_lost%"
+echo "Inference(inf_min): $perf_inf_min ms"
+echo "Inference(inf_max): $perf_inf_max ms"
+echo "Inference(track_min): $perf_track_min ms"
+echo "Inference(track_max): $perf_track_max ms"
 if $inference_consistency; then
     echo "Inference: frames are continuous"
 else
     echo "Inference: frames experience loss"
     echo "Inference: specific missing frame are ${inference_missing_ids[@]}"
 fi
+
+

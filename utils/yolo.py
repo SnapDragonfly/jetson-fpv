@@ -345,6 +345,10 @@ def main():
     inference_t.join()
 
     cv2.destroyAllWindows()
+    print(f"FRAME: inf_min {stats.min_inference_time} ")
+    print(f"FRAME: inf_max {stats.max_inference_time} ")
+    print(f"FRAME: track_min {stats.min_tracking_time} ")
+    print(f"FRAME: track_max {stats.max_tracking_time} ")
     print("YOLO exited normally")
 
 if __name__ == "__main__":
