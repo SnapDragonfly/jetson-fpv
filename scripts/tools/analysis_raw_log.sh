@@ -233,9 +233,9 @@ done
 
 echo ""
 echo "Inference(totl): $overall_max frames"
-echo "Inference(eval): $deal_len frames"
-echo "Inference(skip): $skip_len frames"
-echo "Inference(lost): $inference_frame_lost frames"
+echo "Inference(eval): $deal_len frames - $percentage_inference%"
+echo "Inference(skip): $skip_len frames - $percentage_passthrough%"
+echo "Inference(lost): $inference_frame_lost frames - $percentage_lost%"
 if $inference_consistency; then
     echo "Inference: frames are continuous"
 else
