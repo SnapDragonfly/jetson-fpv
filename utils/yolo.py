@@ -132,9 +132,10 @@ def video_thread(args, model_info, stats):
 
             if not frame_queue.full():
                 frame_queue.put((num_frames, cv2_frame, img.width, img.height, tracking_fps, tracking_interval))
+                print(f"FRAME: put {num_frames}")
             else:
                 num_frames_dropped += 1
-                print(f"Frame queue overflow - {num_frames_dropped}")
+                print(f"FRAME: overflow {num_frames} {num_frames_dropped}")
 
             # Output original frame
             output.Render(img)
@@ -175,6 +176,7 @@ def inference_thread(args, model_info, stats):
     window_initialized = False
     results = []
     tracks = []
+    skip_counter = 0
 
     while not exit_flag.is_set():
         try:
@@ -183,6 +185,12 @@ def inference_thread(args, model_info, stats):
                 frame_id, cv2_frame, width, height, tracking_fps, tracking_interval = frame_queue.get(timeout=0.1)
             except Empty:
                 continue
+
+            if skip_counter > 0:
+                print(f"FRAME: skip {frame_id} {skip_counter} ")
+                skip_counter -= 1
+                continue
+            print(f"FRAME: deal {frame_id} ")
 
             # Initialize window
             if not window_initialized:
@@ -251,6 +259,7 @@ def inference_thread(args, model_info, stats):
                 if frame_id % tracking_interval == 0:
                     stats.latest_inference_time = time.time() - mark_start
                     stats.inference_fps_history.append(1.0 / stats.latest_inference_time)
+                    skip_counter = max(0, int(tracking_fps * stats.latest_inference_time) - 1) 
                     if stats.latest_inference_time > stats.max_inference_time:
                         stats.max_inference_time = stats.latest_inference_time
                     elif stats.latest_inference_time < stats.min_inference_time:
@@ -323,11 +332,14 @@ def main():
     }
 
     # Start threads
-    input_t = threading.Thread(target=video_thread, args=(args, model_info, stats))
     inference_t = threading.Thread(target=inference_thread, args=(args, model_info, stats))
+    input_t = threading.Thread(target=video_thread, args=(args, model_info, stats))
 
-    input_t.start()
     inference_t.start()
+
+    # Make sure the inference thread is started and ready for operation
+    time.sleep(3)
+    input_t.start()
 
     input_t.join()
     inference_t.join()
