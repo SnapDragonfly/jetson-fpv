@@ -296,7 +296,7 @@ def main():
     parser.add_argument("input", type=str)
     parser.add_argument("output", type=str, default="file://output.mkv", nargs='?')
     parser.add_argument("--no-headless", action="store_false", dest="headless")
-    parser.add_argument("--no-detect-box", action="store_true", dest="detect_box")
+    parser.add_argument("--detect-box", action="store_true", dest="detect_box")
     parser.add_argument("--refresh-rate", type=int, default=20)
     parser.add_argument("--confidence", type=float, default=0.5)
     parser.add_argument("--model", type=str, default="11n")
