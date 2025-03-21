@@ -244,7 +244,7 @@ def inference_thread(args, model_info, stats):
 
                 if not track.is_confirmed(): # Not confirmed object
                     cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_BLUE, BOX_THICKNESS)
-                    cv2.putText(annotated_frame, f"{class_name} {conf:.2f}", (x, y - 10),
+                    cv2.putText(annotated_frame, f"{class_name}", (x, y - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_BLUE, FONT_THICKNESS)
                     continue
 
