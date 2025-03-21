@@ -55,6 +55,10 @@ class ThreadSafeStats:
         self.min_tracking_time = 9999
         self.latest_tracking_time = 0
 
+def PRINT(args, *print_args, **kwargs):
+    if args.verbose:
+        print(*print_args, **kwargs)
+
 def handle_interrupt(signal_num, frame):
     exit_flag.set()
     print("YOLO set exit_flag ... ...")
@@ -132,10 +136,10 @@ def video_thread(args, model_info, stats):
 
             if not frame_queue.full():
                 frame_queue.put((num_frames, cv2_frame, img.width, img.height, tracking_fps, tracking_interval))
-                print(f"FRAME: put {num_frames}")
+                PRINT(args, f"FRAME: put {num_frames}")
             else:
                 num_frames_dropped += 1
-                print(f"FRAME: overflow {num_frames} {num_frames_dropped}")
+                PRINT(args, f"FRAME: overflow {num_frames} {num_frames_dropped}")
 
             # Output original frame
             output.Render(img)
@@ -187,10 +191,10 @@ def inference_thread(args, model_info, stats):
                 continue
 
             if skip_counter > 0:
-                print(f"FRAME: skip {frame_id} {skip_counter} ")
+                PRINT(args, f"FRAME: skip {frame_id} {skip_counter} ")
                 skip_counter -= 1
                 continue
-            print(f"FRAME: deal {frame_id} ")
+            PRINT(args, f"FRAME: deal {frame_id} ")
 
             # Initialize window
             if not window_initialized:
@@ -309,6 +313,7 @@ def main():
     parser.add_argument("--refresh-rate", type=int, default=20)
     parser.add_argument("--confidence", type=float, default=0.5)
     parser.add_argument("--model", type=str, default="11n")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
 
     if args.headless:
@@ -345,10 +350,10 @@ def main():
     inference_t.join()
 
     cv2.destroyAllWindows()
-    print(f"FRAME: inf_min {stats.min_inference_time} ")
-    print(f"FRAME: inf_max {stats.max_inference_time} ")
-    print(f"FRAME: track_min {stats.min_tracking_time} ")
-    print(f"FRAME: track_max {stats.max_tracking_time} ")
+    PRINT(args, f"FRAME: inf_min {stats.min_inference_time} ")
+    PRINT(args, f"FRAME: inf_max {stats.max_inference_time} ")
+    PRINT(args, f"FRAME: track_min {stats.min_tracking_time} ")
+    PRINT(args, f"FRAME: track_max {stats.max_tracking_time} ")
     print("YOLO exited normally")
 
 if __name__ == "__main__":
