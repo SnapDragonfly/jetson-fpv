@@ -130,7 +130,7 @@ def predict_frame(model, frame, crop_height, crop_width, class_indices):
             )
     return results
 
-def video_thread(args, model_info, stats):
+def capture_thread(args, model_info, stats):
     cpu_id = get_least_busy_cpu()  # Get the least busy CPU
     bind_thread_to_cpu(cpu_id)  # Bind the thread to the selected CPU
 
@@ -174,10 +174,10 @@ def video_thread(args, model_info, stats):
 
             num_frames += 1
         except Exception as e:
-            print(f"Video thread exception: {e}")
+            print(f"Capture thread exception: {e}")
             exit_flag.set()
             break
-    print("Video thread exited normally")
+    print("Capture thread exited normally")
     exit_flag.set()
 
 def inference_thread(args, model_info, stats):
@@ -204,7 +204,6 @@ def inference_thread(args, model_info, stats):
     results = []
 
     tracking_interval = 1
-    last_detections = []
     tracks = []
 
     while not exit_flag.is_set():
@@ -251,7 +250,6 @@ def inference_thread(args, model_info, stats):
                     bbox = [x1, y1, x2 - x1, y2 - y1]  # Convert to [x, y, w, h]
                     detections.append((bbox, conf, cls))
                     PRINT(args, f"TRACKS: {frame_id} detections - {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]}")
-                last_detections = detections
 
                 #print(results)
                 if isinstance(results, list):
@@ -392,15 +390,15 @@ def main():
 
     # Start threads
     inference_t = threading.Thread(target=inference_thread, args=(args, model_info, stats))
-    input_t = threading.Thread(target=video_thread, args=(args, model_info, stats))
+    capture_t = threading.Thread(target=capture_thread, args=(args, model_info, stats))
 
     inference_t.start()
 
     # Make sure the inference thread is started and ready for operation
     time.sleep(3)
-    input_t.start()
+    capture_t.start()
 
-    input_t.join()
+    capture_t.join()
     inference_t.join()
 
     cv2.destroyAllWindows()
