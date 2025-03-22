@@ -15,7 +15,7 @@ if [ ! -f "$input_file" ]; then
 fi
 
 # Unix format log
-#dos2unix $input_file
+dos2unix $input_file
 
 # Print only the lines starting with "FRAME:" to the screen
 #grep '^FRAME:' "$input_file"
@@ -81,14 +81,15 @@ overflow_len=0
 overflow_max=0
 overflow_packets_max=0
 
-deal_ids=()
-deal_len=0
-deal_max=0
+inference_ids=()
+inference_len=0
+inference_max=0
 
-skip_ids=()
-skip_len=0
-skip_max=0
-skip_packets_max=0
+deepsort_ids=()
+deepsort_len=0
+deepsort_max=0
+perf_interval_min=9999
+perf_interval_max=0
 
 perf_inf_min=9999
 perf_inf_max=0
@@ -130,29 +131,34 @@ while read -r line; do
         if [[ $packets -gt $overflow_packets_max ]]; then
             overflow_packets_max=$packets
         fi
-    elif [[ $line == *"FRAME: deal"* ]]; then
-        # FRAME: deal 1273
+    elif [[ $line == *"FRAME: inference"* ]]; then
+        # FRAME: inference 1273
         id=$(echo "$line" | awk '{print $3}')
-        deal_ids+=($id)
-        ((deal_len++))
+        inference_ids+=($id)
+        ((inference_len++))
 
-        #echo "id=$id max=$deal_max"
-        if [[ $id -gt $deal_max ]]; then
-            deal_max=$id
+        #echo "id=$id max=$inference_max"
+        if [[ $id -gt $inference_max ]]; then
+            inference_max=$id
         fi
-    elif [[ $line == *"FRAME: skip"* ]]; then
-        # FRAME: skip 1318 4
+    elif [[ $line == *"FRAME: deepsort"* ]]; then
+        # FRAME: deepsort 1318 4
         id=$(echo "$line" | awk '{print $3}')
-        packets=$(echo "$line" | awk '{print $4}')
-        skip_ids+=($id)
-        ((skip_len++))
+        interval=$(echo "$line" | awk '{print $4}')
+        deepsort_ids+=($id)
+        ((deepsort_len++))
 
-        #echo "id=$id packets=$packets max=$skip_max skip_max=$skip_packets_max"
-        if [[ $id -gt $skip_max ]]; then
-            skip_max=$id
+        #echo "id=$id interval=$interval min=$perf_interval_min max=$perf_interval_max"
+        if [[ $id -gt $deepsort_max ]]; then
+            deepsort_max=$id
         fi
-        if [[ $packets -gt $skip_packets_max ]]; then
-            skip_packets_max=$packets
+
+        if (( $(echo "$interval > $perf_interval_max" | bc -l) )); then
+            perf_interval_max=$interval
+        fi
+
+        if (( $(echo "$interval < $perf_interval_min" | bc -l) )); then
+            perf_interval_min=$interval
         fi
     elif [[ $line == *"FRAME: inf_min"* ]]; then
         #FRAME: inf_min 0.024784088134765625
@@ -177,9 +183,14 @@ echo ""
 overall_max=$((put_max > overflow_max ? put_max : overflow_max))
 current_put=0
 current_overflow=0
-video_consistency=true
-video_frame_lost=0
-video_missing_ids=()
+
+video_capture_consistency=true
+video_capture_frame_lost=0
+video_capture_missing_ids=()
+
+video_forward_consistency=true
+video_forward_frame_lost=0
+video_forward_missing_ids=()
 echo ""
 echo "### Video frame consistency check ..."
 for (( id = 0; id < overall_max; id++ )); do
@@ -193,28 +204,40 @@ for (( id = 0; id < overall_max; id++ )); do
     offset=($(find_id_in_array $id $current_overflow $overflow_len "${overflow_ids[@]}"))
     if [[ $offset -ne -1 ]]; then
         current_overflow=$offset
+
+        video_forward_consistency=false
+        ((video_forward_frame_lost++))
+        video_forward_missing_ids+=($id)
         continue
     fi
-    video_consistency=false
-    ((video_frame_lost++))
-    video_missing_ids+=($id)
+    video_capture_consistency=false
+    ((video_capture_frame_lost++))
+    video_capture_missing_ids+=($id)
 done
+
+((percentage_capture_frame_lost=100*$video_capture_frame_lost/$overall_max))
+((percentage_forward_frame_lost=100*$video_forward_frame_lost/$overall_max))
 
 echo ""
 echo "Video(totl): $overall_max frames"
-echo "Video(lost): $video_frame_lost frames"
-if $video_consistency; then
-    echo "Video: frames are continuous"
+if $video_capture_consistency; then
+    echo "Video: frames capture are continuous"
 else
-    echo "Video: frames experience loss"
-    echo "Video: specific missing frame are ${video_missing_ids[@]}"
+    echo "Video: frames capture experience loss $video_capture_frame_lost frames - $percentage_capture_frame_lost%"
+    echo "Video: specific missing ${video_capture_frame_lost} frame are ${video_capture_missing_ids[@]}"
+fi
+if $video_forward_consistency; then
+    echo "Video: frames forward are continuous"
+else
+    echo "Video: frames forward experience loss $video_forward_frame_lost frames - $percentage_forward_frame_lost%"
+    echo "Video: specific missing ${video_forward_frame_lost} frame are ${video_forward_missing_ids[@]}"
 fi
 
 ################################################################################
 # Stage 3: Inference frame consistency check                                   #
 ################################################################################
 
-overall_max=$((deal_max > skip_max ? deal_max : skip_max))
+overall_max=$((inference_max > deepsort_max ? inference_max : deepsort_max))
 current_deal=0
 current_skip=0
 
@@ -227,12 +250,12 @@ echo "### Inference consistency check ..."
 for (( id = 0; id < overall_max; id++ )); do
     echo -ne "Processing: $(progress_bar $((id+1)) $overall_max 20 '=')\r" >&2
 
-    offset=($(find_id_in_array $id $current_deal $deal_len "${deal_ids[@]}"))
+    offset=($(find_id_in_array $id $current_deal $inference_len "${inference_ids[@]}"))
     if [[ $offset -ne -1 ]]; then
         current_deal=$offset
         continue
     fi
-    offset=($(find_id_in_array $id $current_skip $skip_len "${skip_ids[@]}"))
+    offset=($(find_id_in_array $id $current_skip $deepsort_len "${deepsort_ids[@]}"))
     if [[ $offset -ne -1 ]]; then
         current_skip=$offset
         continue
@@ -243,15 +266,17 @@ for (( id = 0; id < overall_max; id++ )); do
     inference_missing_ids+=($id)
 done
 
-((percentage_inference=100*$deal_len/$overall_max))
-((percentage_passthrough=100*$skip_len/$overall_max))
+((percentage_inference=100*$inference_len/$overall_max))
+((percentage_passthrough=100*$deepsort_len/$overall_max))
 ((percentage_lost=100*$inference_frame_lost/$overall_max))
 
 echo ""
 echo "Inference(totl): $overall_max frames"
-echo "Inference(eval): $deal_len frames - $percentage_inference%"
-echo "Inference(skip): $skip_len frames - $percentage_passthrough%"
+echo "Inference(eval): $inference_len frames - $percentage_inference%"
+echo "Inference(skip): $deepsort_len frames - $percentage_passthrough%"
 echo "Inference(lost): $inference_frame_lost frames - $percentage_lost%"
+echo "Inference(int_min): $perf_interval_min inference/p"
+echo "Inference(int_max): $perf_interval_max inference/p"
 echo "Inference(inf_min): $perf_inf_min second"
 echo "Inference(inf_max): $perf_inf_max second"
 echo "Inference(track_min): $perf_track_min second"
@@ -260,7 +285,7 @@ if $inference_consistency; then
     echo "Inference: frames are continuous"
 else
     echo "Inference: frames experience loss"
-    echo "Inference: specific missing frame are ${inference_missing_ids[@]}"
+    echo "Inference: specific missing ${inference_frame_lost} frame are ${inference_missing_ids[@]}"
 fi
 
 

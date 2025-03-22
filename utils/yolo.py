@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+import os
 import sys
 import cv2
 import torch
 import time
 import signal
 import argparse
+import psutil
 import threading
 import screeninfo
 import numpy as np
@@ -18,10 +20,8 @@ from deep_sort_realtime.deepsort_tracker import DeepSort
 
 # Global configurations
 CONFIDENCE_THRESHOLD     = 0.5
-TRACKING_INTERVAL        = 1
 MAX_QUEUE_SIZE           = 20  # Control memory usage
 FRAME_RATE_ESTIMATE_CNT  = 60
-FRAME_DELAY_ESTIMATE_CNT = 5
 
 # Define font color in BGR format or constants (e.g., white or yellow)
 COLOR_WHITE              = (255, 255, 255)
@@ -44,6 +44,7 @@ stats_lock = threading.Lock()
 class ThreadSafeStats:
     def __init__(self):
         self.raw_fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
+        self.show_fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
 
         self.inference_fps_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
         self.max_inference_time = 0
@@ -55,9 +56,25 @@ class ThreadSafeStats:
         self.min_tracking_time = 9999
         self.latest_tracking_time = 0
 
+        self.tracking_interval_history = deque(maxlen=FRAME_RATE_ESTIMATE_CNT)
+
 def PRINT(args, *print_args, **kwargs):
     if args.verbose:
         print(*print_args, **kwargs)
+
+def get_least_busy_cpu():
+    """Get the CPU ID with the lowest usage."""
+    cpu_usage = psutil.cpu_percent(percpu=True)  # Get CPU usage for each core
+    min_cpu_id = cpu_usage.index(min(cpu_usage))  # Find the least busy CPU ID
+    return min_cpu_id
+
+def bind_thread_to_cpu(cpu_id):
+    """Bind the current thread to the specified CPU."""
+    try:
+        os.sched_setaffinity(0, {cpu_id})  # Set CPU affinity for the current process
+        print(f"Thread {threading.get_native_id()} bound to CPU {cpu_id}")
+    except AttributeError:
+        print("CPU affinity setting is not supported on this system")
 
 def handle_interrupt(signal_num, frame):
     exit_flag.set()
@@ -114,9 +131,11 @@ def predict_frame(model, frame, crop_height, crop_width, class_indices):
     return results
 
 def video_thread(args, model_info, stats):
+    cpu_id = get_least_busy_cpu()  # Get the least busy CPU
+    bind_thread_to_cpu(cpu_id)  # Bind the thread to the selected CPU
+
     input = videoSource(args.input, argv=sys.argv)
     output = videoOutput(args.output, argv=sys.argv)
-    tracking_interval = TRACKING_INTERVAL
     num_frames = 0
     num_frames_dropped = 0
 
@@ -132,10 +151,9 @@ def video_thread(args, model_info, stats):
 
             # Tracking parameters
             tracking_fps      = input.GetFrameRate()
-            tracking_interval = max(TRACKING_INTERVAL, round(tracking_fps / args.refresh_rate))
 
             if not frame_queue.full():
-                frame_queue.put((num_frames, cv2_frame, img.width, img.height, tracking_fps, tracking_interval))
+                frame_queue.put((num_frames, cv2_frame, img.width, img.height, tracking_fps))
                 PRINT(args, f"FRAME: put {num_frames}")
             else:
                 num_frames_dropped += 1
@@ -157,10 +175,15 @@ def video_thread(args, model_info, stats):
             num_frames += 1
         except Exception as e:
             print(f"Video thread exception: {e}")
+            exit_flag.set()
             break
     print("Video thread exited normally")
+    exit_flag.set()
 
 def inference_thread(args, model_info, stats):
+    cpu_id = get_least_busy_cpu()  # Get the least busy CPU
+    bind_thread_to_cpu(cpu_id)  # Bind the thread to the selected CPU
+
     # YOLO model initialization
     model = YOLO(model_info['model_path'])
     configurable_classes = model_info['class_names']
@@ -179,22 +202,19 @@ def inference_thread(args, model_info, stats):
 
     window_initialized = False
     results = []
+
+    tracking_interval = 1
+    last_detections = []
     tracks = []
-    skip_counter = 0
 
     while not exit_flag.is_set():
         try:
+            mark_start = time.time()
             # Get frame data
             try:
-                frame_id, cv2_frame, width, height, tracking_fps, tracking_interval = frame_queue.get(timeout=0.1)
+                frame_id, cv2_frame, width, height, tracking_fps = frame_queue.get(timeout=0.1)
             except Empty:
                 continue
-
-            if skip_counter > 0:
-                PRINT(args, f"FRAME: skip {frame_id} {skip_counter} ")
-                skip_counter -= 1
-                continue
-            PRINT(args, f"FRAME: deal {frame_id} ")
 
             # Initialize window
             if not window_initialized:
@@ -210,11 +230,14 @@ def inference_thread(args, model_info, stats):
                 window_initialized = True
 
             # Perform inference
-            detections = []
-            mark_start = time.time()
             annotated_frame = cv2_frame.copy()
 
-            if frame_id % tracking_interval == 0:
+            detections = []
+            inference_time = 0
+            if frame_id % tracking_interval != 0:
+                PRINT(args, f"FRAME: deepsort {frame_id} {tracking_interval}")
+            else:
+                PRINT(args, f"FRAME: inference {frame_id}")
                 corp_height, corp_width = calculate_aspect_size(height, width)
 
                 # Predict using Yolo algorithm
@@ -227,7 +250,14 @@ def inference_thread(args, model_info, stats):
                         continue
                     bbox = [x1, y1, x2 - x1, y2 - y1]  # Convert to [x, y, w, h]
                     detections.append((bbox, conf, cls))
-                    #print(f"{frame_id} detections - {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]}")
+                    PRINT(args, f"TRACKS: {frame_id} detections - {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]}")
+                last_detections = detections
+
+                #print(results)
+                if isinstance(results, list):
+                    results = results[0]
+                if hasattr(results, "speed") and "inference" in results.speed:
+                    inference_time = results.speed["inference"]
 
             # DeepSort tracking update
             tracks = deepsort.update_tracks(detections, frame=annotated_frame)
@@ -240,6 +270,8 @@ def inference_thread(args, model_info, stats):
                             COLOR_RED, BOX_THICKNESS)
 
             # Draw detection and tracking boxes
+            if not tracks:
+                PRINT(args, f"TRACKS: {frame_id} - No tracks")
             for track in tracks:
                 ltrb = track.to_ltrb()
                 x, y, w, h = map(int, ltrb)
@@ -247,42 +279,54 @@ def inference_thread(args, model_info, stats):
                 class_name = class_names.get(cls, "Unknown") if cls != -1 else "Unknown"
 
                 if not track.is_confirmed(): # Not confirmed object
-                    cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_BLUE, BOX_THICKNESS)
+                    cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_YELLOW, BOX_THICKNESS)
                     cv2.putText(annotated_frame, f"{class_name}", (x, y - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_BLUE, FONT_THICKNESS)
+                                cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
+                    PRINT(args, f"TRACKS: {frame_id} cls {cls} - {x} {y} {w} {h}")
                     continue
 
                 track_id = track.track_id
-                cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_YELLOW, BOX_THICKNESS)
+                cv2.rectangle(annotated_frame, (x, y), (w, h), COLOR_GREEN, BOX_THICKNESS)
                 cv2.putText(annotated_frame, f"{class_name} ID {track_id}", (x, y - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
-                #print(f"{frame_id} track - {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]}")
+                PRINT(args, f"TRACKS: {frame_id} id {track_id} - {x} {y} {w} {h}")
 
             # Update performance display 
             with stats_lock:
-                if frame_id % tracking_interval == 0:
-                    stats.latest_inference_time = time.time() - mark_start
-                    stats.inference_fps_history.append(1.0 / stats.latest_inference_time)
-                    skip_counter = max(0, int(tracking_fps * stats.latest_inference_time) - 1) 
-                    if stats.latest_inference_time > stats.max_inference_time:
-                        stats.max_inference_time = stats.latest_inference_time
-                    elif stats.latest_inference_time < stats.min_inference_time:
-                        stats.min_inference_time = stats.latest_inference_time
-                else:
+                if frame_id % tracking_interval != 0:
                     stats.latest_tracking_time = time.time() - mark_start
                     stats.tracking_fps_history.append(1.0 / stats.latest_tracking_time)
+
                     if stats.latest_tracking_time > stats.max_tracking_time:
                         stats.max_tracking_time = stats.latest_tracking_time
                     elif stats.latest_tracking_time < stats.min_tracking_time:
                         stats.min_tracking_time = stats.latest_tracking_time
 
+                    PRINT(args, f"TRACKS: {frame_id} track_time {stats.latest_tracking_time}")
+                else:
+                    stats.latest_inference_time = inference_time/1000
+                    stats.inference_fps_history.append(1.0 / stats.latest_inference_time)
+
+                    if stats.latest_inference_time > stats.max_inference_time:
+                        stats.max_inference_time = stats.latest_inference_time
+                    elif stats.latest_inference_time < stats.min_inference_time:
+                        stats.min_inference_time = stats.latest_inference_time
+
+                    PRINT(args, f"TRACKS: {frame_id} inf_time {stats.latest_inference_time}")
+
                 tracking_fps  = sum(stats.tracking_fps_history)/len(stats.tracking_fps_history) if stats.tracking_fps_history else 0
                 inference_fps = sum(stats.inference_fps_history)/len(stats.inference_fps_history) if stats.inference_fps_history else 0
                 raw_fps       = sum(stats.raw_fps_history)/len(stats.raw_fps_history) if stats.raw_fps_history else 0
+                show_fps      = sum(stats.show_fps_history)/len(stats.show_fps_history) if stats.show_fps_history else 0
                 status_text = (YOLO_PREDICTION_STR + " - "
-                            + f"FPS: {raw_fps:.1f}/{tracking_fps:.1f}/{inference_fps:.1f} | "
+                            + f"FPS: {raw_fps:.1f}/{tracking_fps:.1f}/{inference_fps:.1f}/{show_fps:.1f} | "
                             + f"Tracking: {stats.min_tracking_time:.3f}/{stats.latest_tracking_time:.3f}/{stats.max_tracking_time:.3f} | "
                             + f"Inference: {stats.min_inference_time:.3f}/{stats.latest_inference_time:.3f}/{stats.max_inference_time:.3f}")
+
+                # Calculate tracking interval
+                tracking_interval = max(1, int(raw_fps/inference_fps) - 1) * args.detect_ratio
+                stats.tracking_interval_history.append(tracking_interval)
+                tracking_interval = sum(stats.tracking_interval_history)/len(stats.tracking_interval_history) if stats.tracking_interval_history else 1
 
             # Display status info
             text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_THICKNESS)[0]
@@ -290,27 +334,37 @@ def inference_thread(args, model_info, stats):
                       (width - text_size[0] - 10, 30), 
                       cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
 
-            # We observed that the frame interruption,
+            # DEBUG: We observed that the frame interruption,
             # might be due to the queue being full and not processed in time.
             # print(f"{frame_id} ")
 
             # Display frame
             cv2.imshow(YOLO_PREDICTION_STR, annotated_frame)
-            cv2.waitKey(1)
+            cv2.waitKey(1) # 1ms
+
+            with stats_lock:
+                diff_time = time.time() - mark_start
+                stats.show_fps_history.append(1.0 / diff_time)
+ 
 
         except Exception as e:
             print(f"Inference thread exception: {e}")
+            exit_flag.set()
             break
     print("Inference thread exited normally")
+    exit_flag.set()
 
 def main():
+    if "DISPLAY" not in os.environ:
+        os.environ["DISPLAY"] = ":0"
+
     signal.signal(signal.SIGINT, handle_interrupt)
     parser = argparse.ArgumentParser()
     parser.add_argument("input", type=str)
     parser.add_argument("output", type=str, default="file://output.mkv", nargs='?')
     parser.add_argument("--no-headless", action="store_false", dest="headless")
     parser.add_argument("--detect-box", action="store_true", dest="detect_box")
-    parser.add_argument("--refresh-rate", type=int, default=20)
+    parser.add_argument("--detect-ratio", type=int, default=2)
     parser.add_argument("--confidence", type=float, default=0.5)
     parser.add_argument("--model", type=str, default="11n")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
