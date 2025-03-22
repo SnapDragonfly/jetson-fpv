@@ -38,6 +38,7 @@ YOLO_PREDICTION_STR      = "YOLO Prediction"
 
 # Global controls
 exit_flag = threading.Event()
+exit_inference_flag = threading.Event()
 frame_queue = Queue(maxsize=MAX_QUEUE_SIZE)
 stats_lock = threading.Lock()
 
@@ -78,7 +79,7 @@ def bind_thread_to_cpu(cpu_id):
 
 def handle_interrupt(signal_num, frame):
     exit_flag.set()
-    print("YOLO set exit_flag ... ...")
+    print("YOLO start to exit ... ...")
 
 def calculate_aspect_size(max_height, max_width, aspect_ratio=(4, 5), multiple=32):
     aspect_h, aspect_w = aspect_ratio
@@ -169,16 +170,18 @@ def capture_thread(args, model_info, stats):
                     stats.raw_fps_history.append(1.0 / diff_time)
             
             if not input.IsStreaming() or not output.IsStreaming():
-                exit_flag.set()
                 break
 
             num_frames += 1
         except Exception as e:
             print(f"Capture thread exception: {e}")
-            exit_flag.set()
             break
+
+    while frame_queue.qsize() != 0:
+        time.sleep(1)
+        print(f"Capture thread waiting {frame_queue.qsize()} frame buffer")
     print("Capture thread exited normally")
-    exit_flag.set()
+    exit_inference_flag.set()
 
 def inference_thread(args, model_info, stats):
     cpu_id = get_least_busy_cpu()  # Get the least busy CPU
@@ -206,7 +209,7 @@ def inference_thread(args, model_info, stats):
     tracking_interval = 1
     tracks = []
 
-    while not exit_flag.is_set():
+    while not exit_inference_flag.is_set() or frame_queue.qsize() != 0:
         try:
             mark_start = time.time()
             # Get frame data
@@ -347,10 +350,10 @@ def inference_thread(args, model_info, stats):
 
         except Exception as e:
             print(f"Inference thread exception: {e}")
+            frame_queue.queue.clear()
             exit_flag.set()
             break
     print("Inference thread exited normally")
-    exit_flag.set()
 
 def main():
     if "DISPLAY" not in os.environ:
