@@ -215,14 +215,14 @@ def inference_thread(args, model_info, stats):
 
     while not exit_inference_flag.is_set() or frame_queue.qsize() != 0:
         try:
-            mark_start = time.time()
+            mark_start = time.perf_counter()
             # Get frame data
             try:
                 frame_id, cv2_frame, width, height, tracking_fps = frame_queue.get(timeout=0.1)
             except Empty:
                 continue
 
-            mark_A = time.time()
+            mark_A = time.perf_counter()
 
             # Initialize window
             if not window_initialized:
@@ -239,7 +239,8 @@ def inference_thread(args, model_info, stats):
 
             # Perform inference
             annotated_frame = cv2_frame.copy()
-            mark_B = time.time()
+            mark_B = time.perf_counter()
+            #mark_BC = None
 
             detections = []
             inference_time = 0
@@ -251,6 +252,7 @@ def inference_thread(args, model_info, stats):
 
                 # Predict using Yolo algorithm
                 results = predict_frame(model, annotated_frame, corp_height, corp_width, class_indices)
+                #mark_BC = time.perf_counter()
 
                 # Prepare detections for DeepSort (xywh format)
                 for result in results[0].boxes.data.tolist():
@@ -269,7 +271,9 @@ def inference_thread(args, model_info, stats):
 
             # DeepSort tracking update
             tracks = deepsort.update_tracks(detections, frame=annotated_frame)
-            mark_C = time.time()
+            mark_C = time.perf_counter()
+            #if mark_BC is not None:
+            #    print(f"FRAME: ttt {frame_id} {mark_C-mark_BC:.3f} {inference_time:.3f}")
 
             # Draw detect box
             if args.detect_box:
@@ -303,7 +307,7 @@ def inference_thread(args, model_info, stats):
             # Update performance display 
             with stats_lock:
                 if frame_id % tracking_interval != 0:
-                    stats.latest_tracking_time = time.time() - mark_start
+                    stats.latest_tracking_time = time.perf_counter() - mark_start
                     stats.tracking_fps_history.append(1.0 / stats.latest_tracking_time)
 
                     if stats.latest_tracking_time > stats.max_tracking_time:
@@ -342,16 +346,16 @@ def inference_thread(args, model_info, stats):
             cv2.putText(annotated_frame, status_text, 
                       (width - text_size[0] - 10, 30), 
                       cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
-            mark_D = time.time()
+            mark_D = time.perf_counter()
 
             # Display frame
             cv2.imshow(YOLO_PREDICTION_STR, annotated_frame)
             cv2.waitKey(1) # 1ms
 
-            mark_E = time.time()
+            mark_E = time.perf_counter()
 
             with stats_lock:
-                diff_time = time.time() - mark_start
+                diff_time = mark_E - mark_start
                 stats.show_fps_history.append(1.0 / diff_time)
  
             # DEBUG: We observed that the frame interruption,
