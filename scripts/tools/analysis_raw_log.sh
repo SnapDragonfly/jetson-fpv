@@ -42,6 +42,19 @@ find_id_in_array() {
     echo -1
 }
 
+# Define the PerfFormat0000Check function
+PerfFormat0000Check() {
+    local perf_A="$1"  # Assign the input parameter to perf_A
+
+    # Check if perf_A is 0.000, if so, assign 0
+    if [ "$perf_A" == "0.000" ]; then
+        perf_A="0"
+    fi
+
+    # Return the processed value
+    echo "$perf_A"
+}
+
 # Progress bar function
 # Parameters:
 #   $1: Current progress (0~total)
@@ -95,6 +108,33 @@ perf_inf_min=9999
 perf_inf_max=0
 perf_track_min=9999
 perf_track_max=0
+
+performance_A_ids=()
+performance_A_max=0.000
+performance_A_min=9.999
+
+performance_B_ids=()
+performance_B_max=0
+performance_B_min=9.999
+
+performance_C_ids=()
+performance_C_max=0
+performance_C_min=9.999
+
+performance_D_ids=()
+performance_D_max=0
+performance_D_min=9.999
+
+performance_E_ids=()
+performance_E_max=0
+performance_E_min=9.999
+
+performance_len=0
+performance_max=0
+performance_max_id=0
+performance_min=9999
+performance_min_id=0
+
 ################################################################################
 # Stage 1: Initialization                                                      #
 ################################################################################
@@ -159,6 +199,66 @@ while read -r line; do
 
         if (( $(echo "$interval < $perf_interval_min" | bc -l) )); then
             perf_interval_min=$interval
+        fi
+    elif [[ $line == *"FRAME: perf"* ]]; then
+        # FRAME: perf 1341 0.000 0.000 0.001 0.000 0.002
+        id=$(echo "$line" | awk '{print $3}')
+        ((performance_len++))  
+        if (( performance_len >= 5 )); then
+            perf_A=$(echo "$line" | awk '{print $4}')
+            performance_A_ids+=($perf_A)
+            if (( $(echo "$perf_A > $performance_A_max" | bc -l) )); then
+                performance_A_max=$perf_A
+            fi
+            if (( $(echo "$perf_A < $performance_A_min" | bc -l) )); then
+                performance_A_min=$perf_A
+            fi
+
+            perf_B=$(echo "$line" | awk '{print $5}')
+            performance_B_ids+=($perf_B)
+            if (( $(echo "$perf_B > $performance_B_max" | bc -l) )); then
+                performance_B_max=$perf_B
+            fi
+            if (( $(echo "$perf_B < $performance_B_min" | bc -l) )); then
+                performance_B_min=$perf_B
+            fi
+
+            perf_C=$(echo "$line" | awk '{print $6}')
+            performance_C_ids+=($perf_C)
+            if (( $(echo "$perf_C > $performance_C_max" | bc -l) )); then
+                performance_C_max=$perf_C
+            fi
+            if (( $(echo "$perf_C < $performance_C_min" | bc -l) )); then
+                performance_C_min=$perf_C
+            fi
+
+            perf_D=$(echo "$line" | awk '{print $7}')
+            performance_D_ids+=($perf_D)
+            if (( $(echo "$perf_D > $performance_D_max" | bc -l) )); then
+                performance_D_max=$perf_D
+            fi
+            if (( $(echo "$perf_D < $performance_D_min" | bc -l) )); then
+                performance_D_min=$perf_D
+            fi
+
+            perf_E=$(echo "$line" | awk '{print $8}')
+            performance_E_ids+=($perf_E)
+            if (( $(echo "$perf_E > $performance_E_max" | bc -l) )); then
+                performance_E_max=$perf_E
+            fi
+            if (( $(echo "$perf_E < $performance_E_min" | bc -l) )); then
+                performance_E_min=$perf_E
+            fi
+
+            perf_total=$(echo "$perf_A + $perf_B + $perf_C + $perf_D + $perf_E" | bc -l)
+            if awk "BEGIN {exit !($perf_total > $performance_max)}"; then
+                performance_max=$perf_total
+                performance_max_id=$id
+            fi
+            if awk "BEGIN {exit !($perf_total < $performance_min)}"; then
+                performance_min=$perf_total
+                performance_min_id=$id
+            fi
         fi
     elif [[ $line == *"FRAME: inf_min"* ]]; then
         #FRAME: inf_min 0.024784088134765625
@@ -287,5 +387,18 @@ else
     echo "Inference: frames experience loss"
     echo "Inference: specific missing ${inference_frame_lost} frame are ${inference_missing_ids[@]}"
 fi
-
+echo "Inference(A_min): $performance_A_min second"
+echo "Inference(A_max): $performance_A_max second"
+echo "Inference(B_min): $performance_B_min second"
+echo "Inference(B_max): $performance_B_max second"
+echo "Inference(C_min): $performance_C_min second"
+echo "Inference(C_max): $performance_C_max second"
+echo "Inference(D_min): $performance_D_min second"
+echo "Inference(D_max): $performance_D_max second"
+echo "Inference(E_min): $performance_E_min second"
+echo "Inference(E_max): $performance_E_max second"
+echo "Inference(t_min): $(printf "%.3f" $performance_min) second"
+echo "Inference(t_min_id): $(printf "%d" $performance_min_id)-th frame"
+echo "Inference(t_max): $(printf "%.3f" $performance_max) second"
+echo "Inference(t_max_id): $(printf "%d" $performance_max_id)-th frame"
 

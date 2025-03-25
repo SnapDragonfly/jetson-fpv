@@ -177,9 +177,13 @@ def capture_thread(args, model_info, stats):
             print(f"Capture thread exception: {e}")
             break
 
+    exit_count = 3
     while frame_queue.qsize() != 0:
+        print(f"Capture thread waiting {exit_count} seconds for {frame_queue.qsize()} frame buffer")
         time.sleep(1)
-        print(f"Capture thread waiting {frame_queue.qsize()} frame buffer")
+        exit_count -= 1
+        if exit_count == 0:
+            break
     print("Capture thread exited normally")
     exit_inference_flag.set()
 
@@ -218,6 +222,8 @@ def inference_thread(args, model_info, stats):
             except Empty:
                 continue
 
+            mark_A = time.time()
+
             # Initialize window
             if not window_initialized:
                 screen = screeninfo.get_monitors()[0]
@@ -233,6 +239,7 @@ def inference_thread(args, model_info, stats):
 
             # Perform inference
             annotated_frame = cv2_frame.copy()
+            mark_B = time.time()
 
             detections = []
             inference_time = 0
@@ -262,6 +269,7 @@ def inference_thread(args, model_info, stats):
 
             # DeepSort tracking update
             tracks = deepsort.update_tracks(detections, frame=annotated_frame)
+            mark_C = time.time()
 
             # Draw detect box
             if args.detect_box:
@@ -334,25 +342,28 @@ def inference_thread(args, model_info, stats):
             cv2.putText(annotated_frame, status_text, 
                       (width - text_size[0] - 10, 30), 
                       cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, COLOR_WHITE, FONT_THICKNESS)
-
-            # DEBUG: We observed that the frame interruption,
-            # might be due to the queue being full and not processed in time.
-            # print(f"{frame_id} ")
+            mark_D = time.time()
 
             # Display frame
             cv2.imshow(YOLO_PREDICTION_STR, annotated_frame)
             cv2.waitKey(1) # 1ms
 
+            mark_E = time.time()
+
             with stats_lock:
                 diff_time = time.time() - mark_start
                 stats.show_fps_history.append(1.0 / diff_time)
  
+            # DEBUG: We observed that the frame interruption,
+            # might be due to the queue being full and not processed in time.
+            PRINT(args, f"FRAME: perf {frame_id} {mark_A-mark_start:.3f} {mark_B-mark_A:.3f} {mark_C-mark_B:.3f} {mark_D-mark_C:.3f} {mark_E-mark_D:.3f}")
 
         except Exception as e:
             print(f"Inference thread exception: {e}")
             frame_queue.queue.clear()
             exit_flag.set()
             break
+    frame_queue.queue.clear()
     print("Inference thread exited normally")
 
 def main():
