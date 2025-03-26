@@ -21,10 +21,14 @@
 # DEALINGS IN THE SOFTWARE.
 #
 
+import os
 import sys
 import argparse
 
 from jetson_utils import videoSource, videoOutput, Log
+
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":0"
 
 # parse command line
 parser = argparse.ArgumentParser(description="View various types of video streams", 

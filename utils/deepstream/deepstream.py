@@ -28,6 +28,9 @@ import re
 import pyds
 import os
 
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":0"
+
 no_display = False
 silent = False
 

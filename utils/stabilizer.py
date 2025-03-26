@@ -7,6 +7,7 @@
 # - https://github.com/dusty-nv/jetson-utils
 #
 
+import os
 import sys
 import cv2
 import argparse
@@ -15,6 +16,9 @@ import signal
 import threading
 import numpy as np
 from jetson_utils import videoSource, videoOutput, cudaToNumpy, cudaFromNumpy, Log
+
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":0"
 
 # key scan control:
 # If the test video plays too fast, increase this value until the video plays at a proper speed.

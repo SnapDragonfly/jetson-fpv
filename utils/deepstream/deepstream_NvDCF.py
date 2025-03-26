@@ -19,6 +19,10 @@ from common.source_bin import create_rtp_h265_source_bin
 from common.source_bin import create_rtp_h264_source_bin
 from common.source_bin import create_source_bin
 import pyds
+import os
+
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":0"
 
 no_display = False
 perf_data = None

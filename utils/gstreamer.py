@@ -1,3 +1,4 @@
+import os
 import sys
 import argparse
 import time
@@ -163,6 +164,9 @@ def parse_args():
     return parser.parse_args()
 
 def main():
+    if "DISPLAY" not in os.environ:
+        os.environ["DISPLAY"] = ":0"
+
     # Parse command line arguments
     args = parse_args()
 

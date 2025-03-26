@@ -21,6 +21,7 @@
 # DEALINGS IN THE SOFTWARE.
 #
 
+import os
 import sys
 import argparse
 
@@ -28,6 +29,9 @@ from jetson_inference import segNet
 from jetson_utils import videoSource, videoOutput, cudaOverlay, cudaDeviceSynchronize, Log
 
 from segnet_utils import *
+
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":0"
 
 # parse the command line
 parser = argparse.ArgumentParser(description="Segment a live camera stream using an semantic segmentation DNN.", 
