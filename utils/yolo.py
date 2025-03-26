@@ -96,12 +96,15 @@ def calculate_aspect_size(max_height, max_width, aspect_ratio=(4, 5), multiple=3
         width = aspect_w * factor * multiple
     return height, width
 
-def predict_frame(model, frame, crop_height, crop_width, class_indices):
+def predict_frame(args, model, id, frame, crop_height, crop_width, class_indices):
+    mark_start = time.perf_counter()
+
     original_height, original_width = frame.shape[:2]
     start_x = (original_width - crop_width) // 2
     start_y = (original_height - crop_height) // 2
     cropped_frame = frame[start_y:start_y + crop_height, start_x:start_x + crop_width]
-    
+
+    mark_A = time.perf_counter()
     results = model.predict(
         source=cropped_frame,
         show=False,
@@ -109,6 +112,7 @@ def predict_frame(model, frame, crop_height, crop_width, class_indices):
         classes=class_indices,
         imgsz=[640, 640]
     )
+    mark_B = time.perf_counter()
 
     for result in results:
         if not hasattr(result, "boxes") or result.boxes is None:
@@ -129,6 +133,9 @@ def predict_frame(model, frame, crop_height, crop_width, class_indices):
                 torch.cat(new_boxes, dim=0).to('cuda'),
                 orig_shape=(original_height, original_width)
             )
+    mark_C = time.perf_counter()
+
+    PRINT(args, f"FRAME: perfp {id} {mark_A-mark_start:.3f} {mark_B-mark_A:.3f} {mark_C-mark_B:.3f}")
     return results
 
 def capture_thread(args, model_info, stats):
@@ -221,7 +228,6 @@ def inference_thread(args, model_info, stats):
                 frame_id, cv2_frame, width, height, tracking_fps = frame_queue.get(timeout=0.1)
             except Empty:
                 continue
-
             mark_A = time.perf_counter()
 
             # Initialize window
@@ -240,7 +246,7 @@ def inference_thread(args, model_info, stats):
             # Perform inference
             annotated_frame = cv2_frame.copy()
             mark_B = time.perf_counter()
-            #mark_BC = None
+            mark_BA = None
 
             detections = []
             inference_time = 0
@@ -251,8 +257,8 @@ def inference_thread(args, model_info, stats):
                 corp_height, corp_width = calculate_aspect_size(height, width)
 
                 # Predict using Yolo algorithm
-                results = predict_frame(model, annotated_frame, corp_height, corp_width, class_indices)
-                #mark_BC = time.perf_counter()
+                results = predict_frame(args, model, frame_id, annotated_frame, corp_height, corp_width, class_indices)
+                mark_BA = time.perf_counter()
 
                 # Prepare detections for DeepSort (xywh format)
                 for result in results[0].boxes.data.tolist():
@@ -268,12 +274,15 @@ def inference_thread(args, model_info, stats):
                     results = results[0]
                 if hasattr(results, "speed") and "inference" in results.speed:
                     inference_time = results.speed["inference"]
+                mark_BB = time.perf_counter()
 
             # DeepSort tracking update
             tracks = deepsort.update_tracks(detections, frame=annotated_frame)
-            mark_C = time.perf_counter()
-            #if mark_BC is not None:
-            #    print(f"FRAME: ttt {frame_id} {mark_C-mark_BC:.3f} {inference_time:.3f}")
+            mark_C = time.perf_counter()                
+            if mark_BA is not None:
+                PRINT(args, f"FRAME: perfi {frame_id} {mark_C-mark_BB:.3f} {mark_BB-mark_BA:.3f} {mark_BA-mark_B:.3f} {inference_time:.3f}")
+            else:
+                PRINT(args, f"FRAME: perfd {frame_id} {mark_C-mark_B:.3f}")
 
             # Draw detect box
             if args.detect_box:
@@ -306,17 +315,17 @@ def inference_thread(args, model_info, stats):
 
             # Update performance display 
             with stats_lock:
-                if frame_id % tracking_interval != 0:
-                    stats.latest_tracking_time = time.perf_counter() - mark_start
-                    stats.tracking_fps_history.append(1.0 / stats.latest_tracking_time)
+                stats.latest_tracking_time = time.perf_counter() - mark_start
+                stats.tracking_fps_history.append(1.0 / stats.latest_tracking_time)
 
-                    if stats.latest_tracking_time > stats.max_tracking_time:
-                        stats.max_tracking_time = stats.latest_tracking_time
-                    elif stats.latest_tracking_time < stats.min_tracking_time:
-                        stats.min_tracking_time = stats.latest_tracking_time
+                if stats.latest_tracking_time > stats.max_tracking_time:
+                    stats.max_tracking_time = stats.latest_tracking_time
+                elif stats.latest_tracking_time < stats.min_tracking_time:
+                    stats.min_tracking_time = stats.latest_tracking_time
 
-                    PRINT(args, f"TRACKS: {frame_id} track_time {stats.latest_tracking_time}")
-                else:
+                PRINT(args, f"TRACKS: {frame_id} track_time {stats.latest_tracking_time}")
+
+                if frame_id % tracking_interval == 0:
                     stats.latest_inference_time = inference_time/1000
                     stats.inference_fps_history.append(1.0 / stats.latest_inference_time)
 
@@ -360,7 +369,7 @@ def inference_thread(args, model_info, stats):
  
             # DEBUG: We observed that the frame interruption,
             # might be due to the queue being full and not processed in time.
-            PRINT(args, f"FRAME: perf {frame_id} {mark_A-mark_start:.3f} {mark_B-mark_A:.3f} {mark_C-mark_B:.3f} {mark_D-mark_C:.3f} {mark_E-mark_D:.3f}")
+            PRINT(args, f"FRAME: perff {frame_id} {mark_A-mark_start:.3f} {mark_B-mark_A:.3f} {mark_C-mark_B:.3f} {mark_D-mark_C:.3f} {mark_E-mark_D:.3f}")
 
         except Exception as e:
             print(f"Inference thread exception: {e}")

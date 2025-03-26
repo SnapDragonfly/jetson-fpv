@@ -42,17 +42,19 @@ find_id_in_array() {
     echo -1
 }
 
-# Define the PerfFormat0000Check function
-PerfFormat0000Check() {
-    local perf_A="$1"  # Assign the input parameter to perf_A
+# Function to calculate the average of an array of floating-point numbers
+calculate_average() {
+    local -n arr=$1  # Use a nameref to reference the passed array
+    local sum=0
+    local count=${#arr[@]}  # Get the number of elements
 
-    # Check if perf_A is 0.000, if so, assign 0
-    if [ "$perf_A" == "0.000" ]; then
-        perf_A="0"
-    fi
+    # Loop through the array and sum up the numbers
+    for num in "${arr[@]}"; do
+        sum=$(awk "BEGIN {print $sum + $num}")
+    done
 
-    # Return the processed value
-    echo "$perf_A"
+    # Calculate and return the average
+    echo $(awk "BEGIN {print $sum / $count}")
 }
 
 # Progress bar function
@@ -129,11 +131,22 @@ performance_E_ids=()
 performance_E_max=0
 performance_E_min=9.999
 
+performance_val=()
 performance_len=0
 performance_max=0
 performance_max_id=0
 performance_min=9999
 performance_min_id=0
+
+performance_dsonly_val=()
+performance_dsonly_max=0.000
+performance_dsonly_min=9.999
+performance_dsonly_id=0
+
+performance_dsinf_val=()
+performance_dsinf_max=0.000
+performance_dsinf_min=9.999
+performance_dsinf_id=0
 
 ################################################################################
 # Stage 1: Initialization                                                      #
@@ -200,7 +213,31 @@ while read -r line; do
         if (( $(echo "$interval < $perf_interval_min" | bc -l) )); then
             perf_interval_min=$interval
         fi
-    elif [[ $line == *"FRAME: perf"* ]]; then
+    elif [[ $line == *"FRAME: perfd"* ]]; then
+        # FRAME: perfd 1 0.001
+        id=$(echo "$line" | awk '{print $3}')
+        perf=$(echo "$line" | awk '{print $4}')
+        performance_dsonly_val+=($perf)
+        if (( $(echo "$perf > $performance_dsonly_max" | bc -l) )); then
+            performance_dsonly_max=$perf
+            performance_dsonly_id=$id
+        fi
+        if (( $(echo "$perf < $performance_dsonly_min" | bc -l) )); then
+            performance_dsonly_min=$perf
+        fi
+    elif [[ $line == *"FRAME: perfi"* ]]; then
+        # FRAME: perfi 0 0.038 0.000 0.365 11.860
+        id=$(echo "$line" | awk '{print $3}')
+        perf=$(echo "$line" | awk '{print $4}')
+        performance_dsinf_val+=($perf)
+        if (( $(echo "$perf > $performance_dsinf_max" | bc -l) )); then
+            performance_dsinf_max=$perf
+            performance_dsinf_id=$id
+        fi
+        if (( $(echo "$perf < $performance_dsinf_min" | bc -l) )); then
+            performance_dsinf_min=$perf
+        fi
+    elif [[ $line == *"FRAME: perff"* ]]; then
         # FRAME: perf 1341 0.000 0.000 0.001 0.000 0.002
         id=$(echo "$line" | awk '{print $3}')
         ((performance_len++))  
@@ -251,6 +288,7 @@ while read -r line; do
             fi
 
             perf_total=$(echo "$perf_A + $perf_B + $perf_C + $perf_D + $perf_E" | bc -l)
+            performance_val+=($perf_total)
             if awk "BEGIN {exit !($perf_total > $performance_max)}"; then
                 performance_max=$perf_total
                 performance_max_id=$id
@@ -397,8 +435,15 @@ echo "Inference(D_min): $performance_D_min second"
 echo "Inference(D_max): $performance_D_max second"
 echo "Inference(E_min): $performance_E_min second"
 echo "Inference(E_max): $performance_E_max second"
-echo "Inference(t_min): $(printf "%.3f" $performance_min) second"
-echo "Inference(t_min_id): $(printf "%d" $performance_min_id)-th frame"
-echo "Inference(t_max): $(printf "%.3f" $performance_max) second"
-echo "Inference(t_max_id): $(printf "%d" $performance_max_id)-th frame"
 
+echo "Inference(t_min): $(printf "%d" $performance_min_id)-th frame, $(printf "%.3f" $performance_min) second"
+echo "Inference(t_max): $(printf "%d" $performance_max_id)-th frame, $(printf "%.3f" $performance_max) second"
+echo "Inference(t_avg): $(calculate_average performance_val) second"
+
+echo "Inference(ds_only_min): $(printf "%.3f" $performance_dsonly_min) second"
+echo "Inference(ds_only_max): $(printf "%d" $performance_dsonly_id)-th frame, $(printf "%.3f" $performance_dsonly_max) second"
+echo "Inference(ds_only_avg): $(calculate_average performance_dsonly_val)"
+
+echo "Inference(ds_inf_min): $(printf "%.3f" $performance_dsinf_min) second"
+echo "Inference(ds_inf_max): $(printf "%d" $performance_dsinf_id)-th frame, $(printf "%.3f" $performance_dsinf_max) second"
+echo "Inference(ds_inf_avg): $(calculate_average performance_dsinf_val) second"
