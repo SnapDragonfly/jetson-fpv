@@ -714,6 +714,72 @@ report_tx_temp() {
     fi
 }
 
+# Function: Check and update original/filtered link scores
+alink_og_score_min=9999
+alink_og_score_max=-999
+alink_smthd_score_min=9999
+alink_smthd_score_max=0
+check_link_score() {
+    local og_score=$1
+    local smthd_score=$2
+
+    if [[ -n "$og_score" ]]; then
+        # Update the minimum/maximum original score
+        if [[ $og_score -lt $alink_og_score_min ]]; then
+            alink_og_score_min=$og_score
+        fi
+        if [[ $og_score -gt $alink_rssi_value_max ]]; then
+            alink_rssi_value_max=$og_score
+        fi
+    fi
+
+    if [[ -n "$smthd_score" ]]; then
+        # Update the minimum/maximum filtered score
+        if [[ $smthd_score -lt $alink_smthd_score_min ]]; then
+            alink_smthd_score_min=$smthd_score
+        fi
+        if [[ $smthd_score -gt $alink_smthd_score_max ]]; then
+            alink_smthd_score_max=$smthd_score
+        fi
+    fi
+}
+
+# Function: Print link score statistics
+report_link_score() {
+    echo ""
+    echo "------------------------------------------"
+    echo "original score: $alink_og_score_min ~ $alink_og_score_max"
+    echo "filtered score: $alink_smthd_score_min ~ $alink_smthd_score_max"
+    print_table alink_filtered_score 10
+}
+
+# Function: Check and update TX power
+alink_tx_power_min=9999
+alink_tx_power_max=0
+check_tx_power() {
+    local value=$1
+
+    if [[ -z "$value" ]]; then
+        return
+    fi
+
+    # Update the minimum/maximum tx power
+    if [[ $value -lt $alink_tx_power_min ]]; then
+        alink_tx_power_min=$value
+    fi
+    if [[ $value -gt $alink_tx_power_max ]]; then
+        alink_tx_power_max=$value
+    fi
+}
+
+# Function: Print TX power statistics
+report_tx_power() {
+    echo ""
+    echo "------------------------------------------"
+    echo "TX Power: $alink_tx_power_min ~ $alink_tx_power_max"
+    #print_table alink_pwr 10
+}
+
 ######################################################################
 # Functions for srt file parsing loop
 ######################################################################
@@ -766,6 +832,7 @@ process_block() {
 
     pwr=$(extract_profile_pwr "$profile_line")
     alink_pwr+=($pwr)
+    check_tx_power $pwr
 
     gop=$(extract_profile_gop "$profile_line")
     alink_gop+=($gop)
@@ -799,6 +866,8 @@ process_block() {
 
     filtered_score=$(extract_score_filtered "$score_line")
     alink_filtered_score+=($filtered_score)
+
+    check_link_score $original_score $filtered_score
 
     ###################################
     # Extract RSSI                    #
@@ -951,13 +1020,15 @@ echo -e "$csv_file auto-generated!"
 
 report_cpu
 report_tx_temp
+report_tx_power
 report_rssi
 report_snr
 
 #
 # specialized analysis
-# TODO:
 #
+
+report_link_score
 
 exit 0
 
