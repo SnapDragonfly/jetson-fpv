@@ -591,6 +591,33 @@ report_snr() {
     echo "SNR score: $alink_snr_score_min ~ $alink_snr_score_max"
 }
 
+# Function: Check and update CPU %
+alink_cpu_min=9999
+alink_cpu_max=0
+check_cpu() {
+    local value=$1
+
+    # Update the minimum/maximum SNR value
+    if [[ $value -lt $alink_cpu_min ]]; then
+        alink_cpu_min=$value
+    fi
+    if [[ $value -gt $alink_cpu_max ]]; then
+        alink_cpu_max=$value
+    fi
+}
+
+# Function: Print CPU statistics
+report_cpu() {
+    echo ""
+    echo "------------------------------------------"
+    echo "CPU %: $alink_cpu_min ~ $alink_cpu_max"
+
+    # Check if the maximum CPU usage exceeds 70%
+    if [[ $alink_cpu_max -gt 70 ]]; then
+        echo "!WARNING!: CPU usage exceeded 70%!"
+    fi
+}
+
 
 # Function to deal with srt block messages
 inconsistence_ids=()
@@ -657,6 +684,7 @@ process_block() {
 
     osd_cpu=$(extract_regular_osd_cpu "$osd_line")
     alink_osd_cpu+=($osd_cpu)
+    check_cpu $osd_cpu
 
     osd_tx_temp=$(extract_regular_osd_tx_temp "$osd_line")
     alink_osd_tx_temp+=($osd_tx_temp)
@@ -845,6 +873,7 @@ export_to_csv > $csv_file
 echo -e "$csv_file generated!"
 
 # Report Statistics
+report_cpu
 report_rssi
 report_snr
 
