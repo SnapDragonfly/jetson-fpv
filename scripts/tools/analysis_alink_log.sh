@@ -532,6 +532,26 @@ extract_extra_keyframe_requested() {
     echo "$keyframe_requested_value"
 }
 
+declare -g alink_latest_keyframe_requested=-1
+declare -g adjust_keyframe_requested_result
+adjust_extra_keyframe_requested() {
+    local keyframe_requested_value="$1"
+
+    if [[ -z "$keyframe_requested_value" ]]; then
+        adjust_keyframe_requested_result=0
+        return
+    fi
+
+    if [[ $alink_latest_keyframe_requested -eq -1 ]]; then
+        alink_latest_keyframe_requested=$keyframe_requested_value
+        adjust_keyframe_requested_result=0
+    else
+        local delta_requested_value=$((keyframe_requested_value - alink_latest_keyframe_requested))
+        alink_latest_keyframe_requested=$keyframe_requested_value
+        adjust_keyframe_requested_result=$delta_requested_value
+    fi
+}
+
 export_to_csv() {
     # Define the headers (remove 'alink_' prefix and set as column names)
     local headers="time, elapsed, bitrate, bandwidth, gi, mcs, k, n, pwr, gop, osd_bitrate, fps, cpu, tx_temp, og_score, ft_score, rssi_value, rssi_score, snr_value, snr_score, fec, pnlt, tx_dropped, tx_requested, keyframe_requested"
@@ -940,7 +960,8 @@ process_block() {
     alink_extra_tx_requested+=($extra_tx_requested)
 
     extra_keyframe_requested=$(extract_extra_keyframe_requested "$extra_line")
-    alink_extra_keyframe_requested+=($extra_keyframe_requested)
+    adjust_extra_keyframe_requested "$extra_keyframe_requested"
+    alink_extra_keyframe_requested+=($adjust_keyframe_requested_result)
 }
 
 # Function to process the file
