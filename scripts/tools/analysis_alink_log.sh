@@ -523,8 +523,41 @@ extract_extra_keyframe_requested() {
     echo "$keyframe_requested_value"
 }
 
-inconsistence_ids=()
+# Function: Check and update RSSI values
+alink_rssi_value_min=9999
+alink_rssi_value_max=-999
+alink_rssi_score_min=9999
+alink_rssi_score_max=0
+check_rssi() {
+    local value=$1
+    local score=$2
 
+    # Update the minimum/maximum RSSI value
+    if [[ $value -lt $alink_rssi_value_min ]]; then
+        alink_rssi_value_min=$value
+    fi
+    if [[ $value -gt $alink_rssi_value_max ]]; then
+        alink_rssi_value_max=$value
+    fi
+
+    # Update the minimum/maximum RSSI score
+    if [[ $score -lt $alink_rssi_score_min ]]; then
+        alink_rssi_score_min=$score
+    fi
+    if [[ $score -gt $alink_rssi_score_max ]]; then
+        alink_rssi_score_max=$score
+    fi
+}
+
+# Function: Print RSSI statistics
+report_rssi() {
+    echo ""
+    echo "------------------------------------------"
+    echo "RSSI value: $alink_rssi_value_min ~ $alink_rssi_value_max"
+    echo "RSSI score: $alink_rssi_score_min ~ $alink_rssi_score_max"
+}
+# Function to deal with srt block messages
+inconsistence_ids=()
 process_block() {
     ((alink_record_cnt++))
 
@@ -613,6 +646,8 @@ process_block() {
 
     rssi_score=$(extract_rssi_score "$rssi_line")
     alink_rssi_score+=($rssi_score)
+
+    check_rssi $rssi_value $rssi_score
 
     ###################################
     # Extract SNR                     #
@@ -769,6 +804,8 @@ export_to_csv() {
 export_to_csv > $csv_file
 
 echo -e "$csv_file generated!"
+
+report_rssi
 
 exit 0
 
