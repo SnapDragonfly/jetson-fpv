@@ -556,6 +556,42 @@ report_rssi() {
     echo "RSSI value: $alink_rssi_value_min ~ $alink_rssi_value_max"
     echo "RSSI score: $alink_rssi_score_min ~ $alink_rssi_score_max"
 }
+
+# Function: Check and update SNR values
+alink_snr_value_min=9999
+alink_snr_value_max=0
+alink_snr_score_min=9999
+alink_snr_score_max=0
+check_snr() {
+    local value=$1
+    local score=$2
+
+    # Update the minimum/maximum SNR value
+    if [[ $value -lt $alink_snr_value_min ]]; then
+        alink_snr_value_min=$value
+    fi
+    if [[ $value -gt $alink_snr_value_max ]]; then
+        alink_snr_value_max=$value
+    fi
+
+    # Update the minimum/maximum RSSI score
+    if [[ $score -lt $alink_snr_score_min ]]; then
+        alink_snr_score_min=$score
+    fi
+    if [[ $score -gt $alink_snr_score_max ]]; then
+        alink_snr_score_max=$score
+    fi
+}
+
+# Function: Print SNR statistics
+report_snr() {
+    echo ""
+    echo "------------------------------------------"
+    echo "SNR value: $alink_snr_value_min ~ $alink_snr_value_max"
+    echo "SNR score: $alink_snr_score_min ~ $alink_snr_score_max"
+}
+
+
 # Function to deal with srt block messages
 inconsistence_ids=()
 process_block() {
@@ -660,6 +696,8 @@ process_block() {
     snr_score=$(extract_snr_score "$snr_line")
     alink_snr_score+=($snr_score)
 
+    check_snr $snr_value $snr_score
+
     ###################################
     # Extract Extra info              #
     ###################################
@@ -712,15 +750,6 @@ process_file() {
     if [[ ${#block[@]} -gt 0 ]]; then
         process_block
     fi
-
-    echo ""
-    if [[ ${#inconsistence_ids[@]} -eq 0 ]]; then
-        echo "alink srt file is consistent!"
-    else
-        echo "alink srt file is inconsistent!"
-        echo "number of elements in inconsistence_ids: ${#inconsistence_ids[@]}"
-        print_table inconsistence_ids 10
-    fi
 }
 
 # Process the file and exit
@@ -758,6 +787,17 @@ process_file $srt_file
 #print_table alink_extra_tx_dropped 5
 #print_table alink_extra_tx_requested 5
 #print_table alink_extra_keyframe_requested 5
+
+# Consistency check
+echo ""
+echo ""
+if [[ ${#inconsistence_ids[@]} -eq 0 ]]; then
+    echo "alink srt file is consistent!"
+else
+    echo "alink srt file is inconsistent!"
+    echo "number of elements in inconsistence_ids: ${#inconsistence_ids[@]}"
+    print_table inconsistence_ids 10
+fi
 
 # Function to export data to CSV format
 export_to_csv() {
@@ -802,10 +842,11 @@ export_to_csv() {
 
 # Call the function to export the data to CSV
 export_to_csv > $csv_file
-
 echo -e "$csv_file generated!"
 
+# Report Statistics
 report_rssi
+report_snr
 
 exit 0
 
