@@ -532,20 +532,24 @@ check_rssi() {
     local value=$1
     local score=$2
 
-    # Update the minimum/maximum RSSI value
-    if [[ $value -lt $alink_rssi_value_min ]]; then
-        alink_rssi_value_min=$value
-    fi
-    if [[ $value -gt $alink_rssi_value_max ]]; then
-        alink_rssi_value_max=$value
+    if [[ -n "$value" ]]; then
+        # Update the minimum/maximum RSSI value
+        if [[ $value -lt $alink_rssi_value_min ]]; then
+            alink_rssi_value_min=$value
+        fi
+        if [[ $value -gt $alink_rssi_value_max ]]; then
+            alink_rssi_value_max=$value
+        fi
     fi
 
-    # Update the minimum/maximum RSSI score
-    if [[ $score -lt $alink_rssi_score_min ]]; then
-        alink_rssi_score_min=$score
-    fi
-    if [[ $score -gt $alink_rssi_score_max ]]; then
-        alink_rssi_score_max=$score
+    if [[ -n "$score" ]]; then
+        # Update the minimum/maximum RSSI score
+        if [[ $score -lt $alink_rssi_score_min ]]; then
+            alink_rssi_score_min=$score
+        fi
+        if [[ $score -gt $alink_rssi_score_max ]]; then
+            alink_rssi_score_max=$score
+        fi
     fi
 }
 
@@ -566,20 +570,24 @@ check_snr() {
     local value=$1
     local score=$2
 
-    # Update the minimum/maximum SNR value
-    if [[ $value -lt $alink_snr_value_min ]]; then
-        alink_snr_value_min=$value
-    fi
-    if [[ $value -gt $alink_snr_value_max ]]; then
-        alink_snr_value_max=$value
+    if [[ -n "$value" ]]; then
+        # Update the minimum/maximum SNR value
+        if [[ $value -lt $alink_snr_value_min ]]; then
+            alink_snr_value_min=$value
+        fi
+        if [[ $value -gt $alink_snr_value_max ]]; then
+            alink_snr_value_max=$value
+        fi
     fi
 
-    # Update the minimum/maximum RSSI score
-    if [[ $score -lt $alink_snr_score_min ]]; then
-        alink_snr_score_min=$score
-    fi
-    if [[ $score -gt $alink_snr_score_max ]]; then
-        alink_snr_score_max=$score
+    if [[ -n "$score" ]]; then
+        # Update the minimum/maximum RSSI score
+        if [[ $score -lt $alink_snr_score_min ]]; then
+            alink_snr_score_min=$score
+        fi
+        if [[ $score -gt $alink_snr_score_max ]]; then
+            alink_snr_score_max=$score
+        fi
     fi
 }
 
@@ -596,6 +604,10 @@ alink_cpu_min=9999
 alink_cpu_max=0
 check_cpu() {
     local value=$1
+
+    if [[ -z "$value" ]]; then
+        return
+    fi
 
     # Update the minimum/maximum SNR value
     if [[ $value -lt $alink_cpu_min ]]; then
@@ -623,6 +635,10 @@ alink_tx_temp_min=9999
 alink_tx_temp_max=0
 check_tx_temp() {
     local value=$1
+
+    if [[ -z "$value" ]]; then
+        return
+    fi
 
     # Update the minimum/maximum value
     if [[ $value -lt $alink_tx_temp_min ]]; then
