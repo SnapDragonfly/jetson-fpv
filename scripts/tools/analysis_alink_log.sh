@@ -512,6 +512,26 @@ extract_extra_tx_requested() {
     echo "$tx_requested_value"
 }
 
+declare -g alink_latest_tx_requested=-1
+declare -g adjust_tx_requested_result
+adjust_extra_tx_requested() {
+    local tx_requested_value="$1"
+
+    if [[ -z "$tx_requested_value" ]]; then
+        adjust_tx_requested_result=0
+        return
+    fi
+
+    if [[ $alink_latest_tx_requested -eq -1 ]]; then
+        alink_latest_tx_requested=$tx_requested_value
+        adjust_tx_requested_result=0
+    else
+        local delta_requested_value=$((tx_requested_value - alink_latest_tx_requested))
+        alink_latest_tx_requested=$tx_requested_value
+        adjust_tx_requested_result=$delta_requested_value
+    fi
+}
+
 # Function to extract extra info: keyframe_requested
 alink_extra_keyframe_requested=()
 extract_extra_keyframe_requested() {
@@ -957,7 +977,8 @@ process_block() {
     alink_extra_tx_dropped+=($extra_tx_dropped)
 
     extra_tx_requested=$(extract_extra_tx_requested "$extra_line")
-    alink_extra_tx_requested+=($extra_tx_requested)
+    adjust_extra_tx_requested "$extra_tx_requested"
+    alink_extra_tx_requested+=($adjust_tx_requested_result)
 
     extra_keyframe_requested=$(extract_extra_keyframe_requested "$extra_line")
     adjust_extra_keyframe_requested "$extra_keyframe_requested"
