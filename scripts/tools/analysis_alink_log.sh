@@ -618,6 +618,32 @@ report_cpu() {
     fi
 }
 
+# Function: Check and update TX temperature
+alink_tx_temp_min=9999
+alink_tx_temp_max=0
+check_tx_temp() {
+    local value=$1
+
+    # Update the minimum/maximum value
+    if [[ $value -lt $alink_tx_temp_min ]]; then
+        alink_tx_temp_min=$value
+    fi
+    if [[ $value -gt $alink_tx_temp_max ]]; then
+        alink_tx_temp_max=$value
+    fi
+}
+
+# Function: Print TX temperature statistics
+report_tx_temp() {
+    echo ""
+    echo "------------------------------------------"
+    echo "TX Celsius: $alink_tx_temp_min ~ $alink_tx_temp_max"
+
+    # Check if the maximum TX temperature exceeds threshold
+    if [[ $alink_tx_temp_max -gt 100 ]]; then
+        echo "!WARNING!: TX temperature exceeded 100 degree Celsius"
+    fi
+}
 
 # Function to deal with srt block messages
 inconsistence_ids=()
@@ -688,6 +714,7 @@ process_block() {
 
     osd_tx_temp=$(extract_regular_osd_tx_temp "$osd_line")
     alink_osd_tx_temp+=($osd_tx_temp)
+    check_tx_temp $osd_tx_temp
 
     ###################################
     # Extract scores                  #
@@ -874,6 +901,7 @@ echo -e "$csv_file generated!"
 
 # Report Statistics
 report_cpu
+report_tx_temp
 report_rssi
 report_snr
 
