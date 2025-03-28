@@ -780,6 +780,32 @@ report_tx_power() {
     #print_table alink_pwr 10
 }
 
+# Function: Check and update bitrate
+alink_tx_bitrate_min=9999
+alink_tx_bitrate_max=0
+check_tx_bitrate() {
+    local value=$1
+
+    if [[ -z "$value" ]]; then
+        return
+    fi
+
+    # Update the minimum/maximum tx bitrate
+    if [[ $value -lt $alink_tx_bitrate_min ]]; then
+        alink_tx_bitrate_min=$value
+    fi
+    if [[ $value -gt $alink_tx_bitrate_max ]]; then
+        alink_tx_bitrate_max=$value
+    fi
+}
+
+# Function: Print TX bitrate statistics
+report_tx_bitrate() {
+    echo ""
+    echo "------------------------------------------"
+    echo "TX bitrate(kbps): $alink_tx_bitrate_min ~ $alink_tx_bitrate_max"
+}
+
 ######################################################################
 # Functions for srt file parsing loop
 ######################################################################
@@ -814,6 +840,7 @@ process_block() {
 
     bitrate=$(extract_profile_bitrate "$profile_line")
     alink_bitrate+=($bitrate)
+    check_tx_bitrate $bitrate
 
     bandwidth=$(extract_profile_bandwidth "$profile_line")
     alink_bandwidth+=($bandwidth)
@@ -1021,6 +1048,7 @@ echo -e "$csv_file auto-generated!"
 report_cpu
 report_tx_temp
 report_tx_power
+report_tx_bitrate
 report_rssi
 report_snr
 
