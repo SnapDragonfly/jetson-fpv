@@ -43,6 +43,11 @@ fi
 
 #./scripts/tools/remove_srt_extra_newline.sh $srt_file
 
+######################################################################
+# Functions: print_table
+# $1 -> array for print
+# $2 -> columns for print
+######################################################################
 print_table() {
     local array_name="$1"
     local columns="${2:-10}"  # Default to 10 columns if not specified
@@ -71,6 +76,10 @@ print_table() {
         printf "\n"  # Add final newline if the last row didn't finish
     fi
 }
+
+######################################################################
+# Functions for data extract
+######################################################################
 
 alink_record_cnt=0
 
@@ -523,6 +532,50 @@ extract_extra_keyframe_requested() {
     echo "$keyframe_requested_value"
 }
 
+export_to_csv() {
+    # Define the headers (remove 'alink_' prefix and set as column names)
+    local headers="time, elapsed, bitrate, bandwidth, gi, mcs, k, n, pwr, gop, osd_bitrate, fps, cpu, tx_temp, og_score, ft_score, rssi_value, rssi_score, snr_value, snr_score, fec, pnlt, tx_dropped, tx_requested, keyframe_requested"
+
+    # Print headers (replace 'alink_' prefix)
+    echo "$headers"
+
+    # Print record values as CSV
+    for ((i = 0; i < alink_record_cnt; i++)); do
+        echo -n "${alink_time_stamp[i]},"
+        echo -n "${alink_time_elapsed[i]},"
+        echo -n "${alink_bitrate[i]},"
+        echo -n "${alink_bandwidth[i]},"
+        echo -n "${alink_gi[i]},"
+        echo -n "${alink_mcs[i]},"
+        echo -n "${alink_k[i]},"
+        echo -n "${alink_n[i]},"
+        echo -n "${alink_pwr[i]},"
+        echo -n "${alink_gop[i]},"
+        echo -n "${alink_osd_bitrate[i]},"
+        echo -n "${alink_osd_fps[i]},"
+        echo -n "${alink_osd_cpu[i]},"
+        echo -n "${alink_osd_tx_temp[i]},"
+        echo -n "${alink_original_score[i]},"
+        echo -n "${alink_filtered_score[i]},"
+        echo -n "${alink_rssi_value[i]},"
+        echo -n "${alink_rssi_score[i]},"
+        echo -n "${alink_snr_value[i]},"
+        echo -n "${alink_snr_score[i]},"
+        echo -n "${alink_extra_fec[i]},"
+        echo -n "${alink_extra_pnlt[i]},"
+        echo -n "${alink_extra_tx_dropped[i]},"
+        echo -n "${alink_extra_tx_requested[i]},"
+        echo "${alink_extra_keyframe_requested[i]}"
+    done
+
+    # Print a newline to end the row
+    echo
+}
+
+######################################################################
+# Functions for data analysis
+######################################################################
+
 # Function: Check and update RSSI values
 alink_rssi_value_min=9999
 alink_rssi_value_max=-999
@@ -581,7 +634,7 @@ check_snr() {
     fi
 
     if [[ -n "$score" ]]; then
-        # Update the minimum/maximum RSSI score
+        # Update the minimum/maximum SNR score
         if [[ $score -lt $alink_snr_score_min ]]; then
             alink_snr_score_min=$score
         fi
@@ -609,7 +662,7 @@ check_cpu() {
         return
     fi
 
-    # Update the minimum/maximum SNR value
+    # Update the minimum/maximum CPU percentage
     if [[ $value -lt $alink_cpu_min ]]; then
         alink_cpu_min=$value
     fi
@@ -622,9 +675,9 @@ check_cpu() {
 report_cpu() {
     echo ""
     echo "------------------------------------------"
-    echo "CPU %: $alink_cpu_min ~ $alink_cpu_max"
+    echo "CPU usage: $alink_cpu_min% ~ $alink_cpu_max%"
 
-    # Check if the maximum CPU usage exceeds 70%
+    # Check if the maximum CPU usage exceeds threshold
     if [[ $alink_cpu_max -gt 70 ]]; then
         echo "!WARNING!: CPU usage exceeded 70%!"
     fi
@@ -640,7 +693,7 @@ check_tx_temp() {
         return
     fi
 
-    # Update the minimum/maximum value
+    # Update the minimum/maximum tx temperature value
     if [[ $value -lt $alink_tx_temp_min ]]; then
         alink_tx_temp_min=$value
     fi
@@ -660,6 +713,10 @@ report_tx_temp() {
         echo "!WARNING!: TX temperature exceeded 100 degree Celsius"
     fi
 }
+
+######################################################################
+# Functions for srt file parsing loop
+######################################################################
 
 # Function to deal with srt block messages
 inconsistence_ids=()
@@ -826,6 +883,10 @@ process_file() {
 # Process the file and exit
 process_file $srt_file
 
+######################################################################
+# Functions for debug
+######################################################################
+
 # DEBUG
 #print_table alink_time_stamp 5
 
@@ -859,8 +920,15 @@ process_file $srt_file
 #print_table alink_extra_tx_requested 5
 #print_table alink_extra_keyframe_requested 5
 
-# Consistency check
-echo ""
+######################################################################
+# Summary
+######################################################################
+echo "" # for progress bar
+
+#
+# SRT file consistency check
+#
+
 echo ""
 if [[ ${#inconsistence_ids[@]} -eq 0 ]]; then
     echo "alink srt file is consistent!"
@@ -870,56 +938,26 @@ else
     print_table inconsistence_ids 10
 fi
 
-# Function to export data to CSV format
-export_to_csv() {
-    # Define the headers (remove 'alink_' prefix and set as column names)
-    local headers="time, elapsed, bitrate, bandwidth, gi, mcs, k, n, pwr, gop, osd_bitrate, fps, cpu, tx_temp, og_score, ft_score, rssi_value, rssi_score, snr_value, snr_score, fec, pnlt, tx_dropped, tx_requested, keyframe_requested"
+#
+# export data to CSV format file
+#
 
-    # Print headers (replace 'alink_' prefix)
-    echo "$headers"
-
-    # Print record values as CSV
-    for ((i = 0; i < alink_record_cnt; i++)); do
-        echo -n "${alink_time_stamp[i]},"
-        echo -n "${alink_time_elapsed[i]},"
-        echo -n "${alink_bitrate[i]},"
-        echo -n "${alink_bandwidth[i]},"
-        echo -n "${alink_gi[i]},"
-        echo -n "${alink_mcs[i]},"
-        echo -n "${alink_k[i]},"
-        echo -n "${alink_n[i]},"
-        echo -n "${alink_pwr[i]},"
-        echo -n "${alink_gop[i]},"
-        echo -n "${alink_osd_bitrate[i]},"
-        echo -n "${alink_osd_fps[i]},"
-        echo -n "${alink_osd_cpu[i]},"
-        echo -n "${alink_osd_tx_temp[i]},"
-        echo -n "${alink_original_score[i]},"
-        echo -n "${alink_filtered_score[i]},"
-        echo -n "${alink_rssi_value[i]},"
-        echo -n "${alink_rssi_score[i]},"
-        echo -n "${alink_snr_value[i]},"
-        echo -n "${alink_snr_score[i]},"
-        echo -n "${alink_extra_fec[i]},"
-        echo -n "${alink_extra_pnlt[i]},"
-        echo -n "${alink_extra_tx_dropped[i]},"
-        echo -n "${alink_extra_tx_requested[i]},"
-        echo "${alink_extra_keyframe_requested[i]}"
-    done
-
-    # Print a newline to end the row
-    echo
-}
-
-# Call the function to export the data to CSV
 export_to_csv > $csv_file
-echo -e "$csv_file generated!"
+echo -e "$csv_file auto-generated!"
 
-# Report Statistics
+#
+# report statistics
+#
+
 report_cpu
 report_tx_temp
 report_rssi
 report_snr
+
+#
+# specialized analysis
+# TODO:
+#
 
 exit 0
 
