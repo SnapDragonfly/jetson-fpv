@@ -2,13 +2,70 @@
 
 source ./scripts/common/progress.sh
 
-# Check if the srt file is provided
-if [ -z "$1" ]; then
-    echo "Usage: $0 <srt_file>"
-    exit 1
+verbose=0  # Default: verbose mode is off
+column=10  # Default value for --column
+srt_file=""
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --verbose)
+      verbose=1
+      shift ;;  # Move to next argument
+
+    -v)
+      verbose=1
+      shift ;;  # Move to next argument
+
+    --column)
+      if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+        column=$2
+        shift 2  # Move past '--column' and its value
+      else
+        echo "Error: --column requires an integer argument."
+        exit 1
+      fi
+      ;;
+
+    -c)
+      if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+        column=$2
+        shift 2  # Move past '-c' and its value
+      else
+        echo "Error: -c requires an integer argument."
+        exit 1
+      fi
+      ;;
+
+    *)
+      if [[ -z "$srt_file" ]]; then
+        srt_file="$1"  # Assign first non-option argument as input file
+        shift
+      else
+        echo "Error: Multiple input files detected. Only one file is allowed."
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+# Ensure input file is provided
+if [[ -z "$srt_file" ]]; then
+  echo "Error: Missing srt file."
+  echo "Usage: $0 <filename> [--verbose] [--column <num>]"
+  exit 1
 fi
 
-srt_file="$1"
+if [[ $verbose -eq 1 ]]; then
+  echo "Verbose mode enabled"
+fi
+
+echo "Processing file: $srt_file"
+echo "Column value: $column"
+
+######################################################################
+# Input srt file
+######################################################################
 
 # Verify that the srt file exists
 if [ ! -f "$srt_file" ]; then
@@ -790,7 +847,10 @@ report_link_score() {
     echo "------------------------------------------"
     echo "original score: $alink_og_score_min ~ $alink_og_score_max"
     echo "filtered score: $alink_smthd_score_min ~ $alink_smthd_score_max"
-    print_table alink_filtered_score 10
+
+    if [[ $verbose -eq 1 ]]; then
+        print_table alink_filtered_score $column
+    fi
 }
 
 # Function: Check and update TX power
@@ -817,7 +877,7 @@ report_tx_power() {
     echo ""
     echo "------------------------------------------"
     echo "TX Power: $alink_tx_power_min ~ $alink_tx_power_max"
-    #print_table alink_pwr 10
+    #print_table alink_pwr $column
 }
 
 # Function: Check and update bitrate
@@ -1026,37 +1086,37 @@ process_file $srt_file
 ######################################################################
 
 # DEBUG
-#print_table alink_time_stamp 5
+#print_table alink_time_stamp $column
 
-#print_table alink_time_elapsed 5
-#print_table alink_bitrate 5
-#print_table alink_bandwidth 5
-#print_table alink_gi 5
-#print_table alink_mcs 5
-#print_table alink_k 5
-#print_table alink_n 5
-#print_table alink_pwr 5
-#print_table alink_gop 5
+#print_table alink_time_elapsed $column
+#print_table alink_bitrate $column
+#print_table alink_bandwidth $column
+#print_table alink_gi $column
+#print_table alink_mcs $column
+#print_table alink_k $column
+#print_table alink_n $column
+#print_table alink_pwr $column
+#print_table alink_gop $column
 
-#print_table alink_osd_bitrate 5
-#print_table alink_osd_fps 5
-#print_table alink_osd_cpu 5
-#print_table alink_osd_tx_temp 5
+#print_table alink_osd_bitrate $column
+#print_table alink_osd_fps $column
+#print_table alink_osd_cpu $column
+#print_table alink_osd_tx_temp $column
 
-#print_table alink_original_score 5
-#print_table alink_filtered_score 5
+#print_table alink_original_score $column
+#print_table alink_filtered_score $column
 
-#print_table alink_rssi_value 5
-#print_table alink_rssi_score 5
+#print_table alink_rssi_value $column
+#print_table alink_rssi_score $column
 
-#print_table alink_snr_value 5
-#print_table alink_snr_score 5
+#print_table alink_snr_value $column
+#print_table alink_snr_score $column
 
-#print_table alink_extra_fec 5
-#print_table alink_extra_pnlt 5
-#print_table alink_extra_tx_dropped 5
-#print_table alink_extra_tx_requested 5
-#print_table alink_extra_keyframe_requested 5
+#print_table alink_extra_fec $column
+#print_table alink_extra_pnlt $column
+#print_table alink_extra_tx_dropped $column
+#print_table alink_extra_tx_requested $column
+#print_table alink_extra_keyframe_requested $column
 
 ######################################################################
 # Summary
@@ -1073,7 +1133,7 @@ if [[ ${#inconsistence_ids[@]} -eq 0 ]]; then
 else
     echo "alink srt file is inconsistent!"
     echo "number of elements in inconsistence_ids: ${#inconsistence_ids[@]}"
-    print_table inconsistence_ids 10
+    print_table inconsistence_ids $column
 fi
 
 #
