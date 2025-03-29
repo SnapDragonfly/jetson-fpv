@@ -540,13 +540,33 @@ extract_extra_tx_dropped() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    local osd_string="$1"  # Input string, e.g., "fec4 pnlt0 xtx0(0) idr0"
+    local osd_string="$1"  # Input string, e.g., "fec4 pnlt0 xtx35(0) idr0"
 
-    # Use sed to extract the number inside the parentheses after 'xtx'
-    local tx_dropped_value=$(echo "$osd_string" | sed -n 's/.*xtx[0-9]*(\([0-9]*\)).*/\1/p')
+    # Extract the number **right after** 'xtx' (before '(')
+    local tx_dropped_value=$(echo "$osd_string" | sed -n 's/.*xtx\([0-9]\+\)(.*/\1/p')
 
-    # Output the extracted value (e.g., 0)
+    # Output the extracted value (e.g., 35)
     echo "$tx_dropped_value"
+}
+
+declare -g alink_latest_tx_dropped=-1
+declare -g adjust_tx_dropped_result
+adjust_extra_tx_dropped() {
+    local tx_dropped_value="$1"
+
+    if [[ -z "$tx_dropped_value" ]]; then
+        adjust_tx_dropped_result=0
+        return
+    fi
+
+    if [[ $alink_latest_tx_dropped -eq -1 ]]; then
+        alink_latest_tx_dropped=$tx_dropped_value
+        adjust_tx_dropped_result=0
+    else
+        local delta_dropped_value=$((tx_dropped_value - alink_latest_tx_dropped))
+        alink_latest_tx_dropped=$tx_dropped_value
+        adjust_tx_dropped_result=$delta_dropped_value
+    fi
 }
 
 # Function to extract extra info: tx_requested
@@ -1034,7 +1054,8 @@ process_block() {
     alink_extra_pnlt+=($extra_pnlt)
 
     extra_tx_dropped=$(extract_extra_tx_dropped "$extra_line")
-    alink_extra_tx_dropped+=($extra_tx_dropped)
+    adjust_extra_tx_dropped "$extra_tx_dropped"
+    alink_extra_tx_dropped+=($adjust_tx_dropped_result)
 
     extra_tx_requested=$(extract_extra_tx_requested "$extra_line")
     adjust_extra_tx_requested "$extra_tx_requested"
