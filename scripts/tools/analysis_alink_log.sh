@@ -925,6 +925,61 @@ report_tx_bitrate() {
     echo "TX bitrate(kbps): $alink_tx_bitrate_min ~ $alink_tx_bitrate_max"
 }
 
+# Function: Check and update link status
+alink_fec_min=9999
+alink_fec_max=0
+alink_tx_dropped_min=9999
+alink_tx_dropped_max=0
+alink_tx_requested_min=9999
+alink_tx_requested_max=0
+alink_keyframe_requested_min=9999
+alink_keyframe_requested_max=0
+check_link_status() {
+    local fec=$1
+    local tx_dropped=$2
+    local tx_requested=$3
+    local keyframe_requested=$4
+
+    # Update min/max values only if the corresponding variable is provided
+    if [[ -n "$fec" ]]; then
+        # If the new value is smaller or larger, update min/max
+        [[ $fec -lt $alink_fec_min ]] && alink_fec_min=$fec
+        [[ $fec -gt $alink_fec_max ]] && alink_fec_max=$fec
+    fi
+
+    if [[ -n "$tx_dropped" ]]; then
+        # If the new value is smaller or larger, update min/max
+        [[ $tx_dropped -lt $alink_tx_dropped_min ]] && alink_tx_dropped_min=$tx_dropped
+        [[ $tx_dropped -gt $alink_tx_dropped_max ]] && alink_tx_dropped_max=$tx_dropped
+    fi
+
+    if [[ -n "$tx_requested" ]]; then
+        # If the new value is smaller or larger, update min/max
+        [[ $tx_requested -lt $alink_tx_requested_min ]] && alink_tx_requested_min=$tx_requested
+        [[ $tx_requested -gt $alink_tx_requested_max ]] && alink_tx_requested_max=$tx_requested
+    fi
+
+    if [[ -n "$keyframe_requested" ]]; then
+        # If the new value is smaller or larger, update min/max
+        [[ $keyframe_requested -lt $alink_keyframe_requested_min ]] && alink_keyframe_requested_min=$keyframe_requested
+        [[ $keyframe_requested -gt $alink_keyframe_requested_max ]] && alink_keyframe_requested_max=$keyframe_requested
+    fi
+}
+
+# Function: Print link statistics
+report_link_status() {
+    echo "FEC: $alink_fec_min ~ $alink_fec_max"
+    echo "TX dropped: $alink_tx_dropped_min ~ $alink_tx_dropped_max"
+    echo "TX requested: $alink_tx_requested_min ~ $alink_tx_requested_max"
+    echo "TX keyframe requested: $alink_keyframe_requested_min ~ $alink_keyframe_requested_max"
+    if [[ $verbose -eq 1 ]]; then
+        print_table alink_extra_fec $column
+        print_table alink_extra_tx_dropped $column
+        print_table alink_extra_tx_requested $column
+        print_table alink_extra_keyframe_requested $column
+    fi
+}
+
 ######################################################################
 # Functions for srt file parsing loop
 ######################################################################
@@ -1063,6 +1118,8 @@ process_block() {
     extra_keyframe_requested=$(extract_extra_keyframe_requested "$extra_line")
     adjust_extra_keyframe_requested "$extra_keyframe_requested"
     alink_extra_keyframe_requested+=($adjust_keyframe_requested_result)
+
+    check_link_status $extra_fec $adjust_tx_dropped_result $adjust_tx_requested_result $adjust_keyframe_requested_result
 }
 
 # Function to process the file
@@ -1179,6 +1236,7 @@ report_snr
 #
 
 report_link_score
+report_link_status
 
 exit 0
 
