@@ -57,11 +57,10 @@ if [[ -z "$srt_file" ]]; then
 fi
 
 if [[ $verbose -eq 1 ]]; then
-  echo "Verbose mode enabled"
+  echo "Verbose mode enabled, with $column columns detailed distributed numbers."
 fi
 
-echo "Processing file: $srt_file"
-echo "Column value: $column"
+echo "Processing SubRip Subtitle File: $srt_file"
 
 ######################################################################
 # Input srt file
