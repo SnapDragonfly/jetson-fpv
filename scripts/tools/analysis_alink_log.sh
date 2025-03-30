@@ -832,7 +832,7 @@ report_tx_temp() {
 
 # Function: Check and update original/filtered link scores
 alink_og_score_min=9999
-alink_og_score_max=-999
+alink_og_score_max=0
 alink_smthd_score_min=9999
 alink_smthd_score_max=0
 check_link_score() {
@@ -844,8 +844,8 @@ check_link_score() {
         if [[ $og_score -lt $alink_og_score_min ]]; then
             alink_og_score_min=$og_score
         fi
-        if [[ $og_score -gt $alink_rssi_value_max ]]; then
-            alink_rssi_value_max=$og_score
+        if [[ $og_score -gt $alink_og_score_max ]]; then
+            alink_og_score_max=$og_score
         fi
     fi
 
