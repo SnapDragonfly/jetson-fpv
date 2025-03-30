@@ -74,13 +74,14 @@ fi
 
 # Get the base name without the extension
 base_name=$(basename "$srt_file" .srt)
+dir_name=$(dirname "$srt_file")
 
 # Check if the file has the .srt extension, if so, replace it with .csv
 if [[ "$srt_file" == *.srt ]]; then
-    csv_file="${base_name}.csv"
+    csv_file="$dir_name/${base_name}.csv"
 else
     # If no extension is present, add .csv
-    csv_file="${srt_file}.csv"
+    csv_file="$dir_name/${srt_file}.csv"
 fi
 
 # Check if the CSV file already exists
