@@ -1,5 +1,15 @@
 #!/bin/bash
 
+COLUMN_A_X=1400
+COLUMN_B_X=1650
+COLUMN_Y1=100
+COLUMN_Y2=200
+COLUMN_Y3=300
+COLUMN_Y4=400
+
+BG_OPACITY=0.5
+
+
 CMD_PLOT_CSV="python3 ./utils/plot-widget.py"
 
 verbose=0  # Default: verbose mode is off
@@ -56,19 +66,74 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# combined link score
+######################################################################
+# Column A
+######################################################################
+
+# FEC
 $CMD_PLOT_CSV $csv_file\
-              --graph_x 1400\
-              --graph_y 100\
-              --graph_width 300\
-              --graph_height 100 &
+              --graph_x $COLUMN_A_X\
+              --graph_y $COLUMN_Y1\
+              --background_opacity=$BG_OPACITY\
+              --title "FEC"\
+              --item 20\
+              --min_value -1\
+              --max_value 20\
+              --threshold 6\
+              --direction +1 &
+
+
+# Packet Drop
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_A_X\
+              --graph_y $COLUMN_Y2\
+              --background_opacity=$BG_OPACITY\
+              --title "Packet drop"\
+              --item 22\
+              --min_value 0\
+              --max_value 50\
+              --threshold 15\
+              --direction +1 &
+
+# Packet Req
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_A_X\
+              --graph_y $COLUMN_Y3\
+              --background_opacity=$BG_OPACITY\
+              --title "AirUnit Frame Req"\
+              --item 23\
+              --min_value 0\
+              --max_value 2\
+              --threshold 0\
+              --direction +1 &
+
+# Key Frame Req
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_A_X\
+              --graph_y $COLUMN_Y4\
+              --background_opacity=$BG_OPACITY\
+              --title "GS Frame Req"\
+              --item 24\
+              --min_value 0\
+              --max_value 5\
+              --threshold 0\
+              --direction +1 &
+
+######################################################################
+# Column B
+######################################################################
+
+# link score
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y1\
+              --background_opacity=$BG_OPACITY &
 
 # RSSI
 $CMD_PLOT_CSV $csv_file\
-              --graph_x 1400\
-              --graph_y 250\
-              --graph_width 300\
-              --graph_height 100\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y2\
+              --background_opacity=$BG_OPACITY\
               --title "Link RSSI"\
               --item 16\
               --min_value -80\
@@ -78,10 +143,9 @@ $CMD_PLOT_CSV $csv_file\
 
 # SNR
 $CMD_PLOT_CSV $csv_file\
-              --graph_x 1400\
-              --graph_y 400\
-              --graph_width 300\
-              --graph_height 100\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y3\
+              --background_opacity=$BG_OPACITY\
               --title "Link SNR"\
               --item 18\
               --min_value 12\
@@ -89,39 +153,11 @@ $CMD_PLOT_CSV $csv_file\
               --threshold 30\
               --direction +1 &
 
-# FEC
-$CMD_PLOT_CSV $csv_file\
-              --graph_x 1400\
-              --graph_y 550\
-              --graph_width 300\
-              --graph_height 100\
-              --title "FEC"\
-              --item 20\
-              --min_value 0\
-              --max_value 20\
-              --threshold 6\
-              --direction +1 &
-
-
-# Packet Drop
-$CMD_PLOT_CSV $csv_file\
-              --graph_x 1400\
-              --graph_y 700\
-              --graph_width 300\
-              --graph_height 100\
-              --title "Packet drop"\
-              --item 22\
-              --min_value 0\
-              --max_value 50\
-              --threshold 20\
-              --direction +1 &
-
 # Bitrate
 $CMD_PLOT_CSV $csv_file\
-              --graph_x 1400\
-              --graph_y 850\
-              --graph_width 300\
-              --graph_height 100\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y4\
+              --background_opacity=$BG_OPACITY\
               --title "Bitrate Kbps"\
               --item 2\
               --min_value 0\

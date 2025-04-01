@@ -8,13 +8,17 @@ from PyQt5.QtCore import QTimer, Qt, QRect
 from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 import argparse
 
+DEFAULT_GRAPH_WIDTH=240
+DEFAULT_GRAPH_HEIGHT=80
+DEFAULT_GRAPH_BARS=20
+DEFAULT_GRAPH_FONT_SIZE=12
 
 class OSDWindow(QWidget):
     def __init__(self, 
                  timestamps, timestamp_strings, data, 
                  osd_width=1920, osd_height=1080,
-                 graph_x=1400, graph_y=150, graph_width=300, graph_height=100, 
-                 background_opacity=0.5, num_bars=40, 
+                 graph_x=1400, graph_y=150, graph_width=DEFAULT_GRAPH_WIDTH, graph_height=DEFAULT_GRAPH_HEIGHT, 
+                 background_opacity=0.5, num_bars=DEFAULT_GRAPH_BARS, 
                  title="Link Score", min_value=1000, max_value=2000, threshold=1500, direction=-1):
         super().__init__()
         self.timestamps = timestamps
@@ -89,6 +93,12 @@ class OSDWindow(QWidget):
             bar_width = max(1, width / self.num_bars * 0.8)  # Ensure bar width fits within available space
             spacing = (width - bar_width * self.num_bars) / (self.num_bars + 1)  # Calculate the spacing between bars
 
+            window_data = self.buffer_data[-self.num_bars:]  # Get recent num_bars data
+            if self.direction == 1:
+                mvalue = max(window_data)
+            else:
+                mvalue = min(window_data)
+
             # Use min_value and max_value to normalize the data
             for i in range(min(len(self.buffer_data), self.num_bars)):
                 value = self.buffer_data[-(i+1)]  # Get the latest value for the bars
@@ -115,13 +125,12 @@ class OSDWindow(QWidget):
                 painter.drawRect(int(x), int(y), int(bar_width), int(normalized_value))
 
         # Display title and data value
-        if self.index < len(self.timestamp_strings):
-            current_time_str = self.timestamp_strings[self.index]
+        #if self.index < len(self.timestamp_strings):
             painter.setPen(QPen(QColor(255, 255, 255)))
-            painter.setFont(QFont("Arial", 14))
-            painter.drawText(self.osd_region.left() + 10, self.osd_region.top() + 30,
-                            f'{self.title}: {self.data[self.index]:.2f}')
-        
+            painter.setFont(QFont("Arial", DEFAULT_GRAPH_FONT_SIZE))
+            painter.drawText(self.osd_region.left() + 5, self.osd_region.top() + 15,
+                            f'{self.title}: {int(self.data[self.index])}/{int(mvalue)}')
+            
         if self.index == (len(self.timestamp_strings) - 1):
             print(f"{self.title}: End of data, Quit.")
             sys.exit(0)
@@ -171,8 +180,8 @@ if __name__ == "__main__":
     parser.add_argument('csv_file', type=str, help="CSV file path")
     parser.add_argument('--graph_x', type=int, default=1400, help="Graph X position")
     parser.add_argument('--graph_y', type=int, default=150, help="Graph Y position")
-    parser.add_argument('--graph_width', type=int, default=300, help="Graph width")
-    parser.add_argument('--graph_height', type=int, default=100, help="Graph height")
+    parser.add_argument('--graph_width', type=int, default=DEFAULT_GRAPH_WIDTH, help="Graph width")
+    parser.add_argument('--graph_height', type=int, default=DEFAULT_GRAPH_HEIGHT, help="Graph height")
     parser.add_argument('--title', type=str, default="Link Score", help="Title of the graph")
     parser.add_argument('--item', type=int, default=15, help="Item of the graph")
     parser.add_argument('--min_value', type=int, default=1000, help="Min value for graph")
@@ -180,7 +189,7 @@ if __name__ == "__main__":
     parser.add_argument('--threshold', type=int, default=1300, help="Threshold for color change")
     parser.add_argument('--direction', type=int, default=-1, help="Threshold direction")
     parser.add_argument('--background_opacity', type=float, default=0.5, help="Background opacity")
-    parser.add_argument('--num_bars', type=int, default=40, help="Number of bars")
+    parser.add_argument('--num_bars', type=int, default=DEFAULT_GRAPH_BARS, help="Number of bars")
 
     args = parser.parse_args()
 
