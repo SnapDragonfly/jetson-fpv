@@ -183,7 +183,7 @@ if __name__ == "__main__":
     parser.add_argument('--graph_width', type=int, default=DEFAULT_GRAPH_WIDTH, help="Graph width")
     parser.add_argument('--graph_height', type=int, default=DEFAULT_GRAPH_HEIGHT, help="Graph height")
     parser.add_argument('--title', type=str, default="Link Score", help="Title of the graph")
-    parser.add_argument('--item', type=int, default=15, help="Item of the graph")
+    parser.add_argument('--item', type=int, default=16, help="Item of the graph")
     parser.add_argument('--min_value', type=int, default=1000, help="Min value for graph")
     parser.add_argument('--max_value', type=int, default=2000, help="Max value for graph")
     parser.add_argument('--threshold', type=int, default=1300, help="Threshold for color change")

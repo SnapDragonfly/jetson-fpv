@@ -76,7 +76,7 @@ $CMD_PLOT_CSV $csv_file\
               --graph_y $COLUMN_Y1\
               --background_opacity=$BG_OPACITY\
               --title "FEC"\
-              --item 20\
+              --item 21\
               --min_value -1\
               --max_value 20\
               --threshold 6\
@@ -89,7 +89,7 @@ $CMD_PLOT_CSV $csv_file\
               --graph_y $COLUMN_Y2\
               --background_opacity=$BG_OPACITY\
               --title "Packet drop"\
-              --item 22\
+              --item 23\
               --min_value 0\
               --max_value 50\
               --threshold 15\
@@ -100,8 +100,8 @@ $CMD_PLOT_CSV $csv_file\
               --graph_x $COLUMN_A_X\
               --graph_y $COLUMN_Y3\
               --background_opacity=$BG_OPACITY\
-              --title "AirUnit Frame Req"\
-              --item 23\
+              --title "TX Req"\
+              --item 24\
               --min_value 0\
               --max_value 2\
               --threshold 0\
@@ -112,8 +112,8 @@ $CMD_PLOT_CSV $csv_file\
               --graph_x $COLUMN_A_X\
               --graph_y $COLUMN_Y4\
               --background_opacity=$BG_OPACITY\
-              --title "GS Frame Req"\
-              --item 24\
+              --title "RX Req"\
+              --item 25\
               --min_value 0\
               --max_value 5\
               --threshold 0\
@@ -127,7 +127,8 @@ $CMD_PLOT_CSV $csv_file\
 $CMD_PLOT_CSV $csv_file\
               --graph_x $COLUMN_B_X\
               --graph_y $COLUMN_Y1\
-              --background_opacity=$BG_OPACITY &
+              --background_opacity=$BG_OPACITY\
+              --item 16 &
 
 # RSSI
 $CMD_PLOT_CSV $csv_file\
@@ -135,7 +136,7 @@ $CMD_PLOT_CSV $csv_file\
               --graph_y $COLUMN_Y2\
               --background_opacity=$BG_OPACITY\
               --title "Link RSSI"\
-              --item 16\
+              --item 17\
               --min_value -80\
               --max_value -30\
               --threshold -70\
@@ -147,7 +148,7 @@ $CMD_PLOT_CSV $csv_file\
               --graph_y $COLUMN_Y3\
               --background_opacity=$BG_OPACITY\
               --title "Link SNR"\
-              --item 18\
+              --item 19\
               --min_value 12\
               --max_value 38\
               --threshold 30\

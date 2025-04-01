@@ -57,7 +57,7 @@ if [[ -z "$srt_file" ]]; then
 fi
 
 if [[ $verbose -eq 1 ]]; then
-  echo "Verbose mode enabled, with $column columns detailed distributed numbers."
+  echo "Verbose mode enabled with $column columns detailed distributed numbers."
 fi
 
 echo "Processing SubRip Subtitle File: $srt_file"
@@ -143,7 +143,8 @@ alink_record_cnt=0
 # Function to extract timestamp and milliseconds
 alink_time_stamp=()
 extract_timestamp() {
-    # Input format: 00:00:00,000 --> 00:00:00,309
+    # Input format 0.58: 00:00:00,000 --> 00:00:00,309
+    # Input format 0.60: 00:00:22,674 --> 00:00:23,676
 
     local timestamp_line="$1"
     local timestamp_current
@@ -165,6 +166,9 @@ extract_profile_time_elapsed() {
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
 
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
+
     local profile_line="$1"
 
     # Use awk to extract the first field and remove the trailing 's'
@@ -181,6 +185,9 @@ extract_profile_bitrate() {
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
 
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
+
     local profile_line="$1"
 
     # Use awk to extract the second field, which represents the bitrate
@@ -196,6 +203,9 @@ extract_profile_bandwidth() {
     # 4s 8192 20long2 10/15 Pw50 g10.0
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
+
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
 
     local profile_line="$1"
 
@@ -214,6 +224,9 @@ extract_profile_gi() {
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
 
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
+
     local profile_line="$1"
 
     # Extract the third field, which is something like '20long2'
@@ -230,6 +243,9 @@ extract_profile_mcs() {
     # 4s 8192 20long2 10/15 Pw50 g10.0
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
+
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
 
     local profile_line="$1"
 
@@ -250,10 +266,13 @@ extract_profile_k() {
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
 
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
+
     local profile_line="$1"
 
     # Extract the fourth field: "10/15"
-    local kn_field=$(echo "$profile_line" | awk '{print $4}')
+    local kn_field=$(echo "$profile_line" | awk '{print $6}')
 
     # Extract the number before the '/' using sed
     local k_value=$(echo "$kn_field" | sed 's/\/.*//')
@@ -269,10 +288,13 @@ extract_profile_n() {
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
 
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
+
     local profile_line="$1"
 
     # Extract the fourth field: "10/15"
-    local kn_field=$(echo "$profile_line" | awk '{print $4}')
+    local kn_field=$(echo "$profile_line" | awk '{print $6}')
 
     # Extract the number after the '/' using sed
     local n_value=$(echo "$kn_field" | sed 's/.*\///')
@@ -288,10 +310,13 @@ extract_profile_pwr() {
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
 
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
+
     local profile_line="$1"
 
     # Extract the fifth field: "Pw50"
-    local pwr_field=$(echo "$profile_line" | awk '{print $5}')
+    local pwr_field=$(echo "$profile_line" | awk '{print $4}')
 
     # Extract the number after 'Pw' using sed
     local pwr_value=$(echo "$pwr_field" | sed 's/[^0-9]*//g')
@@ -307,10 +332,13 @@ extract_profile_gop() {
     # sprintf(global_profile_osd, "%lds %d %d%s%d %d/%d Pw%d g%.1f", 
     # timeElapsed, profile->setBitrate, actual_bandwidth, gi_string, mcs_index, k, n, pwr, profile->setGop);
 
+    # Input format 0.58: 4s 8192 20long2 10/15 Pw50 g10.0
+    # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
+
     local profile_line="$1"
 
     # Extract the sixth field: "g10.0"
-    local gop_field=$(echo "$profile_line" | awk '{print $6}')
+    local gop_field=$(echo "$profile_line" | awk '{print $5}')
 
     # Remove everything except the number after 'g' using sed
     local gop_value=$(echo "$gop_field" | sed 's/[^0-9.]*//g')
@@ -325,7 +353,10 @@ extract_regular_osd_bitrate() {
     # char global_regular_osd[64] = "&L%d0&F%d&B &C tx&Wc";
     # 2.0Mb FPS:60 CPU59% tx44c
 
-    local osd_string="$1"  # Input string, e.g., "2.0Mb FPS:60 CPU59% tx44c"
+    # Input format 0.58: 2.0Mb FPS:60 CPU59% tx44c
+    # Input format 0.60: 3.5Mb FPS:60 CPU:40%,62c TX:62c
+
+    local osd_string="$1"
 
     # Use sed to extract the numeric part before 'Mb' and discard the rest
     local bitrate=$(echo "$osd_string" | sed -n 's/^\([0-9]*\.[0-9]*\)Mb.*$/\1/p')
@@ -340,7 +371,10 @@ extract_regular_osd_fps() {
     # char global_regular_osd[64] = "&L%d0&F%d&B &C tx&Wc";
     # 2.0Mb FPS:60 CPU59% tx44c
 
-    local osd_string="$1"  # Input string, e.g., "2.0Mb FPS:60 CPU59% tx44c"
+    # Input format 0.58: 2.0Mb FPS:60 CPU59% tx44c
+    # Input format 0.60: 3.5Mb FPS:60 CPU:40%,62c TX:62c
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'FPS:' and discard the rest
     local fps=$(echo "$osd_string" | sed -n 's/.*FPS:\([0-9]*\).*/\1/p')
@@ -355,10 +389,32 @@ extract_regular_osd_cpu() {
     # char global_regular_osd[64] = "&L%d0&F%d&B &C tx&Wc";
     # 2.0Mb FPS:60 CPU59% tx44c
 
-    local osd_string="$1"  # Input string, e.g., "2.0Mb FPS:60 CPU59% tx44c"
+    # Input format 0.58: 2.0Mb FPS:60 CPU59% tx44c
+    # Input format 0.60: 3.5Mb FPS:60 CPU:40%,62c TX:62c
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'CPU' and discard the '%' symbol
-    local cpu=$(echo "$osd_string" | sed -n 's/.*CPU\([0-9]*\)%.*$/\1/p')
+    local cpu=$(echo "$osd_string" | sed -n 's/.*CPU:\([0-9]*\)%.*$/\1/p')
+
+    # Output the extracted CPU value (e.g., 59)
+    echo "$cpu"
+}
+
+# Function to extract OSD CPU temperature
+alink_osd_cpu_temp=()
+extract_regular_osd_cpu_temp() {
+    # char global_regular_osd[64] = "&L%d0&F%d&B &C tx&Wc";
+    # 2.0Mb FPS:60 CPU59% tx44c
+
+    # Input format 0.58: 2.0Mb FPS:60 CPU59% tx44c
+    # Input format 0.60: 3.5Mb FPS:60 CPU:40%,62c TX:62c
+
+    local osd_string="$1"
+
+    # Use sed to extract the number after 'CPU' and discard the '%' symbol
+    local cpu=$(echo "$osd_string" | sed -E 's/.*CPU:[0-9]+%,([0-9]+)c.*/\1/')
+
 
     # Output the extracted CPU value (e.g., 59)
     echo "$cpu"
@@ -370,43 +426,52 @@ extract_regular_osd_tx_temp() {
     # char global_regular_osd[64] = "&L%d0&F%d&B &C tx&Wc";
     # 2.0Mb FPS:60 CPU59% tx44c
 
-    local osd_string="$1"  # Input string, e.g., "2.0Mb FPS:60 CPU59% tx44c"
+    # Input format 0.58: 2.0Mb FPS:60 CPU59% tx44c
+    # Input format 0.60: 3.5Mb FPS:60 CPU:40%,62c TX:62c
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'tx' and discard the 'c' character
-    local tx_temp=$(echo "$osd_string" | sed -n 's/.*tx\([0-9]*\)c.*$/\1/p')
+    local tx_temp=$(echo "$osd_string" | sed -n 's/.*TX:\([0-9]*\)c.*$/\1/p')
 
     # Output the extracted temperature value (e.g., 44)
     echo "$tx_temp"
 }
 
 # Function to extract orignal score of link quality
-alink_original_score=()
-extract_score_original() {
+alink_linkq=()
+extract_linkq() {
     # sprintf(global_score_related_osd, "og %d, smthd %d", osd_raw_score, osd_smoothed_score);
     # og 1711, smthd 1698
 
-    local osd_string="$1"  # Input string, e.g., "og 1711, smthd 1698"
+    # Input format 0.58: og 1711, smthd 1698
+    # Input format 0.60: linkQ 1237, smthdQ 1242
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'og' and discard the rest
-    local og_score=$(echo "$osd_string" | sed -n 's/.*og \([0-9]*\),.*/\1/p')
+    local linkq=$(echo "$osd_string" | sed -n 's/.*linkQ \([0-9]*\),.*/\1/p')
 
     # Output the extracted score value (e.g., 1711)
-    echo "$og_score"
+    echo "$linkq"
 }
 
 # Function to extract filtered score of link quality
-alink_filtered_score=()
-extract_score_filtered() {
+alink_smthdq=()
+extract_smthdq() {
     # sprintf(global_score_related_osd, "og %d, smthd %d", osd_raw_score, osd_smoothed_score);
     # og 1711, smthd 1698
 
-    local osd_string="$1"  # Input string, e.g., "og 1711, smthd 1698"
+    # Input format 0.58: og 1711, smthd 1698
+    # Input format 0.60: linkQ 1237, smthdQ 1242
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'smthd' and discard the rest
-    local smthd_score=$(echo "$osd_string" | sed -n 's/.*smthd \([0-9]*\)/\1/p')
+    local smthdq=$(echo "$osd_string" | sed -n 's/.*smthdQ \([0-9]*\)/\1/p')
 
     # Output the extracted score value (e.g., 1698)
-    echo "$smthd_score"
+    echo "$smthdq"
 }
 
 # Function to extract rssi value
@@ -420,33 +485,17 @@ extract_rssi_value() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    local osd_string="$1"  # Input string, e.g., "rssi-32, 1960"
+    # Input format 0.58: rssi-32, 1960
+    # Input format 0.60: rssi-21 snr17 ants:vrx2
+
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'rssi' and discard the rest
-    local rssi_value=$(echo "$osd_string" | sed -n 's/.*rssi\([-0-9]*\),.*/\1/p')
+    local rssi_value=$(echo "$osd_string" | sed -n 's/.*rssi\([-0-9]*\).*/\1/p')
 
     # Output the extracted RSSI value (e.g., -32)
     echo "$rssi_value"
-}
-
-# Function to extract rssi score
-alink_rssi_score=()
-extract_rssi_score() {
-    # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
-    # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
-    # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
-    # applied_penalty, global_total_tx_dropped, total_keyframe_requests_xtx, total_keyframe_requests);
-    # rssi-32, 1960 \n 
-    # snr24, 1462 \n 
-    # fec4 pnlt0 xtx0(0) idr0
-
-    local osd_string="$1"  # Input string, e.g., "rssi-32, 1960"
-
-    # Use sed to extract the number after the comma (,) and discard the rest
-    local rssi_score=$(echo "$osd_string" | sed -n 's/.*rssi[-0-9]*,\s*\([0-9]*\).*/\1/p')
-
-    # Output the extracted score value (e.g., 1960)
-    echo "$rssi_score"
 }
 
 # Function to extract snr value
@@ -460,53 +509,16 @@ extract_snr_value() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    local osd_string="$1"  # Input string, e.g., "snr24, 1462"
+    # Input format 0.58: snr24, 1462
+    # Input format 0.60: rssi-21 snr17 ants:vrx2
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'snr' and discard the rest
-    local snr_value=$(echo "$osd_string" | sed -n 's/.*snr\([0-9]*\),.*/\1/p')
+    local snr_value=$(echo "$osd_string" | sed -n 's/.*snr\([0-9]*\).*/\1/p')
 
     # Output the extracted SNR value (e.g., 24)
     echo "$snr_value"
-}
-
-# Function to extract snr score
-alink_snr_score=()
-extract_snr_score() {
-    # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
-    # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
-    # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
-    # applied_penalty, global_total_tx_dropped, total_keyframe_requests_xtx, total_keyframe_requests);
-    # rssi-32, 1960 \n 
-    # snr24, 1462 \n 
-    # fec4 pnlt0 xtx0(0) idr0
-
-    local osd_string="$1"  # Input string, e.g., "snr24, 1462"
-
-    # Use sed to extract the number after the comma (,) and discard the rest
-    local snr_score=$(echo "$osd_string" | sed -n 's/.*snr[-0-9]*,\s*\([0-9]*\).*/\1/p')
-
-    # Output the extracted score value (e.g., 1462)
-    echo "$snr_score"
-}
-
-# Function to extract extra info: fec
-alink_extra_fec=()
-extract_extra_fec() {
-    # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
-    # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
-    # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
-    # applied_penalty, global_total_tx_dropped, total_keyframe_requests_xtx, total_keyframe_requests);
-    # rssi-32, 1960 \n 
-    # snr24, 1462 \n 
-    # fec4 pnlt0 xtx0(0) idr0
-
-    local osd_string="$1"  # Input string, e.g., "fec4 pnlt0 xtx0(0) idr0"
-
-    # Use sed to extract the number after 'fec' and discard the rest
-    local fec_value=$(echo "$osd_string" | sed -n 's/.*fec\([0-9]*\).*/\1/p')
-
-    # Output the extracted FEC value (e.g., 4)
-    echo "$fec_value"
 }
 
 # Function to extract extra info: penalty
@@ -520,10 +532,13 @@ extract_extra_pnlt() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    local osd_string="$1"  # Input string, e.g., "fec4 pnlt0 xtx0(0) idr0"
+    # Input format 0.58: fec4 pnlt0 xtx0(0) idr0
+    # Input format 0.60: pnlt-358 xtx0(0) gs_idr5
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'pnlt' and discard the rest
-    local pnlt_value=$(echo "$osd_string" | sed -n 's/.*pnlt\([0-9]*\).*/\1/p')
+    local pnlt_value=$(echo "$osd_string" | sed -n 's/.*pnlt\([-0-9]*\).*/\1/p')
 
     # Output the extracted PNLT value (e.g., 0)
     echo "$pnlt_value"
@@ -540,7 +555,10 @@ extract_extra_tx_dropped() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    local osd_string="$1"  # Input string, e.g., "fec4 pnlt0 xtx35(0) idr0"
+    # Input format 0.58: fec4 pnlt0 xtx0(0) idr0
+    # Input format 0.60: pnlt-358 xtx0(0) gs_idr5
+
+    local osd_string="$1"
 
     # Extract the number **right after** 'xtx' (before '(')
     local tx_dropped_value=$(echo "$osd_string" | sed -n 's/.*xtx\([0-9]\+\)(.*/\1/p')
@@ -580,7 +598,10 @@ extract_extra_tx_requested() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    local osd_string="$1"  # Input string, e.g., "fec4 pnlt0 xtx0(0) idr0"
+    # Input format 0.58: fec4 pnlt0 xtx0(0) idr0
+    # Input format 0.60: pnlt-358 xtx0(0) gs_idr5
+
+    local osd_string="$1"
 
     # Use sed to extract the number after the '(' in 'xtx0(0)'
     local tx_requested_value=$(echo "$osd_string" | sed -n 's/.*xtx[0-9]*(\([0-9]*\)).*/\1/p')
@@ -609,9 +630,9 @@ adjust_extra_tx_requested() {
     fi
 }
 
-# Function to extract extra info: keyframe_requested
-alink_extra_keyframe_requested=()
-extract_extra_keyframe_requested() {
+# Function to extract extra info: rx_requested
+alink_extra_rx_requested=()
+extract_extra_rx_requested() {
     # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
     # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
     # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
@@ -620,38 +641,125 @@ extract_extra_keyframe_requested() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    local osd_string="$1"  # Input string, e.g., "fec4 pnlt0 xtx0(0) idr0"
+    # Input format 0.58: fec4 pnlt0 xtx0(0) idr0 
+    # Input format 0.60: pnlt-358 xtx0(0) gs_idr5
+
+    local osd_string="$1"
 
     # Use sed to extract the number after 'idr' and discard the rest
-    local keyframe_requested_value=$(echo "$osd_string" | sed -n 's/.*idr\([0-9]*\).*/\1/p')
+    local rx_requested_value=$(echo "$osd_string" | sed -n 's/.*gs_idr\([0-9]*\).*/\1/p')
 
     # Output the extracted value (e.g., 0)
-    echo "$keyframe_requested_value"
+    echo "$rx_requested_value"
 }
 
-declare -g alink_latest_keyframe_requested=-1
-declare -g adjust_keyframe_requested_result
-adjust_extra_keyframe_requested() {
-    local keyframe_requested_value="$1"
+declare -g alink_latest_rx_requested=-1
+declare -g adjust_rx_requested_result
+adjust_extra_rx_requested() {
+    local rx_requested_value="$1"
 
-    if [[ -z "$keyframe_requested_value" ]]; then
-        adjust_keyframe_requested_result=0
+    if [[ -z "$rx_requested_value" ]]; then
+        adjust_rx_requested_result=0
         return
     fi
 
-    if [[ $alink_latest_keyframe_requested -eq -1 ]]; then
-        alink_latest_keyframe_requested=$keyframe_requested_value
-        adjust_keyframe_requested_result=0
+    if [[ $alink_latest_rx_requested -eq -1 ]]; then
+        alink_latest_rx_requested=$rx_requested_value
+        adjust_rx_requested_result=0
     else
-        local delta_requested_value=$((keyframe_requested_value - alink_latest_keyframe_requested))
-        alink_latest_keyframe_requested=$keyframe_requested_value
-        adjust_keyframe_requested_result=$delta_requested_value
+        local delta_requested_value=$((rx_requested_value - alink_latest_rx_requested))
+        alink_latest_rx_requested=$rx_requested_value
+        adjust_rx_requested_result=$delta_requested_value
     fi
 }
 
+######################################################################
+# Functions for deprecated
+######################################################################
+
+# Function to extract rssi score
+alink_rssi_score=()
+extract_rssi_score() {
+    # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
+    # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
+    # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
+    # applied_penalty, global_total_tx_dropped, total_keyframe_requests_xtx, total_keyframe_requests);
+    # rssi-32, 1960 \n 
+    # snr24, 1462 \n 
+    # fec4 pnlt0 xtx0(0) idr0
+
+    # Input format 0.58: rssi-32, 1960
+    # Input format 0.60: rssi-21 snr17 ants:vrx2 //No rssi score
+
+    echo "0"
+
+    # local osd_string="$1"
+
+    # # Use sed to extract the number after the comma (,) and discard the rest
+    # local rssi_score=$(echo "$osd_string" | sed -n 's/.*rssi[-0-9]*,\s*\([0-9]*\).*/\1/p')
+
+    # # Output the extracted score value (e.g., 1960)
+    # echo "$rssi_score"
+}
+
+# Function to extract snr score
+alink_snr_score=()
+extract_snr_score() {
+    # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
+    # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
+    # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
+    # applied_penalty, global_total_tx_dropped, total_keyframe_requests_xtx, total_keyframe_requests);
+    # rssi-32, 1960 \n 
+    # snr24, 1462 \n 
+    # fec4 pnlt0 xtx0(0) idr0
+
+
+    # Input format 0.58: snr24, 1462
+    # Input format 0.60: rssi-21 snr17 ants:vrx2 //No snr score
+
+    echo "0"
+
+    # local osd_string="$1"  # Input string, e.g., "snr24, 1462"
+
+    # # Use sed to extract the number after the comma (,) and discard the rest
+    # local snr_score=$(echo "$osd_string" | sed -n 's/.*snr[-0-9]*,\s*\([0-9]*\).*/\1/p')
+
+    # # Output the extracted score value (e.g., 1462)
+    # echo "$snr_score"
+}
+
+# Function to extract extra info: fec
+alink_extra_fec=()
+extract_extra_fec() {
+    # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
+    # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
+    # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
+    # applied_penalty, global_total_tx_dropped, total_keyframe_requests_xtx, total_keyframe_requests);
+    # rssi-32, 1960 \n 
+    # snr24, 1462 \n 
+    # fec4 pnlt0 xtx0(0) idr0
+
+    # Input format 0.58: fec4 pnlt0 xtx0(0) idr0
+    # Input format 0.60: pnlt-358 xtx0(0) gs_idr5 //No FEC recover packet
+
+    echo "0"
+
+    # local osd_string="$1"
+
+    # # Use sed to extract the number after 'fec' and discard the rest
+    # local fec_value=$(echo "$osd_string" | sed -n 's/.*fec\([0-9]*\).*/\1/p')
+
+    # # Output the extracted FEC value (e.g., 4)
+    # echo "$fec_value"
+}
+
+######################################################################
+# Functions for data export
+######################################################################
+
 export_to_csv() {
     # Define the headers (remove 'alink_' prefix and set as column names)
-    local headers="time, elapsed, bitrate, bandwidth, gi, mcs, k, n, pwr, gop, osd_bitrate, fps, cpu, tx_temp, og_score, ft_score, rssi_value, rssi_score, snr_value, snr_score, fec, pnlt, tx_dropped, tx_requested, keyframe_requested"
+    local headers="time, elapsed, Kbitrate, bandwidth, gi, mcs, k, n, pwr, gop, Mbitrate, fps, cpu, temp, tx_temp, linkq, smthdq, rssi, rssi_score, snr, snr_score, fec, pnlt, tx_drop, tx_req, gs_req"
 
     # Print headers (replace 'alink_' prefix)
     echo "$headers"
@@ -671,9 +779,10 @@ export_to_csv() {
         echo -n "${alink_osd_bitrate[i]},"
         echo -n "${alink_osd_fps[i]},"
         echo -n "${alink_osd_cpu[i]},"
+        echo -n "${alink_osd_cpu_temp[i]},"
         echo -n "${alink_osd_tx_temp[i]},"
-        echo -n "${alink_original_score[i]},"
-        echo -n "${alink_filtered_score[i]},"
+        echo -n "${alink_linkq[i]},"
+        echo -n "${alink_smthdq[i]},"
         echo -n "${alink_rssi_value[i]},"
         echo -n "${alink_rssi_score[i]},"
         echo -n "${alink_snr_value[i]},"
@@ -682,7 +791,7 @@ export_to_csv() {
         echo -n "${alink_extra_pnlt[i]},"
         echo -n "${alink_extra_tx_dropped[i]},"
         echo -n "${alink_extra_tx_requested[i]},"
-        echo "${alink_extra_keyframe_requested[i]}"
+        echo    "${alink_extra_rx_requested[i]}"
     done
 
     # Print a newline to end the row
@@ -692,82 +801,6 @@ export_to_csv() {
 ######################################################################
 # Functions for data analysis
 ######################################################################
-
-# Function: Check and update RSSI values
-alink_rssi_value_min=9999
-alink_rssi_value_max=-999
-alink_rssi_score_min=9999
-alink_rssi_score_max=0
-check_rssi() {
-    local value=$1
-    local score=$2
-
-    if [[ -n "$value" ]]; then
-        # Update the minimum/maximum RSSI value
-        if [[ $value -lt $alink_rssi_value_min ]]; then
-            alink_rssi_value_min=$value
-        fi
-        if [[ $value -gt $alink_rssi_value_max ]]; then
-            alink_rssi_value_max=$value
-        fi
-    fi
-
-    if [[ -n "$score" ]]; then
-        # Update the minimum/maximum RSSI score
-        if [[ $score -lt $alink_rssi_score_min ]]; then
-            alink_rssi_score_min=$score
-        fi
-        if [[ $score -gt $alink_rssi_score_max ]]; then
-            alink_rssi_score_max=$score
-        fi
-    fi
-}
-
-# Function: Print RSSI statistics
-report_rssi() {
-    echo ""
-    echo "------------------------------------------"
-    echo "RSSI value: $alink_rssi_value_min ~ $alink_rssi_value_max"
-    echo "RSSI score: $alink_rssi_score_min ~ $alink_rssi_score_max"
-}
-
-# Function: Check and update SNR values
-alink_snr_value_min=9999
-alink_snr_value_max=0
-alink_snr_score_min=9999
-alink_snr_score_max=0
-check_snr() {
-    local value=$1
-    local score=$2
-
-    if [[ -n "$value" ]]; then
-        # Update the minimum/maximum SNR value
-        if [[ $value -lt $alink_snr_value_min ]]; then
-            alink_snr_value_min=$value
-        fi
-        if [[ $value -gt $alink_snr_value_max ]]; then
-            alink_snr_value_max=$value
-        fi
-    fi
-
-    if [[ -n "$score" ]]; then
-        # Update the minimum/maximum SNR score
-        if [[ $score -lt $alink_snr_score_min ]]; then
-            alink_snr_score_min=$score
-        fi
-        if [[ $score -gt $alink_snr_score_max ]]; then
-            alink_snr_score_max=$score
-        fi
-    fi
-}
-
-# Function: Print SNR statistics
-report_snr() {
-    echo ""
-    echo "------------------------------------------"
-    echo "SNR value: $alink_snr_value_min ~ $alink_snr_value_max"
-    echo "SNR score: $alink_snr_score_min ~ $alink_snr_score_max"
-}
 
 # Function: Check and update CPU %
 alink_cpu_min=9999
@@ -788,15 +821,40 @@ check_cpu() {
     fi
 }
 
+# Function: Check and update CPU temperature
+alink_cpu_temp_min=9999
+alink_cpu_temp_max=0
+check_cpu_temp() {
+    local value=$1
+
+    if [[ -z "$value" ]]; then
+        return
+    fi
+
+    # Update the minimum/maximum CPU temperature
+    if [[ $value -lt $alink_cpu_temp_min ]]; then
+        alink_cpu_temp_min=$value
+    fi
+    if [[ $value -gt $alink_cpu_temp_max ]]; then
+        alink_cpu_temp_max=$value
+    fi
+}
+
 # Function: Print CPU statistics
 report_cpu() {
     echo ""
     echo "------------------------------------------"
-    echo "CPU usage: $alink_cpu_min% ~ $alink_cpu_max%"
+    echo "CPU Usage  : $alink_cpu_min ~ $alink_cpu_max %"
+    echo "CPU Celsius: $alink_cpu_temp_min ~ $alink_cpu_temp_max C"
 
     # Check if the maximum CPU usage exceeds threshold
     if [[ $alink_cpu_max -gt 70 ]]; then
         echo "!WARNING!: CPU usage exceeded 70%!"
+    fi
+
+    # Check if the maximum CPU temperature exceeds threshold
+    if [[ $alink_cpu_temp_max -gt 70 ]]; then
+        echo "!WARNING!: CPU temperature exceeded 70C!"
     fi
 }
 
@@ -819,60 +877,6 @@ check_tx_temp() {
     fi
 }
 
-# Function: Print TX temperature statistics
-report_tx_temp() {
-    echo ""
-    echo "------------------------------------------"
-    echo "TX Celsius: $alink_tx_temp_min ~ $alink_tx_temp_max"
-
-    # Check if the maximum TX temperature exceeds threshold
-    if [[ $alink_tx_temp_max -gt 100 ]]; then
-        echo "!WARNING!: TX temperature exceeded 100 degree Celsius"
-    fi
-}
-
-# Function: Check and update original/filtered link scores
-alink_og_score_min=9999
-alink_og_score_max=0
-alink_smthd_score_min=9999
-alink_smthd_score_max=0
-check_link_score() {
-    local og_score=$1
-    local smthd_score=$2
-
-    if [[ -n "$og_score" ]]; then
-        # Update the minimum/maximum original score
-        if [[ $og_score -lt $alink_og_score_min ]]; then
-            alink_og_score_min=$og_score
-        fi
-        if [[ $og_score -gt $alink_og_score_max ]]; then
-            alink_og_score_max=$og_score
-        fi
-    fi
-
-    if [[ -n "$smthd_score" ]]; then
-        # Update the minimum/maximum filtered score
-        if [[ $smthd_score -lt $alink_smthd_score_min ]]; then
-            alink_smthd_score_min=$smthd_score
-        fi
-        if [[ $smthd_score -gt $alink_smthd_score_max ]]; then
-            alink_smthd_score_max=$smthd_score
-        fi
-    fi
-}
-
-# Function: Print link score statistics
-report_link_score() {
-    echo ""
-    echo "------------------------------------------"
-    echo "original score: $alink_og_score_min ~ $alink_og_score_max"
-    echo "filtered score: $alink_smthd_score_min ~ $alink_smthd_score_max"
-
-    if [[ $verbose -eq 1 ]]; then
-        print_table alink_filtered_score $column
-    fi
-}
-
 # Function: Check and update TX power
 alink_tx_power_min=9999
 alink_tx_power_max=0
@@ -890,14 +894,6 @@ check_tx_power() {
     if [[ $value -gt $alink_tx_power_max ]]; then
         alink_tx_power_max=$value
     fi
-}
-
-# Function: Print TX power statistics
-report_tx_power() {
-    echo ""
-    echo "------------------------------------------"
-    echo "TX Power: $alink_tx_power_min ~ $alink_tx_power_max"
-    #print_table alink_pwr $column
 }
 
 # Function: Check and update bitrate
@@ -919,33 +915,120 @@ check_tx_bitrate() {
     fi
 }
 
-# Function: Print TX bitrate statistics
-report_tx_bitrate() {
+# Function: Print TX statistics
+report_tx() {
     echo ""
     echo "------------------------------------------"
-    echo "TX bitrate(kbps): $alink_tx_bitrate_min ~ $alink_tx_bitrate_max"
+    echo "TX   Power: $alink_tx_power_min ~ $alink_tx_power_max"
+    echo "TX Celsius: $alink_tx_temp_min ~ $alink_tx_temp_max C"
+    echo "TX bitrate: $alink_tx_bitrate_min ~ $alink_tx_bitrate_max kbps"
+
+    # Check if the maximum TX temperature exceeds threshold
+    if [[ $alink_tx_temp_max -gt 100 ]]; then
+        echo "!WARNING!: TX temperature exceeded 100 degree Celsius"
+    fi
+}
+
+# Function: Check and update linkq/smthdq link scores
+alink_rssi_value_min=9999
+alink_rssi_value_max=-999
+alink_snr_value_min=9999
+alink_snr_value_max=0
+alink_linkq_min=9999
+alink_linkq_max=0
+alink_smthdq_min=9999
+alink_smthdq_max=0
+check_link_score() {
+    local rssi_value=$1
+    local snr_value=$2
+    local linkq_value=$3
+    local smthdq_value=$4
+
+    if [[ -n "$rssi_value" ]]; then
+        # Update the minimum/maximum RSSI value
+        if [[ $rssi_value -lt $alink_rssi_value_min ]]; then
+            alink_rssi_value_min=$rssi_value
+        fi
+        if [[ $rssi_value -gt $alink_rssi_value_max ]]; then
+            alink_rssi_value_max=$rssi_value
+        fi
+    fi
+
+    if [[ -n "$snr_value" ]]; then
+        # Update the minimum/maximum SNR value
+        if [[ $snr_value -lt $alink_snr_value_min ]]; then
+            alink_snr_value_min=$snr_value
+        fi
+        if [[ $snr_value -gt $alink_snr_value_max ]]; then
+            alink_snr_value_max=$snr_value
+        fi
+    fi
+
+    if [[ -n "$linkq_value" ]]; then
+        # Update the minimum/maximum original score
+        if [[ $linkq_value -lt $alink_linkq_min ]]; then
+            alink_linkq_min=$linkq_value
+        fi
+        if [[ $linkq_value -gt $alink_linkq_max ]]; then
+            alink_linkq_max=$linkq_value
+        fi
+    fi
+
+    if [[ -n "$smthdq_value" ]]; then
+        # Update the minimum/maximum filtered score
+        if [[ $smthdq_value -lt $alink_smthdq_min ]]; then
+            alink_smthdq_min=$smthdq_value
+        fi
+        if [[ $smthdq_value -gt $alink_smthdq_max ]]; then
+            alink_smthdq_max=$smthdq_value
+        fi
+    fi
+}
+
+# Function: Print link score statistics
+report_link_score() {
+    echo ""
+    echo "------------------------------------------"
+    echo "RSSI : $alink_rssi_value_min ~ $alink_rssi_value_max"
+    echo "SNR  : $alink_snr_value_min ~ $alink_snr_value_max"
+    echo "LinkQ: $alink_linkq_min ~ $alink_linkq_max"
+    echo "smthQ: $alink_smthdq_min ~ $alink_smthdq_max"
+
+    if [[ $verbose -eq 1 ]]; then
+        print_table alink_linkq $column
+        print_table alink_smthdq $column
+    fi
 }
 
 # Function: Check and update link status
 alink_fec_min=9999
 alink_fec_max=0
+alink_penalty_min=0
+alink_penalty_max=-999
 alink_tx_dropped_min=9999
 alink_tx_dropped_max=0
 alink_tx_requested_min=9999
 alink_tx_requested_max=0
-alink_keyframe_requested_min=9999
-alink_keyframe_requested_max=0
+alink_rx_requested_min=9999
+alink_rx_requested_max=0
 check_link_status() {
     local fec=$1
-    local tx_dropped=$2
-    local tx_requested=$3
-    local keyframe_requested=$4
+    local pnlty=$2
+    local tx_dropped=$3
+    local tx_requested=$4
+    local rx_requested=$5
 
     # Update min/max values only if the corresponding variable is provided
     if [[ -n "$fec" ]]; then
         # If the new value is smaller or larger, update min/max
         [[ $fec -lt $alink_fec_min ]] && alink_fec_min=$fec
         [[ $fec -gt $alink_fec_max ]] && alink_fec_max=$fec
+    fi
+
+    if [[ -n "$pnlty" ]]; then
+        # If the new value is smaller or larger, update min/max
+        [[ $pnlty -lt $alink_penalty_min ]] && alink_penalty_min=$pnlty
+        [[ $pnlty -gt $alink_penalty_max ]] && alink_penalty_max=$pnlty
     fi
 
     if [[ -n "$tx_dropped" ]]; then
@@ -960,24 +1043,27 @@ check_link_status() {
         [[ $tx_requested -gt $alink_tx_requested_max ]] && alink_tx_requested_max=$tx_requested
     fi
 
-    if [[ -n "$keyframe_requested" ]]; then
+    if [[ -n "$rx_requested" ]]; then
         # If the new value is smaller or larger, update min/max
-        [[ $keyframe_requested -lt $alink_keyframe_requested_min ]] && alink_keyframe_requested_min=$keyframe_requested
-        [[ $keyframe_requested -gt $alink_keyframe_requested_max ]] && alink_keyframe_requested_max=$keyframe_requested
+        [[ $rx_requested -lt $alink_rx_requested_min ]] && alink_rx_requested_min=$rx_requested
+        [[ $rx_requested -gt $alink_rx_requested_max ]] && alink_rx_requested_max=$rx_requested
     fi
 }
 
 # Function: Print link statistics
 report_link_status() {
-    echo "FEC: $alink_fec_min ~ $alink_fec_max"
-    echo "TX dropped: $alink_tx_dropped_min ~ $alink_tx_dropped_max"
+    echo ""
+    echo "------------------------------------------"
+    echo "RX FEC      : $alink_fec_min ~ $alink_fec_max"
+    echo "TX penalty  : $alink_penalty_min ~ $alink_penalty_max"
+    echo "TX dropped  : $alink_tx_dropped_min ~ $alink_tx_dropped_max"
     echo "TX requested: $alink_tx_requested_min ~ $alink_tx_requested_max"
-    echo "TX keyframe requested: $alink_keyframe_requested_min ~ $alink_keyframe_requested_max"
+    echo "RX requested: $alink_rx_requested_min ~ $alink_rx_requested_max"
     if [[ $verbose -eq 1 ]]; then
         print_table alink_extra_fec $column
         print_table alink_extra_tx_dropped $column
         print_table alink_extra_tx_requested $column
-        print_table alink_extra_keyframe_requested $column
+        print_table alink_extra_rx_requested $column
     fi
 }
 
@@ -1054,53 +1140,39 @@ process_block() {
     alink_osd_cpu+=($osd_cpu)
     check_cpu $osd_cpu
 
+    osd_cpu_temp=$(extract_regular_osd_cpu_temp "$osd_line")
+    alink_osd_cpu_temp+=($osd_cpu_temp)
+    check_cpu_temp $osd_cpu_temp   
+
     osd_tx_temp=$(extract_regular_osd_tx_temp "$osd_line")
     alink_osd_tx_temp+=($osd_tx_temp)
     check_tx_temp $osd_tx_temp
 
     ###################################
-    # Extract scores                  #
+    # Extract Q/RSSI/SNR value        #
     ###################################
     score_line="${block[4]}"
 
-    original_score=$(extract_score_original "$score_line")
-    alink_original_score+=($original_score)
+    linkq_value=$(extract_linkq "$score_line")
+    alink_linkq+=($linkq_value)
 
-    filtered_score=$(extract_score_filtered "$score_line")
-    alink_filtered_score+=($filtered_score)
+    smthdq_value=$(extract_smthdq "$score_line")
+    alink_smthdq+=($smthdq_value)
 
-    check_link_score $original_score $filtered_score
+    rssi_snr_line="${block[5]}"
 
-    ###################################
-    # Extract RSSI                    #
-    ###################################
-    rssi_line="${block[5]}"
-
-    rssi_value=$(extract_rssi_value "$rssi_line")
+    rssi_value=$(extract_rssi_value "$rssi_snr_line")
     alink_rssi_value+=($rssi_value)
 
-    rssi_score=$(extract_rssi_score "$rssi_line")
-    alink_rssi_score+=($rssi_score)
-
-    check_rssi $rssi_value $rssi_score
-
-    ###################################
-    # Extract SNR                     #
-    ###################################
-    snr_line="${block[6]}"
-
-    snr_value=$(extract_snr_value "$snr_line")
+    snr_value=$(extract_snr_value "$rssi_snr_line")
     alink_snr_value+=($snr_value)
 
-    snr_score=$(extract_snr_score "$snr_line")
-    alink_snr_score+=($snr_score)
-
-    check_snr $snr_value $snr_score
+    check_link_score $rssi_value $snr_value $linkq_value $smthdq_value
 
     ###################################
     # Extract Extra info              #
     ###################################
-    extra_line="${block[7]}"
+    extra_line="${block[6]}"
 
     extra_fec=$(extract_extra_fec "$extra_line")
     alink_extra_fec+=($extra_fec)
@@ -1116,11 +1188,11 @@ process_block() {
     adjust_extra_tx_requested "$extra_tx_requested"
     alink_extra_tx_requested+=($adjust_tx_requested_result)
 
-    extra_keyframe_requested=$(extract_extra_keyframe_requested "$extra_line")
-    adjust_extra_keyframe_requested "$extra_keyframe_requested"
-    alink_extra_keyframe_requested+=($adjust_keyframe_requested_result)
+    extra_rx_requested=$(extract_extra_rx_requested "$extra_line")
+    adjust_extra_rx_requested "$extra_rx_requested"
+    alink_extra_rx_requested+=($adjust_rx_requested_result)
 
-    check_link_status $extra_fec $adjust_tx_dropped_result $adjust_tx_requested_result $adjust_keyframe_requested_result
+    check_link_status $extra_fec $extra_pnlt $adjust_tx_dropped_result $adjust_tx_requested_result $adjust_rx_requested_result
 }
 
 # Function to process the file
@@ -1181,8 +1253,8 @@ process_file $srt_file
 #print_table alink_osd_cpu $column
 #print_table alink_osd_tx_temp $column
 
-#print_table alink_original_score $column
-#print_table alink_filtered_score $column
+#print_table alink_linkq $column
+#print_table alink_smthdq $column
 
 #print_table alink_rssi_value $column
 #print_table alink_rssi_score $column
@@ -1194,7 +1266,7 @@ process_file $srt_file
 #print_table alink_extra_pnlt $column
 #print_table alink_extra_tx_dropped $column
 #print_table alink_extra_tx_requested $column
-#print_table alink_extra_keyframe_requested $column
+#print_table alink_extra_rx_requested $column
 
 ######################################################################
 # Summary
@@ -1226,17 +1298,13 @@ echo -e "$csv_file auto-generated!"
 #
 
 report_cpu
-report_tx_temp
-report_tx_power
-report_tx_bitrate
-report_rssi
-report_snr
+report_tx
+report_link_score
 
 #
 # specialized analysis
 #
 
-report_link_score
 report_link_status
 
 exit 0
