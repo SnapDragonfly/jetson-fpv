@@ -17,6 +17,22 @@ delay=0 # Default: 0, no delay
 csv_file=""
 video_file=""
 
+# Function to display help
+show_help() {
+  echo "Usage: $0 [OPTIONS] <csv_file>"
+  echo
+  echo "Options:"
+  echo "  --verbose         Enable verbose mode"
+  echo "  --delay <num>     Set delay in seconds (integer required)"
+  echo "  -d <num>          Alias for --delay"
+  echo "  --video <file>    Specify video file path"
+  echo "  -h, --help        Show this help message and exit"
+  echo
+  echo "Example:"
+  echo "  $0 --verbose --delay 5 --video sample.mp4 data.csv"
+  exit 0
+}
+
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -54,6 +70,10 @@ while [[ $# -gt 0 ]]; do
       fi
       ;;
 
+    -h|--help)
+      show_help
+      ;;
+
     *)
       if [[ -z "$csv_file" ]]; then
         csv_file="$1"  # Assign first non-option argument as input file
@@ -70,46 +90,89 @@ done
 # Column A
 ######################################################################
 
-# FEC
+# linkQ
 $CMD_PLOT_CSV $csv_file\
               --graph_x $COLUMN_A_X\
               --graph_y $COLUMN_Y1\
               --background_opacity=$BG_OPACITY\
-              --title "FEC"\
-              --item 21\
-              --min_value -1\
-              --max_value 20\
-              --threshold 6\
-              --direction +1 &
+              --title "LinkQ"\
+              --item 15 &
 
-
-# Packet Drop
+# smthdQ
 $CMD_PLOT_CSV $csv_file\
               --graph_x $COLUMN_A_X\
               --graph_y $COLUMN_Y2\
               --background_opacity=$BG_OPACITY\
-              --title "Packet drop"\
+              --title "smthdQ"\
+              --item 16 &
+
+# Penalty
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_A_X\
+              --graph_y $COLUMN_Y3\
+              --background_opacity=$BG_OPACITY\
+              --title "Penalty"\
+              --item 22\
+              --min_value -600\
+              --max_value 0\
+              --threshold -50\
+              --direction -1 &
+
+# Bitrate
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_A_X\
+              --graph_y $COLUMN_Y4\
+              --background_opacity=$BG_OPACITY\
+              --title "Bitrate Kbps"\
+              --item 2\
+              --min_value 0\
+              --max_value 12288\
+              --threshold 2048\
+              --direction -1 &
+
+######################################################################
+# Column B
+######################################################################
+
+# RSSI
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y1\
+              --background_opacity=$BG_OPACITY\
+              --title "RSSI"\
+              --item 17\
+              --min_value -80\
+              --max_value -30\
+              --threshold -70\
+              --direction -1 &
+
+# SNR
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y2\
+              --background_opacity=$BG_OPACITY\
+              --title "SNR"\
+              --item 19\
+              --min_value 12\
+              --max_value 38\
+              --threshold 30\
+              --direction +1 &
+
+# Packet Drop
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y3\
+              --background_opacity=$BG_OPACITY\
+              --title "Packet Drop"\
               --item 23\
               --min_value 0\
               --max_value 50\
               --threshold 15\
               --direction +1 &
 
-# Packet Req
-$CMD_PLOT_CSV $csv_file\
-              --graph_x $COLUMN_A_X\
-              --graph_y $COLUMN_Y3\
-              --background_opacity=$BG_OPACITY\
-              --title "TX Req"\
-              --item 24\
-              --min_value 0\
-              --max_value 2\
-              --threshold 0\
-              --direction +1 &
-
 # Key Frame Req
 $CMD_PLOT_CSV $csv_file\
-              --graph_x $COLUMN_A_X\
+              --graph_x $COLUMN_B_X\
               --graph_y $COLUMN_Y4\
               --background_opacity=$BG_OPACITY\
               --title "RX Req"\
@@ -120,52 +183,36 @@ $CMD_PLOT_CSV $csv_file\
               --direction +1 &
 
 ######################################################################
-# Column B
+# Column C, reserved
 ######################################################################
 
-# link score
-$CMD_PLOT_CSV $csv_file\
-              --graph_x $COLUMN_B_X\
-              --graph_y $COLUMN_Y1\
-              --background_opacity=$BG_OPACITY\
-              --item 16 &
+# # FEC
+# $CMD_PLOT_CSV $csv_file\
+#               --graph_x $COLUMN_A_X\
+#               --graph_y $COLUMN_Y1\
+#               --background_opacity=$BG_OPACITY\
+#               --title "FEC"\
+#               --item 21\
+#               --min_value -1\
+#               --max_value 20\
+#               --threshold 6\
+#               --direction +1 &
 
-# RSSI
-$CMD_PLOT_CSV $csv_file\
-              --graph_x $COLUMN_B_X\
-              --graph_y $COLUMN_Y2\
-              --background_opacity=$BG_OPACITY\
-              --title "Link RSSI"\
-              --item 17\
-              --min_value -80\
-              --max_value -30\
-              --threshold -70\
-              --direction -1 &
+# # Packet Req
+# $CMD_PLOT_CSV $csv_file\
+#               --graph_x $COLUMN_A_X\
+#               --graph_y $COLUMN_Y3\
+#               --background_opacity=$BG_OPACITY\
+#               --title "TX Req"\
+#               --item 24\
+#               --min_value 0\
+#               --max_value 2\
+#               --threshold 0\
+#               --direction +1 &
 
-# SNR
-$CMD_PLOT_CSV $csv_file\
-              --graph_x $COLUMN_B_X\
-              --graph_y $COLUMN_Y3\
-              --background_opacity=$BG_OPACITY\
-              --title "Link SNR"\
-              --item 19\
-              --min_value 12\
-              --max_value 38\
-              --threshold 30\
-              --direction +1 &
-
-# Bitrate
-$CMD_PLOT_CSV $csv_file\
-              --graph_x $COLUMN_B_X\
-              --graph_y $COLUMN_Y4\
-              --background_opacity=$BG_OPACITY\
-              --title "Bitrate Kbps"\
-              --item 2\
-              --min_value 0\
-              --max_value 12288\
-              --threshold 2048\
-              --direction -1 &
-
+######################################################################
+# Video
+######################################################################
 sleep $delay
 
 if [[ -f "$video_file" ]]; then
