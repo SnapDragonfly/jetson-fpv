@@ -452,8 +452,9 @@ extract_rssi_value() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    # Input format 0.58: rssi-32, 1960
-    # Input format 0.60: rssi-21 snr17 ants:vrx2
+    # Input format 0.58  : rssi-32, 1960
+    # Input format 0.60  : rssi-21 snr17 ants:vrx2
+    # Input format 0.60.x: rssi-24 snr24 fec0 ants:vrx2
 
 
     local osd_string="$1"
@@ -476,8 +477,9 @@ extract_snr_value() {
     # snr24, 1462 \n 
     # fec4 pnlt0 xtx0(0) idr0
 
-    # Input format 0.58: snr24, 1462
-    # Input format 0.60: rssi-21 snr17 ants:vrx2
+    # Input format 0.58  : snr24, 1462
+    # Input format 0.60  : rssi-21 snr17 ants:vrx2
+    # Input format 0.60.x: rssi-24 snr24 fec0 ants:vrx2
 
     local osd_string="$1"
 
@@ -486,6 +488,30 @@ extract_snr_value() {
 
     # Output the extracted SNR value (e.g., 24)
     echo "$snr_value"
+}
+
+# Function to extract extra info: fec
+alink_extra_fec=()
+extract_extra_fec() {
+    # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
+    # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
+    # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
+    # applied_penalty, global_total_tx_dropped, total_keyframe_requests_xtx, total_keyframe_requests);
+    # rssi-32, 1960 \n 
+    # snr24, 1462 \n 
+    # fec4 pnlt0 xtx0(0) idr0
+
+    # Input format 0.58  : fec4 pnlt0 xtx0(0) idr0
+    # Input format 0.60  : pnlt-358 xtx0(0) gs_idr5 //No FEC recover packet
+    # Input format 0.60.x: rssi-24 snr24 fec4 ants:vrx2
+
+    local osd_string="$1"
+
+    # Use sed to extract the number after 'fec' and discard the rest
+    local fec_value=$(echo "$osd_string" | sed -n 's/.*fec\([0-9]*\).*/\1/p')
+
+    # Output the extracted FEC value (e.g., 4)
+    echo "$fec_value"
 }
 
 # Function to extract extra info: penalty
@@ -693,31 +719,6 @@ extract_snr_score() {
 
     # # Output the extracted score value (e.g., 1462)
     # echo "$snr_score"
-}
-
-# Function to extract extra info: fec
-alink_extra_fec=()
-extract_extra_fec() {
-    # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
-    # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
-    # snprintf(global_extra_stats_osd, sizeof(global_extra_stats_osd), "pnlt%d xtx%ld(%d) idr%d",
-    # applied_penalty, global_total_tx_dropped, total_keyframe_requests_xtx, total_keyframe_requests);
-    # rssi-32, 1960 \n 
-    # snr24, 1462 \n 
-    # fec4 pnlt0 xtx0(0) idr0
-
-    # Input format 0.58: fec4 pnlt0 xtx0(0) idr0
-    # Input format 0.60: pnlt-358 xtx0(0) gs_idr5 //No FEC recover packet
-
-    echo "0"
-
-    # local osd_string="$1"
-
-    # # Use sed to extract the number after 'fec' and discard the rest
-    # local fec_value=$(echo "$osd_string" | sed -n 's/.*fec\([0-9]*\).*/\1/p')
-
-    # # Output the extracted FEC value (e.g., 4)
-    # echo "$fec_value"
 }
 
 ######################################################################
@@ -1139,15 +1140,15 @@ process_block() {
     snr_value=$(extract_snr_value "$rssi_snr_line")
     alink_snr_value+=($snr_value)
 
+    extra_fec=$(extract_extra_fec "$rssi_snr_line")
+    alink_extra_fec+=($extra_fec)
+
     check_link_score $rssi_value $snr_value $linkq_value $smthdq_value
 
     ###################################
     # Extract Extra info              #
     ###################################
     extra_line="${block[6]}"
-
-    extra_fec=$(extract_extra_fec "$extra_line")
-    alink_extra_fec+=($extra_fec)
 
     extra_pnlt=$(extract_extra_pnlt "$extra_line")
     alink_extra_pnlt+=($extra_pnlt)
