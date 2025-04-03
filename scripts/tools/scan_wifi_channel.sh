@@ -34,6 +34,18 @@ fi
 
 echo "Scanning WiFi networks on interface $INTERFACE..."
 
+# Preset WiFi to managed mode, which is used to scan WiFi channels
+MODE=$(iw dev "$INTERFACE" info | awk '/type/ {print $2}')
+
+if [[ "$MODE" == "managed" ]]; then
+    echo "Wi-Fi is in managed mode"
+else
+    echo "Wi-Fi in $MODE , reset managed mode."
+    sudo ip link set "$INTERFACE" down
+    sudo iw dev "$INTERFACE" set type managed
+    sudo ip link set "$INTERFACE" up
+fi
+
 # Perform WiFi scan and extract relevant lines
 RAW_SCAN=$(sudo iwlist "$INTERFACE" scan | grep Frequency | sort | uniq -c | sort -n)
 # Format the RAW_SCAN content
