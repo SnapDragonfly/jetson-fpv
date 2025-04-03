@@ -873,6 +873,11 @@ check_tx_bitrate() {
         return
     fi
 
+    # exception case: initializing... 0/0
+    if [[ "$value" == "0/0" ]]; then
+        return
+    fi
+
     # Update the minimum/maximum tx bitrate
     if [[ $value -lt $alink_tx_bitrate_min ]]; then
         alink_tx_bitrate_min=$value
