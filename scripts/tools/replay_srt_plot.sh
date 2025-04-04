@@ -1,13 +1,17 @@
 #!/bin/bash
 
+COLUMN_GRAPH_FIRST_LINE=150
+COLUMN_GRAPH_HEIGHT=100
+
 COLUMN_A_X=1400
 COLUMN_B_X=1650
-COLUMN_Y1=100
-COLUMN_Y2=200
-COLUMN_Y3=300
-COLUMN_Y4=400
-COLUMN_Y5=500
-COLUMN_Y6=600
+
+COLUMN_Y1=$COLUMN_GRAPH_FIRST_LINE
+COLUMN_Y2=$((COLUMN_Y1+COLUMN_GRAPH_HEIGHT))
+COLUMN_Y3=$((COLUMN_Y2+COLUMN_GRAPH_HEIGHT))
+COLUMN_Y4=$((COLUMN_Y3+COLUMN_GRAPH_HEIGHT))
+COLUMN_Y5=$((COLUMN_Y4+COLUMN_GRAPH_HEIGHT))
+COLUMN_Y6=$((COLUMN_Y5+COLUMN_GRAPH_HEIGHT))
 
 BG_OPACITY=0.5
 
@@ -143,6 +147,18 @@ $CMD_PLOT_CSV $csv_file\
               --min_value 0\
               --max_value 50\
               --threshold 15\
+              --direction +1 &
+
+# CPU
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_A_X\
+              --graph_y $COLUMN_Y6\
+              --background_opacity=$BG_OPACITY\
+              --title "CPU"\
+              --item 12\
+              --min_value 0\
+              --max_value 100\
+              --threshold 70\
               --direction +1 &
 
 ######################################################################
