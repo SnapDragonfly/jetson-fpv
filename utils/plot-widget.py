@@ -106,13 +106,20 @@ class OSDWindow(QWidget):
                 if self.max_value == self.min_value:
                     normalized_value = height / 2
                 else:
-                    normalized_value = (value - self.min_value) / (self.max_value - self.min_value) * height
+                    if self.min_value < 0:
+                        normalized_value = (self.max_value - value) / (self.max_value - self.min_value) * height
+                    else:
+                        normalized_value = (value - self.min_value) / (self.max_value - self.min_value) * height
 
                 # Make sure height is NOT exceeding/over the graph box
                 normalized_value = min(height, normalized_value)
 
                 x = self.osd_region.left() + width - (spacing * (i + 1) + i * bar_width) - bar_width  # Reverse the direction
-                y = self.osd_region.top() + height - normalized_value
+                # y = self.osd_region.top() + height - normalized_value
+                if self.min_value < 0:
+                    y = self.osd_region.top()
+                else:
+                    y = self.osd_region.top() + height - normalized_value
 
                 # Determine color based on threshold and direction
                 if (self.direction == -1 and value < self.threshold) or (self.direction == 1 and value > self.threshold):
@@ -123,12 +130,18 @@ class OSDWindow(QWidget):
                 painter.setPen(QPen(bar_color))
                 painter.setBrush(bar_color)
                 painter.drawRect(int(x), int(y), int(bar_width), int(normalized_value))
+                # DEBUG
+                # print(f"{x} {y} {bar_width} {normalized_value}")
 
-        # Display title and data value
-        #if self.index < len(self.timestamp_strings):
+            # Adjust Y position of text based on direction
+            if self.min_value < 0:
+                text_y = self.osd_region.bottom() - 5  # bottom padding
+            else:
+                text_y = self.osd_region.top() + 15    # top padding
+
             painter.setPen(QPen(QColor(255, 255, 255)))
             painter.setFont(QFont("Arial", DEFAULT_GRAPH_FONT_SIZE))
-            painter.drawText(self.osd_region.left() + 5, self.osd_region.top() + 15,
+            painter.drawText(self.osd_region.left() + 5, text_y,
                             f'{self.title}: {int(self.data[self.index])}/{int(mvalue)}')
             
         if self.index == (len(self.timestamp_strings) - 1):
