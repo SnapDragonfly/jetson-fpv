@@ -138,6 +138,11 @@ extract_profile_time_elapsed() {
 
     local profile_line="$1"
 
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
+
     # Use awk to extract the first field and remove the trailing 's'
     local timeElapsed=$(echo "$profile_line" | awk '{print $1}' | sed 's/s//')
 
@@ -157,6 +162,11 @@ extract_profile_bitrate() {
 
     local profile_line="$1"
 
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
+
     # Use awk to extract the second field, which represents the bitrate
     local bitrate=$(echo "$profile_line" | awk '{print $2}')
 
@@ -175,6 +185,11 @@ extract_profile_bandwidth() {
     # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
 
     local profile_line="$1"
+
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
 
     # Extract the third field, which is something like '20long2'
     # Use sed to extract only the leading digits from '20long2'
@@ -196,6 +211,11 @@ extract_profile_gi() {
 
     local profile_line="$1"
 
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
+
     # Extract the third field, which is something like '20long2'
     # Use sed to extract only the 'long' part from '20long2'
     local gi_string=$(echo "$profile_line" | awk '{print $3}' | sed 's/[0-9]*//g')
@@ -215,6 +235,11 @@ extract_profile_mcs() {
     # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
 
     local profile_line="$1"
+
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
 
     # Extract the third field: "20long2"
     local gi_field=$(echo "$profile_line" | awk '{print $3}')
@@ -238,6 +263,11 @@ extract_profile_k() {
 
     local profile_line="$1"
 
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
+
     # Extract the fourth field: "10/15"
     local kn_field=$(echo "$profile_line" | awk '{print $6}')
 
@@ -259,6 +289,11 @@ extract_profile_n() {
     # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
 
     local profile_line="$1"
+
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
 
     # Extract the fourth field: "10/15"
     local kn_field=$(echo "$profile_line" | awk '{print $6}')
@@ -282,6 +317,11 @@ extract_profile_pwr() {
 
     local profile_line="$1"
 
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
+
     # Extract the fifth field: "Pw50"
     local pwr_field=$(echo "$profile_line" | awk '{print $4}')
 
@@ -303,6 +343,11 @@ extract_profile_gop() {
     # Input format 0.60: 2s 4096 20long0 Pw55 g10.0 8/15
 
     local profile_line="$1"
+
+    if [[ "$profile_line" == *"initializing"* ]]; then
+        echo "0"
+        return
+    fi
 
     # Extract the sixth field: "g10.0"
     local gop_field=$(echo "$profile_line" | awk '{print $5}')
@@ -416,6 +461,11 @@ extract_linkq() {
 
     local osd_string="$1"
 
+    if [[ "$osd_string" == *"initializing"* ]]; then
+        echo "1000"
+        return
+    fi
+
     # Use sed to extract the number after 'og' and discard the rest
     local linkq=$(echo "$osd_string" | sed -n 's/.*linkQ \([0-9]*\),.*/\1/p')
 
@@ -433,6 +483,11 @@ extract_smthdq() {
     # Input format 0.60: linkQ 1237, smthdQ 1242
 
     local osd_string="$1"
+
+    if [[ "$osd_string" == *"initializing"* ]]; then
+        echo "1000"
+        return
+    fi
 
     # Use sed to extract the number after 'smthd' and discard the rest
     local smthdq=$(echo "$osd_string" | sed -n 's/.*smthdQ \([0-9]*\)/\1/p')
@@ -456,8 +511,12 @@ extract_rssi_value() {
     # Input format 0.60  : rssi-21 snr17 ants:vrx2
     # Input format 0.60.x: rssi-24 snr24 fec0 ants:vrx2
 
-
     local osd_string="$1"
+
+    if [[ "$osd_string" == *"waiting"* ]]; then
+        echo "0"
+        return
+    fi
 
     # Use sed to extract the number after 'rssi' and discard the rest
     local rssi_value=$(echo "$osd_string" | sed -n 's/.*rssi\([-0-9]*\).*/\1/p')
@@ -483,6 +542,11 @@ extract_snr_value() {
 
     local osd_string="$1"
 
+    if [[ "$osd_string" == *"waiting"* ]]; then
+        echo "0"
+        return
+    fi
+
     # Use sed to extract the number after 'snr' and discard the rest
     local snr_value=$(echo "$osd_string" | sed -n 's/.*snr\([0-9]*\).*/\1/p')
 
@@ -491,7 +555,7 @@ extract_snr_value() {
 }
 
 # Function to extract extra info: fec
-alink_extra_fec=()
+alink_extra_rx_fec=()
 extract_extra_fec() {
     # sprintf(global_gs_stats_osd, "rssi%d, %d\nsnr%d, %d\nfec%d", 
     # rssi1, link_value_rssi, snr1, link_value_snr, recovered);
@@ -506,6 +570,11 @@ extract_extra_fec() {
     # Input format 0.60.x: rssi-24 snr24 fec4 ants:vrx2
 
     local osd_string="$1"
+
+    if [[ "$osd_string" == *"waiting"* ]]; then
+        echo "0"
+        return
+    fi
 
     # Use sed to extract the number after 'fec' and discard the rest
     local fec_value=$(echo "$osd_string" | sed -n 's/.*fec\([0-9]*\).*/\1/p')
@@ -527,8 +596,12 @@ extract_extra_pnlt() {
 
     # Input format 0.58: fec4 pnlt0 xtx0(0) idr0
     # Input format 0.60: pnlt-358 xtx0(0) gs_idr5
-
     local osd_string="$1"
+
+    if [[ "$osd_string" == *"waiting"* ]]; then
+        echo "0"
+        return
+    fi
 
     # Use sed to extract the number after 'pnlt' and discard the rest
     local pnlt_value=$(echo "$osd_string" | sed -n 's/.*pnlt\([-0-9]*\).*/\1/p')
@@ -666,6 +739,30 @@ adjust_extra_rx_requested() {
     fi
 }
 
+# Function to extract gs lost packet
+alink_extra_rx_lost=()
+extract_extra_rx_lost() {
+    # Input format 0.60.x: rssi-56 snr21 fec11 lost4 ants:vrx4
+
+    local osd_string="$1"
+
+    if [[ -z "$osd_string" ]]; then
+        echo "0"
+        return
+    fi
+
+    if [[ "$osd_string" == *"waiting"* ]]; then
+        echo "0"
+        return
+    fi
+
+    # Use sed to extract the number after the comma (,) and discard the rest
+    local lost_packet=$(echo "$osd_string" | sed -n 's/.*lost\([0-9]\+\).*/\1/p')
+
+    # Output the extracted score value (e.g., 4)
+    echo "$lost_packet"
+}
+
 ######################################################################
 # Functions for deprecated
 ######################################################################
@@ -684,7 +781,7 @@ extract_rssi_score() {
     # Input format 0.58: rssi-32, 1960
     # Input format 0.60: rssi-21 snr17 ants:vrx2 //No rssi score
 
-    echo "0"
+    echo ""
 
     # local osd_string="$1"
 
@@ -710,7 +807,7 @@ extract_snr_score() {
     # Input format 0.58: snr24, 1462
     # Input format 0.60: rssi-21 snr17 ants:vrx2 //No snr score
 
-    echo "0"
+    echo ""
 
     # local osd_string="$1"  # Input string, e.g., "snr24, 1462"
 
@@ -727,7 +824,7 @@ extract_snr_score() {
 
 export_to_csv() {
     # Define the headers (remove 'alink_' prefix and set as column names)
-    local headers="time, elapsed, Kbitrate, bandwidth, gi, mcs, k, n, pwr, gop, Mbitrate, fps, cpu, temp, tx_temp, linkq, smthdq, rssi, rssi_score, snr, snr_score, fec, pnlt, tx_drop, tx_req, gs_req"
+    local headers="time, elapsed, Kbitrate, bandwidth, gi, mcs, k, n, pwr, gop, Mbitrate, fps, cpu, temp, tx_temp, linkq, smthdq, rssi, rssi_score, snr, snr_score, fec, pnlt, tx_drop, tx_req, rx_req, rx_lost"
 
     # Print headers (replace 'alink_' prefix)
     echo "$headers"
@@ -755,11 +852,12 @@ export_to_csv() {
         echo -n "${alink_rssi_score[i]},"
         echo -n "${alink_snr_value[i]},"
         echo -n "${alink_snr_score[i]},"
-        echo -n "${alink_extra_fec[i]},"
+        echo -n "${alink_extra_rx_fec[i]},"
         echo -n "${alink_extra_pnlt[i]},"
         echo -n "${alink_extra_tx_dropped[i]},"
         echo -n "${alink_extra_tx_requested[i]},"
-        echo    "${alink_extra_rx_requested[i]}"
+        echo -n "${alink_extra_rx_requested[i]},"
+        echo    "${alink_extra_rx_lost[i]}"
     done
 
     # Print a newline to end the row
@@ -976,6 +1074,8 @@ report_link_score() {
 # Function: Check and update link status
 alink_fec_min=9999
 alink_fec_max=0
+alink_lost_packet_min=9999
+alink_lost_packet_max=0
 alink_penalty_min=0
 alink_penalty_max=-999
 alink_tx_dropped_min=9999
@@ -985,11 +1085,19 @@ alink_tx_requested_max=0
 alink_rx_requested_min=9999
 alink_rx_requested_max=0
 check_link_status() {
-    local fec=$1
-    local pnlty=$2
-    local tx_dropped=$3
-    local tx_requested=$4
-    local rx_requested=$5
+    local lost_packet=$1
+    local fec=$2
+    local pnlty=$3
+    local tx_dropped=$4
+    local tx_requested=$5
+    local rx_requested=$6
+
+    # Update min/max values only if the corresponding variable is provided
+    if [[ -n "$lost_packet" ]]; then
+        # If the new value is smaller or larger, update min/max
+        [[ $lost_packet -lt $alink_lost_packet_min ]] && alink_lost_packet_min=$lost_packet
+        [[ $lost_packet -gt $alink_lost_packet_max ]] && alink_lost_packet_max=$lost_packet
+    fi
 
     # Update min/max values only if the corresponding variable is provided
     if [[ -n "$fec" ]]; then
@@ -1028,14 +1136,16 @@ report_link_status() {
     echo ""
     echo "------------------------------------------"
     echo "RX FEC      : $alink_fec_min ~ $alink_fec_max"
+    echo "RX lost     : $alink_lost_packet_min ~ $alink_lost_packet_max"
     echo "TX penalty  : $alink_penalty_min ~ $alink_penalty_max"
     echo "TX dropped  : $alink_tx_dropped_min ~ $alink_tx_dropped_max"
     echo "TX requested: $alink_tx_requested_min ~ $alink_tx_requested_max"
     echo "RX requested: $alink_rx_requested_min ~ $alink_rx_requested_max"
     if [[ $verbose -eq 1 ]]; then
-        print_table alink_extra_fec $column
+        print_table alink_extra_rx_fec $column
         print_table alink_extra_tx_dropped $column
         print_table alink_extra_tx_requested $column
+        print_table alink_extra_rx_lost $column
         print_table alink_extra_rx_requested $column
     fi
 }
@@ -1141,7 +1251,10 @@ process_block() {
     alink_snr_value+=($snr_value)
 
     extra_fec=$(extract_extra_fec "$rssi_snr_line")
-    alink_extra_fec+=($extra_fec)
+    alink_extra_rx_fec+=($extra_fec)
+
+    extra_rx_lost=$(extract_extra_rx_lost "$rssi_snr_line")
+    alink_extra_rx_lost+=($extra_rx_lost)
 
     check_link_score $rssi_value $snr_value $linkq_value $smthdq_value
 
@@ -1165,7 +1278,7 @@ process_block() {
     adjust_extra_rx_requested "$extra_rx_requested"
     alink_extra_rx_requested+=($adjust_rx_requested_result)
 
-    check_link_status $extra_fec $extra_pnlt $adjust_tx_dropped_result $adjust_tx_requested_result $adjust_rx_requested_result
+    check_link_status $extra_rx_lost $extra_fec $extra_pnlt $adjust_tx_dropped_result $adjust_tx_requested_result $adjust_rx_requested_result
 }
 
 # Function to process the file
@@ -1235,7 +1348,7 @@ process_file $srt_file
 #print_table alink_snr_value $column
 #print_table alink_snr_score $column
 
-#print_table alink_extra_fec $column
+#print_table alink_extra_rx_fec $column
 #print_table alink_extra_pnlt $column
 #print_table alink_extra_tx_dropped $column
 #print_table alink_extra_tx_requested $column
