@@ -604,9 +604,9 @@ extract_extra_pnlt() {
     fi
 
     # Use sed to extract the number after 'pnlt' and discard the rest
-    local pnlt_value=$(echo "$osd_string" | sed -n 's/.*pnlt\([-0-9]*\).*/\1/p')
+    local pnlt_value=$(echo "$osd_string" | sed -n 's/.*pnlt\([+-]\?[0-9]\+\).*/\1/p')
 
-    # Output the extracted PNLT value (e.g., 0)
+    # Output the extracted PNLT value (e.g., -358)
     echo "$pnlt_value"
 }
 
