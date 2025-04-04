@@ -6,6 +6,8 @@ COLUMN_Y1=100
 COLUMN_Y2=200
 COLUMN_Y3=300
 COLUMN_Y4=400
+COLUMN_Y5=500
+COLUMN_Y6=600
 
 BG_OPACITY=0.5
 
@@ -72,6 +74,7 @@ while [[ $# -gt 0 ]]; do
 
     -h|--help)
       show_help
+      exit 1
       ;;
 
     *)
@@ -113,22 +116,34 @@ $CMD_PLOT_CSV $csv_file\
               --background_opacity=$BG_OPACITY\
               --title "Penalty"\
               --item 22\
-              --min_value -600\
+              --min_value -500\
               --max_value 0\
-              --threshold -50\
+              --threshold -100\
               --direction -1 &
 
-# Bitrate
+# Rx Drop
 $CMD_PLOT_CSV $csv_file\
               --graph_x $COLUMN_A_X\
               --graph_y $COLUMN_Y4\
               --background_opacity=$BG_OPACITY\
-              --title "Bitrate Kbps"\
-              --item 2\
+              --title "Rx Drop"\
+              --item 26\
               --min_value 0\
-              --max_value 12288\
-              --threshold 2048\
-              --direction -1 &
+              --max_value 20\
+              --threshold 1\
+              --direction +1 &
+
+# Tx Drop
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_A_X\
+              --graph_y $COLUMN_Y5\
+              --background_opacity=$BG_OPACITY\
+              --title "Tx Drop"\
+              --item 23\
+              --min_value 0\
+              --max_value 50\
+              --threshold 15\
+              --direction +1 &
 
 ######################################################################
 # Column B
@@ -158,19 +173,19 @@ $CMD_PLOT_CSV $csv_file\
               --threshold 30\
               --direction +1 &
 
-# Packet Drop
+# Bitrate
 $CMD_PLOT_CSV $csv_file\
               --graph_x $COLUMN_B_X\
               --graph_y $COLUMN_Y3\
               --background_opacity=$BG_OPACITY\
-              --title "Packet Drop"\
-              --item 23\
+              --title "Bitrate Kbps"\
+              --item 2\
               --min_value 0\
-              --max_value 50\
-              --threshold 15\
-              --direction +1 &
+              --max_value 12288\
+              --threshold 2048\
+              --direction -1 &
 
-# Key Frame Req
+# Rx Key Frame Req
 $CMD_PLOT_CSV $csv_file\
               --graph_x $COLUMN_B_X\
               --graph_y $COLUMN_Y4\
@@ -182,33 +197,34 @@ $CMD_PLOT_CSV $csv_file\
               --threshold 0\
               --direction +1 &
 
+# Tx Key Frame Req
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y5\
+              --background_opacity=$BG_OPACITY\
+              --title "TX Req"\
+              --item 24\
+              --min_value 0\
+              --max_value 5\
+              --threshold 0\
+              --direction +1 &
+
+# FEC
+$CMD_PLOT_CSV $csv_file\
+              --graph_x $COLUMN_B_X\
+              --graph_y $COLUMN_Y6\
+              --background_opacity=$BG_OPACITY\
+              --title "FEC"\
+              --item 21\
+              --min_value 0\
+              --max_value 20\
+              --threshold 3\
+              --direction +1 &
+
 ######################################################################
 # Column C, reserved
 ######################################################################
 
-# # FEC
-# $CMD_PLOT_CSV $csv_file\
-#               --graph_x $COLUMN_A_X\
-#               --graph_y $COLUMN_Y1\
-#               --background_opacity=$BG_OPACITY\
-#               --title "FEC"\
-#               --item 21\
-#               --min_value -1\
-#               --max_value 20\
-#               --threshold 6\
-#               --direction +1 &
-
-# # Packet Req
-# $CMD_PLOT_CSV $csv_file\
-#               --graph_x $COLUMN_A_X\
-#               --graph_y $COLUMN_Y3\
-#               --background_opacity=$BG_OPACITY\
-#               --title "TX Req"\
-#               --item 24\
-#               --min_value 0\
-#               --max_value 2\
-#               --threshold 0\
-#               --direction +1 &
 
 ######################################################################
 # Video
@@ -235,4 +251,18 @@ python3 ./utils/plot-widget.py  2025-03-30_2/2025-03-30_15-13-23.csv\
                         --min_value 0\
                         --max_value 12288\
                         --threshold 2048\
+                        --direction -1
+
+
+
+python3 ./utils/plot-widget.py  2025-04-04_14-08-50/2025-04-04_14-08-50.csv\
+                        --graph_x 1400\
+                        --graph_y 900\
+                        --graph_width 300\
+                        --graph_height 100\
+                        --title "Penalty"\
+                        --item 22\
+                        --min_value -600\
+                        --max_value 0\
+                        --threshold -50\
                         --direction -1
