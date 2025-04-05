@@ -1166,6 +1166,11 @@ process_block() {
         #echo "Mismatch detected: alink_record_cnt=$alink_record_cnt, id=$id"
     fi
 
+    if [[ "${block[2]}" == *"No MSPOSD.msg available"* ]]; then
+        return
+    fi
+    
+
     ###################################
     # Extract timestamp               #
     ###################################
